@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import uptech
-import time
-import threading
-
-import socket
 import fcntl
-import struct
 import os
 import psutil
+import socket
+import struct
+import threading
+import time
+
+import uptech
 
 
 # fcntl.ioctl(s.fileno(),0x8915,struct.pack('256s',ifname[:15]))
@@ -26,14 +26,14 @@ def get_ip_address(ifname):
 
 
 def getCPUuse():
-    return (str(os.popen("top -n1 | awk '/Cpu\(s\):/ {print $2}'").readline().strip()))
+    return str(os.popen("top -n1 | awk '/Cpu\(s\):/ {print $2}'").readline().strip())
 
 
 def getCPUtemperature():
     res = os.popen('sudo cat /sys/class/thermal/thermal_zone0/temp').readline()
     tempfloat = float(res) / 1000
     temp = '%.1f' % tempfloat  # str(tempfloat)
-    return (temp + "'C")
+    return temp + "'C"
 
 
 up = uptech.UpTech()
