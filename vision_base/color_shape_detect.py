@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import utils
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 

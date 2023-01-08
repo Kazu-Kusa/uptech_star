@@ -6,6 +6,7 @@ import logging
 import binascii
 import platform
 import threading
+from numba import jit
 
 if platform.system() == "Windows":
     from serial.tools import list_ports

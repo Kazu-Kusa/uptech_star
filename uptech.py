@@ -18,7 +18,6 @@ __version__ = "1.0"
 
 FAN_GPIO_PWM = 18
 
-# so_up = cdll.LoadLibrary("/home/pi/Desktop/backup_a_lib/pytlib/libuptech.so")
 so_up = cdll.LoadLibrary("libuptech.so")
 
 
@@ -106,13 +105,13 @@ class UpTech:
     #         self.__lcd_refresh_timer.cancel()
 
     def stop(self):
-        # # self.timer_LCD()
-        # self.__lcd_timer_runnig=False
-        # time.sleep(0.1)
-        # #self.__lcd_refresh_timer
-        # self.hPi.serial_close(self.hPi.port)
-        # self.hPi.spi_close(self.hPi.port)
-        # self.hPi.stop()
+        # self.timer_LCD()
+        self.__lcd_timer_runnig=False
+        time.sleep(0.1)
+        #self.__lcd_refresh_timer
+        self.hPi.serial_close(self.hPi.port)
+        self.hPi.spi_close(self.hPi.port)
+        self.hPi.stop()
         pass
 
     def FAN_Set_Speed(self, speed):
