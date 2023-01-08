@@ -1,9 +1,10 @@
-import time
-from serial_helper import SerialHelper
 import threading
+import time
+
+from serial_helper import SerialHelper
 
 
-class UltraSensor():
+class UltraSensor:
 
     def __init__(self):
         # 创建串口对象
