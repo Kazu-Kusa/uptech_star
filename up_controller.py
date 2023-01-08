@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import uptech
+
 import time
 import threading
-from closed_loop_controller import ClosedLoopController
-
+from .closed_loop_controller import ClosedLoopController
+from .uptech import UpTech
 
 class UpController:
     # cmd
@@ -26,7 +26,7 @@ class UpController:
     CHASSIS_MODE_CONTROLLER = 2
 
     def __init__(self):
-        self.up = uptech.UpTech()
+        self.up = UpTech()
         self.up.LCD_Open(2)
         open_flag = self.up.ADC_IO_Open()
         print("ad_io_open = {}".format(open_flag))
