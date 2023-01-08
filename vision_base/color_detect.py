@@ -1,7 +1,5 @@
 import cv2
 import numpy as np
-import utils
-import time
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 

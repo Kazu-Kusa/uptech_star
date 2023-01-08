@@ -3,7 +3,7 @@ from serial_helper import SerialHelper
 import threading
 
 
-class ClosedLoopController():
+class ClosedLoopController:
 
     def __init__(self):
         # 创建串口对象
