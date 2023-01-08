@@ -1,10 +1,9 @@
 import cv2
 import numpy as np
-import utils
-from up_controller import UpController
-import time
 from multiprocessing import Process
 from multiprocessing.managers import BaseManager
+
+from up_controller import UpController
 
 font = cv2.FONT_HERSHEY_SIMPLEX
 
