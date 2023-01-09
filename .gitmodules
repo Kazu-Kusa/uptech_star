@@ -1,0 +1,3 @@
+[submodule "hotConfigure"]
+	path = hotConfigure
+	url = https://github.com/Kazu-Kusa/Pi_hotconfigure.git
