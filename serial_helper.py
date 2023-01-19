@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
-import sys
-import time
-import serial
 import logging
-import binascii
 import platform
 import threading
+import time
 
+import serial
 
 if platform.system() == "Windows":
     from serial.tools import list_ports
@@ -118,17 +116,19 @@ class SerialHelper(object):
                     if number > 0:
                         data = self._serial.read(number)
                         if data:
-                            #                             height = ((data[5] & 0xFF) | ((data[6] & 0xFF) << 8) | ((data[7] & 0xFF) << 16) | ((data[8] & 0xFF) << 24))
+                            # height = ((data[5] & 0xFF) | ((data[6] & 0xFF) << 8) | ((data[7] & 0xFF) << 16) | ((
+                            # data[8] & 0xFF) << 24))
                             func(data)
                 except Exception as e:
                     self._is_connected = False
                     self._serial = None
                     break
 
-    def find_usb_tty(self, vendor_id=None, product_id=None):
-        '''
+    @staticmethod
+    def find_usb_tty(vendor_id=None, product_id=None):
+        """
         查找Linux下的串口设备
-        '''
+        """
         tty_devs = list()
         for dn in glob.glob('/sys/bus/usb/devices/*'):
             try:
@@ -153,7 +153,8 @@ class testHelper(object):
     def write(self, data):
         self.myserial.write(data, True)
 
-    def generateCmd(self, device, cmd, len, data):
+    @staticmethod
+    def generateCmd(device, cmd, len, data):
         buffer = [0] * (len + 6)
         buffer[0] = 0xF5
         buffer[1] = 0x5F
@@ -185,7 +186,8 @@ class testHelper(object):
         else:
             print("DisConnected")
 
-    def myserial_on_data_received(self, data):
+    @staticmethod
+    def myserial_on_data_received(data):
         print(data)
 
 

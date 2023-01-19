@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# import numpy as np
 import ctypes
-# from ctypes import *
-# import numpy as np
 from ctypes import cdll
 
 import pigpio
@@ -86,12 +83,7 @@ class UpTech:
         self.hPi.set_PWM_range(FAN_GPIO_PWM, 100)
 
     def FAN_Set_Speed(self, speed):
-        if self.hPi >= 0:
-            if speed > 100:
-                speed = 100
-            elif speed < 0:
-                speed = 0
-            self.hPi.set_PWM_dutycycle(FAN_GPIO_PWM, speed)
+        self.hPi.set_PWM_dutycycle(FAN_GPIO_PWM, speed)
 
     @staticmethod
     def ADC_IO_Open():
@@ -106,7 +98,6 @@ class UpTech:
         so_up.ADC_GetAll(self.__ADC_DATA)
         for i in range(10):
             self.ADC_DATA[i] = self.__ADC_DATA[i]
-        # print self.ADC_DATA
         return self.ADC_DATA
 
     @staticmethod

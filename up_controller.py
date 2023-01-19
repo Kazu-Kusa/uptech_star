@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Disable
-import sys
 import os
-import time
+import sys
 import threading
+import time
+
 from .closed_loop_controller import ClosedLoopController
 from .uptech import UpTech
 
@@ -52,9 +53,10 @@ class UpController:
     @staticmethod
     def enable_print():
         sys.stdout = sys.__stdout__
+
     def open_edge_detect(self):
         edge_thread = threading.Thread(name="edge_detect_thread", target=self.edge_detect_thread)
-        edge_thread.setDaemon(True)
+        edge_thread.daemon = True
         edge_thread.start()
         time.sleep(1)
 
@@ -103,19 +105,19 @@ class UpController:
     #  速度指令，闭环控制器，使用闭环控制时替换开环控制代码
     """
 
-    def move_cmd(self, left_speed, right_speed,print_log=False):
+    def move_cmd(self, left_speed, right_speed, print_log=False):
         def move():
             self.closed_loop.set_motor_speed(1, -left_speed)
             self.closed_loop.set_motor_speed(2, right_speed)
             self.closed_loop.set_motor_speed(3, -left_speed)
             self.closed_loop.set_motor_speed(4, right_speed)
+
         if print_log:
             move()
         else:
             self.block_print()
             move()
             self.enable_print()
-
 
     def move_up(self):
         if self.chassis_mode == self.CHASSIS_MODE_SERVO:

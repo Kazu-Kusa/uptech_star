@@ -1,9 +1,10 @@
-import time
-from .serial_helper import SerialHelper
 import threading
+import time
+
+from .serial_helper import SerialHelper
 
 
-class UltraSensor():
+class UltraSensor:
 
     def __init__(self):
         # 创建串口对象
@@ -17,7 +18,7 @@ class UltraSensor():
 
         # 通信线程创建启动
         sendThread = threading.Thread(name="send_thread", target=self.send_msg)
-        sendThread.setDaemon(True)
+        sendThread.daemon = True
         sendThread.start()
 
     # 串口连接状态回调函数
@@ -69,7 +70,7 @@ class UltraSensor():
     def get_sensor_data(self):
         print("start sensor thread")
         self.get_sensor_data_thread = threading.Thread(target=self.get_sensor_data_callback, name="get_sensor")
-        self.get_sensor_data_thread.setDaemon(False)
+        self.get_sensor_data_thread.daemon = True
         self.get_sensor_data_thread.start()
 
     # 获取超声波传感器数据，循环执行
@@ -82,7 +83,8 @@ class UltraSensor():
                 time.sleep(1)
 
     # 超声传感器数据读取回调函数
-    def on_data_received(self, data):
+    @staticmethod
+    def on_data_received(data):
         if len(data) > 8:
             if data[3] == 0x02 and data[4] == 0x05:
                 value = ((data[8] & 0xFF) | ((data[7] & 0xFF) << 8))
