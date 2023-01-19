@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import pigpio
-import time
-import threading
-# from ctypes import *
-# import numpy as np
-import binascii
-from ctypes import cdll
 # import numpy as np
 import ctypes
+# from ctypes import *
+# import numpy as np
+from ctypes import cdll
+
+import pigpio
 
 __version__ = "1.0"
 # hPi=pigpio.pi()
@@ -19,12 +17,6 @@ __version__ = "1.0"
 FAN_GPIO_PWM = 18
 
 so_up = cdll.LoadLibrary("libuptech.so")
-
-
-def SWAP(x, y):
-    temp = x
-    x = y
-    y = temp
 
 
 class UpTech:
@@ -83,36 +75,15 @@ class UpTech:
 
         pigpio.exceptions = False
         self.hPi = pigpio.pi()
-        if not self.hPi.connected:
-            exit()
+        assert not self.hPi.connected, 'pi is not connected'
 
         # self.hSpi1 = self.hPi.spi_open(2, 1000000, (1<<8)|(0<<0))
         # if self.hSpi1 < 0:
         #     self.hPi.spi_close(1)
         #     self.hSpi1 = self.hPi.spi_open(2, 1000000, (1<<8)|(0<<0))
-        pigpio.exceptions = True
+        # pigpio.exceptions = True
         self.hPi.hardware_PWM(FAN_GPIO_PWM, 20000, 1000000)
         self.hPi.set_PWM_range(FAN_GPIO_PWM, 100)
-
-    # def __LCD_INTTERUPT(self):
-
-    #     adc_value=self.ADC_Get_All_Channle()
-    #     print adc_value
-    #     if self.__lcd_timer_runnig:
-    #         self.__lcd_refresh_timer=threading.Timer(0.01,self.__LCD_INTTERUPT)
-    #         self.__lcd_refresh_timer.start()
-    #     else:
-    #         self.__lcd_refresh_timer.cancel()
-
-    def stop(self):
-        # self.timer_LCD()
-        self.__lcd_timer_runnig=False
-        time.sleep(0.1)
-        #self.__lcd_refresh_timer
-        self.hPi.serial_close(self.hPi.port)
-        self.hPi.spi_close(self.hPi.port)
-        self.hPi.stop()
-        pass
 
     def FAN_Set_Speed(self, speed):
         if self.hPi >= 0:
@@ -122,18 +93,15 @@ class UpTech:
                 speed = 0
             self.hPi.set_PWM_dutycycle(FAN_GPIO_PWM, speed)
 
-    def ADC_IO_Open(self):
+    @staticmethod
+    def ADC_IO_Open():
         return so_up.adc_io_open()
 
-    def ADC_IO_Close(self):
+    @staticmethod
+    def ADC_IO_Close():
         so_up.adc_io_close()
 
     def ADC_Get_All_Channle(self):
-        # adc = so_up.ADC_GetAll
-        # adc.argtypes = [np.ctypeslib.ndpointer(dtype=np.int16,ndim=1,flags="C_CONTIGUOUS")]
-        # res = np.zeros(10,dtype=np.int16)*0
-        # adc(res)
-        # print res
 
         so_up.ADC_GetAll(self.__ADC_DATA)
         for i in range(10):
@@ -141,46 +109,56 @@ class UpTech:
         # print self.ADC_DATA
         return self.ADC_DATA
 
-        # so_up.ADC_GetAll(self.__ADC_DATA)
-        # print self.__ADC_DATA.tolist()
-
-    def ADC_Led_SetColor(self, index, RGB):
+    @staticmethod
+    def ADC_Led_SetColor(index, RGB):
         so_up.adc_led_set(index, RGB)
 
-    def ADC_IO_SetIOLevel(self, index, level):
+    @staticmethod
+    def ADC_IO_SetIOLevel(index, level):
         so_up.adc_io_Set(index, level)
 
-    def ADC_IO_SetAllIOLevel(self, value):
+    @staticmethod
+    def ADC_IO_SetAllIOLevel(value):
         so_up.adc_io_SetAll(value)
 
-    def ADC_IO_SetAllIOMode(self, mode):
+    @staticmethod
+    def ADC_IO_SetAllIOMode(mode):
         so_up.adc_io_ModeSetAll(mode)
 
-    def ADC_IO_SetIOMode(self, index, mode):
+    @staticmethod
+    def ADC_IO_SetIOMode(index, mode):
         so_up.adc_io_ModeSet(index, mode)
 
-    def ADC_IO_GetAllInputLevel(self):
+    @staticmethod
+    def ADC_IO_GetAllInputLevel():
         return so_up.adc_io_InputGetAll()
 
-    def CDS_Open(self):
+    @staticmethod
+    def CDS_Open():
         so_up.cds_servo_open()
 
-    def CDS_Close(self):
+    @staticmethod
+    def CDS_Close():
         so_up.cds_servo_close()
 
-    def CDS_SetMode(self, id, mode):
+    @staticmethod
+    def CDS_SetMode(id, mode):
         so_up.cds_servo_SetMode(id, mode)
 
-    def CDS_SetAngle(self, id, angle, speed):
+    @staticmethod
+    def CDS_SetAngle(id, angle, speed):
         so_up.cds_servo_SetAngle(id, angle, speed)
 
-    def CDS_SetSpeed(self, id, speed):
+    @staticmethod
+    def CDS_SetSpeed(id, speed):
         so_up.cds_servo_SetSpeed(id, speed)
 
-    def CDS_GetCurPos(self, id):
+    @staticmethod
+    def CDS_GetCurPos(id):
         return so_up.cds_servo_GetPos(id)
 
-    def MPU6500_Open(self):
+    @staticmethod
+    def MPU6500_Open():
         so_up.mpu6500_dmp_init()
 
     def MPU6500_GetAccel(self):
@@ -201,25 +179,32 @@ class UpTech:
             self.ATTITUDE[i] = self.__MPU_DATA[i]
         return self.ATTITUDE
 
-    def LCD_Open(self, dir):
+    @staticmethod
+    def LCD_Open(dir):
         return so_up.lcd_open(dir)
 
-    def LCD_Refresh(self):
+    @staticmethod
+    def LCD_Refresh():
         so_up.LCD_Refresh()
 
-    def LCD_SetFont(self, font_index):
+    @staticmethod
+    def LCD_SetFont(font_index):
         so_up.LCD_SetFont(font_index)
 
-    def LCD_SetForeColor(self, color):
+    @staticmethod
+    def LCD_SetForeColor(color):
         so_up.UG_SetForecolor(color)
 
-    def LCD_SetBackColor(self, color):
+    @staticmethod
+    def LCD_SetBackColor(color):
         so_up.UG_SetBackcolor(color)
 
-    def LCD_FillScreen(self, color):
+    @staticmethod
+    def LCD_FillScreen(color):
         so_up.UG_FillScreen(color)
 
-    def LCD_PutString(self, x, y, str):
+    @staticmethod
+    def LCD_PutString(x, y, str):
         byte = ctypes.c_byte * len(str)
         bin = byte()
         i = 0
@@ -228,34 +213,44 @@ class UpTech:
             i += 1
         so_up.UG_PutString(x, y, bin)
 
-    def LCD_FillFrame(self, x1, y1, x2, y2, color):
+    @staticmethod
+    def LCD_FillFrame(x1, y1, x2, y2, color):
         so_up.UG_FillFrame(x1, y1, x2, y2, color)
 
-    def LCD_FillRoundFrame(self, x1, y1, x2, y2, r, color):
+    @staticmethod
+    def LCD_FillRoundFrame(x1, y1, x2, y2, r, color):
         so_up.UG_FillRoundFrame(x1, y1, x2, y2, r, color)
 
-    def LCD_DrawMesh(self, x1, y1, x2, y2, color):
+    @staticmethod
+    def LCD_DrawMesh(x1, y1, x2, y2, color):
         so_up.UG_DrawMesh(x1, y1, x2, y2, color)
 
-    def LCD_DrawFrame(self, x1, y1, x2, y2, color):
+    @staticmethod
+    def LCD_DrawFrame(x1, y1, x2, y2, color):
         so_up.UG_DrawFrame(x1, y1, x2, y2, color)
 
-    def LCD_DrawRoundFrame(self, x1, y1, x2, y2, r, color):
+    @staticmethod
+    def LCD_DrawRoundFrame(x1, y1, x2, y2, r, color):
         so_up.UG_DrawRoundFrame(x1, y1, x2, y2, r, color)
 
-    def LCD_DrawPixel(self, x0, y0, color):
+    @staticmethod
+    def LCD_DrawPixel(x0, y0, color):
         so_up.UG_DrawPixel(x0, y0, color)
 
-    def LCD_DrawCircle(self, x0, y0, r, color):
+    @staticmethod
+    def LCD_DrawCircle(x0, y0, r, color):
         so_up.UG_DrawCircle(x0, y0, r, color)
 
-    def LCD_FillCircle(self, x0, y0, r, color):
+    @staticmethod
+    def LCD_FillCircle(x0, y0, r, color):
         so_up.UG_FillCircle(x0, y0, r, color)
 
-    def LCD_DrawArc(self, x0, y0, r, s, color):
+    @staticmethod
+    def LCD_DrawArc(x0, y0, r, s, color):
         so_up.UG_DrawArc(x0, y0, r, s, color)
 
-    def LCD_DrawLine(self, x1, y1, x2, y2, color):
+    @staticmethod
+    def LCD_DrawLine(x1, y1, x2, y2, color):
         so_up.UG_DrawLine(x1, y1, x2, y2, color)
         # void UG_DrawArc( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_U8 s, UG_COLOR c );
     # void UG_DrawLine( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c );

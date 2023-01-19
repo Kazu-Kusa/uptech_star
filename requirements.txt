@@ -1,4 +1,5 @@
-psutil>=5.9.4
-numpy
+numpy>=1.23.5
 opencv-python==4.7.0.68
 apriltag==0.0.16
+pigpio>=1.78
+pyserial>=3.5
