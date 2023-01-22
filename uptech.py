@@ -71,7 +71,7 @@ class UpTech:
 
         pigpio.exceptions = False
         self.hPi = pigpio.pi()
-        assert not self.hPi.connected, 'pi is not connected'
+        assert self.hPi.connected, 'pi is not connected'
 
         # self.hSpi1 = self.hPi.spi_open(2, 1000000, (1<<8)|(0<<0))
         # if self.hSpi1 < 0:
