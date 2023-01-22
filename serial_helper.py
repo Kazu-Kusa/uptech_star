@@ -73,7 +73,7 @@ class SerialHelper(object):
         set serial connected status change callback
         '''
         tConnected = threading.Thread(target=self._on_connected_changed, args=(func,))
-        tConnected.setDaemon(True)
+        tConnected.daemon = True
         tConnected.start()
 
     def _on_connected_changed(self, func):
@@ -101,7 +101,7 @@ class SerialHelper(object):
         set serial data recieved callback
         '''
         tDataReceived = threading.Thread(target=self._on_data_received, args=(func,))
-        tDataReceived.setDaemon(True)
+        tDataReceived.daemon = True
         tDataReceived.start()
 
     def _on_data_received(self, func):

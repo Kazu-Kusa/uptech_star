@@ -64,7 +64,6 @@ class UpTech:
 
     __mpu_float = ctypes.c_float * 3
     __MPU_DATA = __mpu_float()
-    ACCEL_DATA = [0] * 3
     GYRO_DATA = [0] * 3
     ATTITUDE = [0] * 3
 
@@ -96,9 +95,8 @@ class UpTech:
     def ADC_Get_All_Channle(self):
 
         so_up.ADC_GetAll(self.__ADC_DATA)
-        for i in range(10):
-            self.ADC_DATA[i] = self.__ADC_DATA[i]
-        return self.ADC_DATA
+
+        return self.__ADC_DATA
 
     @staticmethod
     def ADC_Led_SetColor(index, RGB):
@@ -154,21 +152,18 @@ class UpTech:
 
     def MPU6500_GetAccel(self):
         so_up.mpu6500_Get_Accel(self.__MPU_DATA)
-        for i in range(3):
-            self.ACCEL_DATA[i] = self.__MPU_DATA[i]
-        return self.ACCEL_DATA
+
+        return self.__MPU_DATA
 
     def MPU6500_GetGyro(self):
         so_up.mpu6500_Get_Gyro(self.__MPU_DATA)
-        for i in range(3):
-            self.GYRO_DATA[i] = self.__MPU_DATA[i]
-        return self.GYRO_DATA
+
+        return self.__MPU_DATA
 
     def MPU6500_GetAttitude(self):
         so_up.mpu6500_Get_Attitude(self.__MPU_DATA)
-        for i in range(3):
-            self.ATTITUDE[i] = self.__MPU_DATA[i]
-        return self.ATTITUDE
+
+        return self.__MPU_DATA
 
     @staticmethod
     def LCD_Open(dir):
