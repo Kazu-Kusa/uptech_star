@@ -1,11 +1,10 @@
-import cv2
-import apriltag
-import sys
-import numpy as np
-from up_controller import UpController
-import time
 from multiprocessing import Process
 from multiprocessing.managers import BaseManager
+
+import apriltag
+import cv2
+
+from up_controller import UpController
 
 
 class ArenaContest:
@@ -33,7 +32,7 @@ class ArenaContest:
         servo_ids = [5, 6, 7, 8]
         self.up.set_cds_mode(motor_ids, 1)
         self.up.set_cds_mode(servo_ids, 0)
-        self.up.open_edge_detect()
+        self.up.open_adc_io_update_thread()
 
         # self.up.go_up_platform()
 
