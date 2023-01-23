@@ -6,11 +6,11 @@ import sys
 import threading
 import time
 
-from .closed_loop_controller import ClosedLoopController
+from .close_loop_controller import CloseLoopController
 from .uptech import UpTech
 
 
-class UpController(UpTech, ClosedLoopController):
+class UpController(UpTech, CloseLoopController):
     # cmd
     NO_CONTROLLER = 0
     MOVE_UP = 1
@@ -30,7 +30,9 @@ class UpController(UpTech, ClosedLoopController):
     CHASSIS_MODE_CONTROLLER = 2
 
     def __init__(self):
-        super().__init__()
+        # call father class init
+        super(UpTech, self).__init__()
+        super(CloseLoopController, self).__init__()
         self.LCD_Open(2)
         open_flag = self.ADC_IO_Open()
         print("ad_io_open = {}".format(open_flag))
@@ -65,7 +67,7 @@ class UpController(UpTech, ClosedLoopController):
 
     def edge_detect_thread(self):
         while True:
-            self.adc_data = self.ADC_Get_All_Channle()
+            self.adc_data = self.ADC_Get_All_Channel()
             io_all_input = self.ADC_IO_GetAllInputLevel()
             # convert all iolevel to a string
             io_array = '{:08b}'.format(io_all_input)
