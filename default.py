@@ -18,7 +18,7 @@ up.LCD_SetFont(up.FONT_8X14)
 count = 0
 
 while True:
-    adc_value = up.ADC_Get_All_Channle()
+    adc_value = up.ADC_Get_All_Channel()
     battery_voltage_float = adc_value[9] * 3.3 * 4.0 / 4096
     str_battery_voltage_float = '%.2fV' % battery_voltage_float
 

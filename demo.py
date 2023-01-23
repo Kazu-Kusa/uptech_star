@@ -71,7 +71,7 @@ while True:
 
     ram_usage = '%.1f' % psutil.virtual_memory().percent
 
-    adc = up.ADC_Get_All_Channle()
+    adc = up.ADC_Get_All_Channel()
     adc0_float = adc[9] * 3.3 * 4.0 / 4096
     str_adc0 = '%.2f' % adc0_float
     str_adc0 = str_adc0 + "v "
@@ -130,7 +130,7 @@ while True:
 # intterupt_adc_disable()
 while True:
     # up.LCD_Open()
-    up.ADC_Get_All_Channle()
+    up.ADC_Get_All_Channel()
     # print adc_value
     time.sleep(0.1)
 

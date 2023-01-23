@@ -1,13 +1,15 @@
-import time
-from .serial_helper import SerialHelper
 import threading
+import time
+
+from .serial_helper import SerialHelper
 
 
-class ClosedLoopController:
+class CloseLoopController:
 
     def __init__(self):
         # 创建串口对象
         self.ser = SerialHelper()
+        print('serial channel opened')
         self.ser.on_connected_changed(self.myserial_on_connected_changed)
 
         # 发送的数据队列
@@ -17,8 +19,9 @@ class ClosedLoopController:
 
         # 通信线程创建启动
         sendThread = threading.Thread(name="send_thread", target=self.send_msg)
-        sendThread.setDaemon(False)
+        sendThread.daemon = False
         sendThread.start()
+        print("launch communication thread")
 
     # 串口连接状态回调函数
     def myserial_on_connected_changed(self, is_connected):
@@ -31,7 +34,7 @@ class ClosedLoopController:
 
     # 串口通信发送
     def write(self, data):
-        self.ser.write(data, True)
+        self.ser.write(data, isHex=True)
 
     # 串口通信线程发送函数
     def send_msg(self):
@@ -52,10 +55,11 @@ class ClosedLoopController:
         #     print(hex(int(buffer[i])))
         return buffer
 
-    # 控制节点电机运动，id:节点 speed :速度
-    def set_motor_speed(self, id, speed):
+    # 控制节点电机运动，servos_id:节点 speed :速度
+    def set_motor_speed(self, id, speed, debug=False):
         cmd = "{}v{}".format(id, speed)
-        print(cmd)
+        if debug:
+            print(cmd)
         data = self.generateCmd(cmd)
         self.write(data)
         # self.msg_list.append(data)
@@ -64,7 +68,7 @@ class ClosedLoopController:
 
 
 if __name__ == '__main__':
-    connect = ClosedLoopController()
+    connect = CloseLoopController()
     time.sleep(1)
     connect.set_motor_speed(4, -9999)
     # connect.set_motor_speed(3, 0)
