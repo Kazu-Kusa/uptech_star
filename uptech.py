@@ -12,9 +12,9 @@ __version__ = "1.0"
 # hSpi1=-1
 
 FAN_GPIO_PWM = 18
-FAN_pulse_frequency=20000
-FAN_duty_time_us=1000000
-FAN_PWN_range=100
+FAN_pulse_frequency = 20000
+FAN_duty_time_us = 1000000
+FAN_PWN_range = 100
 so_up = cdll.LoadLibrary("libuptech.so")
 
 
@@ -73,7 +73,7 @@ class UpTech:
     __mpu_float = ctypes.c_float * 3
     __MPU_DATA = __mpu_float()
 
-    def __init__(self,debug=False):
+    def __init__(self, debug=False):
         self.debug = debug
         pigpio.exceptions = True
         self.hPi = pigpio.pi()
@@ -85,7 +85,6 @@ class UpTech:
         self.gyro_all = copy.deepcopy(self.__mpu_float)
         self.atti_all = copy.deepcopy(self.__mpu_float)
         if self.debug:
-
             print(f'Sensor data temp loaded')
 
         self.hPi.hardware_PWM(FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us)
@@ -94,17 +93,22 @@ class UpTech:
     def FAN_Set_Speed(self, speed):
         """
         set the speed of the raspberry's fan
-
         """
 
         self.hPi.set_PWM_dutycycle(FAN_GPIO_PWM, speed)
 
     @staticmethod
     def ADC_IO_Open():
+        """
+        open the  adc-io plug
+        """
         return so_up.adc_io_open()
 
     @staticmethod
     def ADC_IO_Close():
+        """
+        close the adc-io plug
+        """
         so_up.adc_io_close()
 
     def ADC_Get_All_Channel(self):
@@ -167,14 +171,23 @@ class UpTech:
 
     @staticmethod
     def CDS_SetAngle(servos_id, angle, speed):
+        """
+        set servos angle according to servos_id and angle
+        """
         so_up.cds_servo_SetAngle(servos_id, angle, speed)
 
     @staticmethod
     def CDS_SetSpeed(servos_id, speed):
+        """
+        set servos speed according to servos_id and speed
+        """
         so_up.cds_servo_SetSpeed(servos_id, speed)
 
     @staticmethod
     def CDS_GetCurPos(servos_id):
+        """
+        get current servos position
+        """
         return so_up.cds_servo_GetPos(servos_id)
 
     @staticmethod
@@ -207,7 +220,6 @@ class UpTech:
     def MPU6500_GetAttitude(self):
         """
         get attitude from MPU6500
-
         """
 
         so_up.mpu6500_Get_Attitude(self.atti_all)
@@ -217,7 +229,7 @@ class UpTech:
     @staticmethod
     def LCD_Open(direction: int):
         """
-        set the LCD displaying direction
+        open with lcd ,and set the LCD displaying direction
 
         1 for vertical, 2 for horizontal
         """
@@ -227,24 +239,34 @@ class UpTech:
 
     @staticmethod
     def LCD_Refresh():
+        """
+        clear the displayed contents
+        """
         so_up.LCD_Refresh()
 
     @staticmethod
-    def LCD_SetFont(font_index: int):
-        so_up.LCD_SetFont(font_index)
+    def LCD_SetFontSize(font_size: int):
+
+        so_up.LCD_SetFont(font_size)
 
     @staticmethod
     def LCD_SetForeColor(color: int):
+        """
+        set the fore color
+        """
         so_up.UG_SetForecolor(color)
 
     @staticmethod
     def LCD_SetBackColor(color: int):
+        """
+        set the LCD background color
+        """
         so_up.UG_SetBackcolor(color)
 
     @staticmethod
     def LCD_FillScreen(color: int):
         """
-
+        fill the screen with the given color
         """
         so_up.UG_FillScreen(color)
 
@@ -305,12 +327,6 @@ class UpTech:
     @staticmethod
     def LCD_DrawLine(x1, y1, x2, y2, color: int):
         so_up.UG_DrawLine(x1, y1, x2, y2, color)
-        # void UG_DrawArc( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_U8 s, UG_COLOR c );
-
-    # void UG_DrawLine( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c );
-    def print_all_attributes(self):
-        print('----------------')
-        print(f'')
 
 
 if __name__ == "__main__":

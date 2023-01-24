@@ -239,7 +239,7 @@ class Controller:
     def lcd_display(self, content):
         self.up.LCD_PutString(30, 0, content)
         self.up.LCD_Refresh()
-        self.up.LCD_SetFont(self.up.FONT_8X14)
+        self.up.LCD_SetFontSize(self.up.FONT_8X14)
 
 
 if __name__ == '__main__':

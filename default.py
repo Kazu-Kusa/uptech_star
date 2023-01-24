@@ -13,7 +13,7 @@ up.MPU6500_Open()
 
 up.LCD_PutString(30, 0, 'InnoStarTest')
 up.LCD_Refresh()
-up.LCD_SetFont(up.FONT_8X14)
+up.LCD_SetFontSize(up.FONT_8X14)
 
 count = 0
 

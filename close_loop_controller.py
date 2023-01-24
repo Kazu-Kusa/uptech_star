@@ -45,7 +45,8 @@ class CloseLoopController:
                 self.msg_list.remove(self.msg_list[0])
 
     # 串口数据包构建方法
-    def generateCmd(self, cmd):
+    @staticmethod
+    def generateCmd(cmd):
         buffer = [0] * (len(cmd) + 1)
         for index, cmd_char in enumerate(cmd):
             buffer[index] = (ord(cmd_char)) & 0xFF
@@ -56,14 +57,11 @@ class CloseLoopController:
 
     # 控制节点电机运动，servos_id:节点 speed :速度
     def set_motor_speed(self, id, speed, debug=False):
-        cmd = "{}v{}".format(id, speed)
-        if debug:
-            print(cmd)
+        cmd = f'{id}v{speed}'
         data = self.generateCmd(cmd)
         self.write(data)
-        # self.msg_list.append(data)
-        # self.msg_list.append(data)
-        # print(data)
+        if debug:
+            print(cmd)
 
 
 if __name__ == '__main__':

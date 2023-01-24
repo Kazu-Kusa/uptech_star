@@ -53,7 +53,7 @@ back_color = up.COLOR_BLACK
 up.LCD_SetForeColor(fore_color)
 up.LCD_SetBackColor(back_color)
 up.LCD_FillScreen(back_color)
-up.LCD_SetFont(up.FONT_8X14)
+up.LCD_SetFontSize(up.FONT_8X14)
 time.sleep(0.1)
 up.MPU6500_Open()
 count = 0

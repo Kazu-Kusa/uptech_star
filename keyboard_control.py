@@ -34,7 +34,7 @@ class PublishThread(threading.Thread):
 
         self.up.LCD_PutString(30, 0, 'InnoStar')
         self.up.LCD_Refresh()
-        self.up.LCD_SetFont(self.up.FONT_8X14)
+        self.up.LCD_SetFontSize(self.up.FONT_8X14)
 
         self.up.CDS_SetMode(1, 1)
         self.up.CDS_SetMode(2, 1)
