@@ -1,6 +1,6 @@
-
 import copy
 import ctypes
+import warnings
 from ctypes import cdll
 
 import pigpio
@@ -12,7 +12,9 @@ __version__ = "1.0"
 # hSpi1=-1
 
 FAN_GPIO_PWM = 18
-
+FAN_pulse_frequency=20000
+FAN_duty_time_us=1000000
+FAN_PWN_range=100
 so_up = cdll.LoadLibrary("libuptech.so")
 
 
@@ -23,6 +25,7 @@ class UpTech:
     CDS_MODE_SERVO = 0
     CDS_MODE_MOTOR = 1
 
+    # region font size definitions
     FONT_4X6 = 0
     FONT_5X8 = 1
     FONT_5X12 = 2
@@ -38,7 +41,9 @@ class UpTech:
     FONT_16X26 = 12
     FONT_22X36 = 13
     FONT_24X40 = 14
+    # endregion
 
+    # region color Hex value
     COLOR_WHITE = 0xFFFF
     COLOR_BLACK = 0x0000
     COLOR_BLUE = 0x001F
@@ -60,6 +65,7 @@ class UpTech:
     COLOR_LGRAY = 0XC618
     COLOR_LGRAYBLUE = 0XA651
     COLOR_LBBLUE = 0X2B12
+    # endregion
 
     __adc_data = ctypes.c_uint16 * 10
     __ADC_DATA = __adc_data()
@@ -67,27 +73,30 @@ class UpTech:
     __mpu_float = ctypes.c_float * 3
     __MPU_DATA = __mpu_float()
 
-    def __init__(self):
-
-        pigpio.exceptions = False
+    def __init__(self,debug=False):
+        self.debug = debug
+        pigpio.exceptions = True
         self.hPi = pigpio.pi()
         assert self.hPi.connected, 'pi is not connected'
 
         self.adc_all = copy.deepcopy(self.__ADC_DATA)
-        self.io_all =[]
+        self.io_all = []
         self.accel_all = copy.deepcopy(self.__mpu_float)
         self.gyro_all = copy.deepcopy(self.__mpu_float)
         self.atti_all = copy.deepcopy(self.__mpu_float)
-        print(f'Sensor data temp loaded')
-        # self.hSpi1 = self.hPi.spi_open(2, 1000000, (1<<8)|(0<<0))
-        # if self.hSpi1 < 0:
-        #     self.hPi.spi_close(1)
-        #     self.hSpi1 = self.hPi.spi_open(2, 1000000, (1<<8)|(0<<0))
-        # pigpio.exceptions = True
-        self.hPi.hardware_PWM(FAN_GPIO_PWM, 20000, 1000000)
-        self.hPi.set_PWM_range(FAN_GPIO_PWM, 100)
+        if self.debug:
+
+            print(f'Sensor data temp loaded')
+
+        self.hPi.hardware_PWM(FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us)
+        self.hPi.set_PWM_range(FAN_GPIO_PWM, FAN_PWN_range)
 
     def FAN_Set_Speed(self, speed):
+        """
+        set the speed of the raspberry's fan
+
+        """
+
         self.hPi.set_PWM_dutycycle(FAN_GPIO_PWM, speed)
 
     @staticmethod
@@ -106,11 +115,11 @@ class UpTech:
         return self.adc_all
 
     @staticmethod
-    def ADC_Led_SetColor(index: int, color_intensity: int):
+    def ADC_Led_SetColor(index: int, color: int):
         """
-        set the color of the LED according to index and color_intensity
+        set the color of the LED according to index and color
         """
-        so_up.adc_led_set(index, color_intensity)
+        so_up.adc_led_set(index, color)
 
     @staticmethod
     def ADC_IO_SetIOLevel(index, level):
@@ -225,19 +234,19 @@ class UpTech:
         so_up.LCD_SetFont(font_index)
 
     @staticmethod
-    def LCD_SetForeColor(color_intensity: int):
-        so_up.UG_SetForecolor(color_intensity)
+    def LCD_SetForeColor(color: int):
+        so_up.UG_SetForecolor(color)
 
     @staticmethod
-    def LCD_SetBackColor(color_intensity: int):
-        so_up.UG_SetBackcolor(color_intensity)
+    def LCD_SetBackColor(color: int):
+        so_up.UG_SetBackcolor(color)
 
     @staticmethod
-    def LCD_FillScreen(color_intensity: int):
+    def LCD_FillScreen(color: int):
         """
 
         """
-        so_up.UG_FillScreen(color_intensity)
+        so_up.UG_FillScreen(color)
 
     @staticmethod
     def LCD_PutString(x: int, y: int, display_string: str):
@@ -258,49 +267,51 @@ class UpTech:
         so_up.UG_PutString(x, y, binary)
 
     @staticmethod
-    def LCD_FillFrame(x1, y1, x2, y2, color_intensity: int):
-        so_up.UG_FillFrame(x1, y1, x2, y2, color_intensity)
+    def LCD_FillFrame(x1, y1, x2, y2, color: int):
+        so_up.UG_FillFrame(x1, y1, x2, y2, color)
 
     @staticmethod
-    def LCD_FillRoundFrame(x1, y1, x2, y2, r, color_intensity: int):
-        so_up.UG_FillRoundFrame(x1, y1, x2, y2, r, color_intensity)
+    def LCD_FillRoundFrame(x1, y1, x2, y2, r, color: int):
+        so_up.UG_FillRoundFrame(x1, y1, x2, y2, r, color)
 
     @staticmethod
-    def LCD_DrawMesh(x1, y1, x2, y2, color_intensity: int):
-        so_up.UG_DrawMesh(x1, y1, x2, y2, color_intensity)
+    def LCD_DrawMesh(x1, y1, x2, y2, color: int):
+        so_up.UG_DrawMesh(x1, y1, x2, y2, color)
 
     @staticmethod
-    def LCD_DrawFrame(x1, y1, x2, y2, color_intensity: int):
-        so_up.UG_DrawFrame(x1, y1, x2, y2, color_intensity)
+    def LCD_DrawFrame(x1, y1, x2, y2, color: int):
+        so_up.UG_DrawFrame(x1, y1, x2, y2, color)
 
     @staticmethod
-    def LCD_DrawRoundFrame(x1, y1, x2, y2, r, color_intensity: int):
-        so_up.UG_DrawRoundFrame(x1, y1, x2, y2, r, color_intensity)
+    def LCD_DrawRoundFrame(x1, y1, x2, y2, r, color: int):
+        so_up.UG_DrawRoundFrame(x1, y1, x2, y2, r, color)
 
     @staticmethod
-    def LCD_DrawPixel(x0, y0, color_intensity: int):
-        so_up.UG_DrawPixel(x0, y0, color_intensity)
+    def LCD_DrawPixel(x0, y0, color: int):
+        so_up.UG_DrawPixel(x0, y0, color)
 
     @staticmethod
-    def LCD_DrawCircle(x0, y0, r, color_intensity: int):
-        so_up.UG_DrawCircle(x0, y0, r, color_intensity)
+    def LCD_DrawCircle(x0, y0, r, color: int):
+        so_up.UG_DrawCircle(x0, y0, r, color)
 
     @staticmethod
-    def LCD_FillCircle(x0, y0, r, color_intensity: int):
-        so_up.UG_FillCircle(x0, y0, r, color_intensity)
+    def LCD_FillCircle(x0, y0, r, color: int):
+        so_up.UG_FillCircle(x0, y0, r, color)
 
     @staticmethod
-    def LCD_DrawArc(x0, y0, r, s, color_intensity: int):
-        so_up.UG_DrawArc(x0, y0, r, s, color_intensity)
+    def LCD_DrawArc(x0, y0, r, s, color: int):
+        so_up.UG_DrawArc(x0, y0, r, s, color)
 
     @staticmethod
-    def LCD_DrawLine(x1, y1, x2, y2, color_intensity: int):
-        so_up.UG_DrawLine(x1, y1, x2, y2, color_intensity)
+    def LCD_DrawLine(x1, y1, x2, y2, color: int):
+        so_up.UG_DrawLine(x1, y1, x2, y2, color)
         # void UG_DrawArc( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_U8 s, UG_COLOR c );
+
     # void UG_DrawLine( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c );
     def print_all_attributes(self):
         print('----------------')
         print(f'')
+
 
 if __name__ == "__main__":
     a = UpTech()
