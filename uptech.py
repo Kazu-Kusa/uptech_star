@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+
+import copy
 import ctypes
 from ctypes import cdll
 
@@ -17,6 +17,9 @@ so_up = cdll.LoadLibrary("libuptech.so")
 
 
 class UpTech:
+    """
+    provides sealed methods accessing to the IOs and builtin sensors
+    """
     CDS_MODE_SERVO = 0
     CDS_MODE_MOTOR = 1
 
@@ -65,10 +68,17 @@ class UpTech:
     __MPU_DATA = __mpu_float()
 
     def __init__(self):
+
         pigpio.exceptions = False
         self.hPi = pigpio.pi()
         assert self.hPi.connected, 'pi is not connected'
 
+        self.adc_all = copy.deepcopy(self.__ADC_DATA)
+        self.io_all =[]
+        self.accel_all = copy.deepcopy(self.__mpu_float)
+        self.gyro_all = copy.deepcopy(self.__mpu_float)
+        self.atti_all = copy.deepcopy(self.__mpu_float)
+        print(f'Sensor data temp loaded')
         # self.hSpi1 = self.hPi.spi_open(2, 1000000, (1<<8)|(0<<0))
         # if self.hSpi1 < 0:
         #     self.hPi.spi_close(1)
@@ -92,9 +102,8 @@ class UpTech:
         """
         get all adc channels and return they as a tuple
         """
-        so_up.ADC_GetAll(self.__ADC_DATA)
-        # return a tuple
-        return self.__ADC_DATA,
+        so_up.ADC_GetAll(self.adc_all)
+        return self.adc_all
 
     @staticmethod
     def ADC_Led_SetColor(index: int, color_intensity: int):
@@ -174,17 +183,17 @@ class UpTech:
         """
         get the acceleration from MPU6500
         """
-        so_up.mpu6500_Get_Accel(self.__MPU_DATA)
+        so_up.mpu6500_Get_Accel(self.accel_all)
 
-        return self.__MPU_DATA,
+        return self.accel_all
 
     def MPU6500_GetGyro(self):
         """
         get gyro from MPU6500
         """
-        so_up.mpu6500_Get_Gyro(self.__MPU_DATA)
+        so_up.mpu6500_Get_Gyro(self.gyro_all)
 
-        return self.__MPU_DATA,
+        return self.gyro_all
 
     def MPU6500_GetAttitude(self):
         """
@@ -192,9 +201,9 @@ class UpTech:
 
         """
 
-        so_up.mpu6500_Get_Attitude(self.__MPU_DATA)
+        so_up.mpu6500_Get_Attitude(self.atti_all)
 
-        return self.__MPU_DATA,
+        return self.atti_all
 
     @staticmethod
     def LCD_Open(direction: int):
@@ -216,15 +225,15 @@ class UpTech:
         so_up.LCD_SetFont(font_index)
 
     @staticmethod
-    def LCD_SetForeColor(color_intensity:int):
+    def LCD_SetForeColor(color_intensity: int):
         so_up.UG_SetForecolor(color_intensity)
 
     @staticmethod
-    def LCD_SetBackColor(color_intensity:int):
+    def LCD_SetBackColor(color_intensity: int):
         so_up.UG_SetBackcolor(color_intensity)
 
     @staticmethod
-    def LCD_FillScreen(color_intensity:int):
+    def LCD_FillScreen(color_intensity: int):
         """
 
         """
@@ -243,55 +252,57 @@ class UpTech:
 
         byte = ctypes.c_byte * len(display_string)
         binary = byte()
-        for i, char in display_string:
+        for i, char in enumerate(display_string):
             # dump chars to binary as unicode
             binary[i] = ord(char)
         so_up.UG_PutString(x, y, binary)
 
     @staticmethod
-    def LCD_FillFrame(x1, y1, x2, y2, color_intensity:int):
+    def LCD_FillFrame(x1, y1, x2, y2, color_intensity: int):
         so_up.UG_FillFrame(x1, y1, x2, y2, color_intensity)
 
     @staticmethod
-    def LCD_FillRoundFrame(x1, y1, x2, y2, r, color_intensity:int):
+    def LCD_FillRoundFrame(x1, y1, x2, y2, r, color_intensity: int):
         so_up.UG_FillRoundFrame(x1, y1, x2, y2, r, color_intensity)
 
     @staticmethod
-    def LCD_DrawMesh(x1, y1, x2, y2, color_intensity:int):
+    def LCD_DrawMesh(x1, y1, x2, y2, color_intensity: int):
         so_up.UG_DrawMesh(x1, y1, x2, y2, color_intensity)
 
     @staticmethod
-    def LCD_DrawFrame(x1, y1, x2, y2, color_intensity:int):
+    def LCD_DrawFrame(x1, y1, x2, y2, color_intensity: int):
         so_up.UG_DrawFrame(x1, y1, x2, y2, color_intensity)
 
     @staticmethod
-    def LCD_DrawRoundFrame(x1, y1, x2, y2, r, color_intensity:int):
+    def LCD_DrawRoundFrame(x1, y1, x2, y2, r, color_intensity: int):
         so_up.UG_DrawRoundFrame(x1, y1, x2, y2, r, color_intensity)
 
     @staticmethod
-    def LCD_DrawPixel(x0, y0, color_intensity:int):
+    def LCD_DrawPixel(x0, y0, color_intensity: int):
         so_up.UG_DrawPixel(x0, y0, color_intensity)
 
     @staticmethod
-    def LCD_DrawCircle(x0, y0, r, color_intensity:int):
+    def LCD_DrawCircle(x0, y0, r, color_intensity: int):
         so_up.UG_DrawCircle(x0, y0, r, color_intensity)
 
     @staticmethod
-    def LCD_FillCircle(x0, y0, r, color_intensity:int):
+    def LCD_FillCircle(x0, y0, r, color_intensity: int):
         so_up.UG_FillCircle(x0, y0, r, color_intensity)
 
     @staticmethod
-    def LCD_DrawArc(x0, y0, r, s, color_intensity:int):
+    def LCD_DrawArc(x0, y0, r, s, color_intensity: int):
         so_up.UG_DrawArc(x0, y0, r, s, color_intensity)
 
     @staticmethod
-    def LCD_DrawLine(x1, y1, x2, y2, color_intensity:int):
+    def LCD_DrawLine(x1, y1, x2, y2, color_intensity: int):
         so_up.UG_DrawLine(x1, y1, x2, y2, color_intensity)
         # void UG_DrawArc( UG_S16 x0, UG_S16 y0, UG_S16 r, UG_U8 s, UG_COLOR c );
     # void UG_DrawLine( UG_S16 x1, UG_S16 y1, UG_S16 x2, UG_S16 y2, UG_COLOR c );
-
+    def print_all_attributes(self):
+        print('----------------')
+        print(f'')
 
 if __name__ == "__main__":
     a = UpTech()
-    print(so_up)
+
     pass

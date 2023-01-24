@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-# Disable
 import os
 import sys
 import threading
@@ -31,17 +28,17 @@ class UpController(UpTech, CloseLoopController):
 
     def __init__(self):
         # call father class init
-        super(UpTech, self).__init__()
-        super(CloseLoopController, self).__init__()
+        # super(UpTech, self).__init__()
+        # super(CloseLoopController, self).__init__()
+        UpTech.__init__(self)
+        CloseLoopController.__init__(self)
         self.LCD_Open(2)
         open_flag = self.ADC_IO_Open()
         print("ad_io_open = {}".format(open_flag))
         self.CDS_Open()
         self.cmd = 0
-        self.adc_data = []
-        self.io_data = []
 
-        self.open_adc_io_update_thread()
+        self.open_adc_io_update_thread(debug=True)
 
     def open_send_cmd_thread(self):
         controller_thread = threading.Thread(name="up_controller_thread", target=self.send_cmd)
@@ -57,24 +54,23 @@ class UpController(UpTech, CloseLoopController):
     def enable_print():
         sys.stdout = sys.__stdout__
 
-    def open_adc_io_update_thread(self):
+    def open_adc_io_update_thread(self, debug=False):
         """
         open data update thread
         """
         edge_thread = threading.Thread(name="edge_detect_thread", target=self.edge_detect_thread)
         edge_thread.daemon = True
         edge_thread.start()
+        if debug:
+            print('adc-io update thread started')
 
     def edge_detect_thread(self):
-        while True:
-            self.adc_data = self.ADC_Get_All_Channel()
+        while 1:
+            self.adc_all = self.ADC_Get_All_Channel()
             io_all_input = self.ADC_IO_GetAllInputLevel()
             # convert all iolevel to a string
             io_array = '{:08b}'.format(io_all_input)
-            self.io_data.clear()
-            for index, value in enumerate(io_array):
-                io_value = int(value)
-                self.io_data.insert(0, io_value)
+            self.io_all = [int(x) for x in io_array]
 
     def set_chassis_mode(self, mode):
         self.chassis_mode = mode
@@ -239,15 +235,15 @@ class UpController(UpTech, CloseLoopController):
 
 
 if __name__ == '__main__':
-    # up_controller = UpController()
-    # ids = [1,2]
-    # servoids = [5,6,7,8]
-    # up_controller.set_chassis_mode(up_controller.CHASSIS_MODE_CONTROLLER)
-    # up_controller.set_cds_mode(ids,1)
-    # up_controller.set_cds_mode(servoids,0)
-    # # up_controller.go_up_platform()
-    # up_controller.servo_reset()
-    # up_controller.open_adc_io_update_thread()
+    up_controller = UpController()
+    ids = [1, 2]
+    servoids = [5, 6, 7, 8]
+    up_controller.set_chassis_mode(up_controller.CHASSIS_MODE_CONTROLLER)
+    up_controller.set_cds_mode(ids, 1)
+    up_controller.set_cds_mode(servoids, 0)
+    up_controller.go_up_platform()
+    up_controller.servo_reset()
+    up_controller.open_adc_io_update_thread()
     b = int("0x0b", 16)
     c = '{:08b}'.format(b)
     print(c)

@@ -9,7 +9,7 @@ class CloseLoopController:
     def __init__(self):
         # 创建串口对象
         self.ser = SerialHelper()
-        print('serial channel opened')
+
         self.ser.on_connected_changed(self.myserial_on_connected_changed)
 
         # 发送的数据队列
@@ -21,7 +21,6 @@ class CloseLoopController:
         sendThread = threading.Thread(name="send_thread", target=self.send_msg)
         sendThread.daemon = False
         sendThread.start()
-        print("launch communication thread")
 
     # 串口连接状态回调函数
     def myserial_on_connected_changed(self, is_connected):

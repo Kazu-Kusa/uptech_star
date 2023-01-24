@@ -17,6 +17,7 @@ class SerialHelper(object):
         '''
         初始化一些参数
         '''
+
         self.port = Port
         self.baudrate = BaudRate
         self.bytesize = ByteSize
@@ -27,7 +28,7 @@ class SerialHelper(object):
 
         self._serial = None
         self._is_connected = False
-
+        print(f'serial port opened')
     def connect(self, timeout=2):
         '''
         连接设备
