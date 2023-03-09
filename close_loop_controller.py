@@ -23,7 +23,7 @@ class CloseLoopController:
         sendThread.start()
 
     # 串口连接状态回调函数
-    def myserial_on_connected_changed(self, is_connected):
+    def myserial_on_connected_changed(self, is_connected:bool):
         if is_connected:
             print("Connected")
             self._isConn = True
