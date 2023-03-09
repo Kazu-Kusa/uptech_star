@@ -1,7 +1,6 @@
 import os
 import sys
 import threading
-import time
 
 from .close_loop_controller import CloseLoopController
 from .uptech import UpTech
@@ -26,7 +25,7 @@ class UpController(UpTech, CloseLoopController):
     CHASSIS_MODE_SERVO = 1
     CHASSIS_MODE_CONTROLLER = 2
 
-    def __init__(self, useServos=False, debug=False):
+    def __init__(self, debug=False):
         self.chassis_mode = None
         self.debug = debug
         # call father class init
@@ -36,10 +35,6 @@ class UpController(UpTech, CloseLoopController):
         self.LCD_Open(2)
         # open the io-adc plug and print the returned log
         print(f"ad_io_open_times: {self.ADC_IO_Open()}")
-
-        if useServos:
-            # Open the servos
-            self.CDS_Open()
 
         self.cmd = 0
 
@@ -84,23 +79,6 @@ class UpController(UpTech, CloseLoopController):
     def set_chassis_mode(self, mode):
         self.chassis_mode = mode
 
-    def send_cmd(self):
-        while True:
-            if self.cmd == self.MOVE_UP:
-                self.move_up()
-            if self.cmd == self.MOVE_LEFT:
-                self.move_left()
-            if self.cmd == self.MOVE_RIGHT:
-                self.move_right()
-            if self.cmd == self.MOVE_YAW_LEFT:
-                self.move_yaw_left()
-            if self.cmd == self.MOVE_YAW_RIGHT:
-                self.move_yaw_right()
-            if self.cmd == self.MOVE_STOP:
-                self.move_stop()
-            if self.cmd == self.PICK_UP_BALL:
-                self.pick_up_ball()
-
     def move_cmd_open_loop(self, left_speed, right_speed):
         """
         # 速度指令，自由控制-开环控制器
@@ -117,6 +95,7 @@ class UpController(UpTech, CloseLoopController):
             self.set_motor_speed(2, right_speed)
             self.set_motor_speed(3, -left_speed)
             self.set_motor_speed(4, right_speed)
+
         if print_log:
             move()
         else:
@@ -124,117 +103,8 @@ class UpController(UpTech, CloseLoopController):
             move()
             self.enable_print()
 
-    def move_up(self):
-        if self.chassis_mode == self.CHASSIS_MODE_SERVO:
-            self.CDS_SetSpeed(1, self.SPEED)
-            self.CDS_SetSpeed(2, self.SPEED)
-            self.CDS_SetSpeed(3, self.SPEED)
-            self.CDS_SetSpeed(4, self.SPEED)
 
-        if self.chassis_mode == self.CHASSIS_MODE_CONTROLLER:
-            self.CDS_SetSpeed(1, self.SPEED)
-            self.CDS_SetSpeed(2, -self.SPEED + 10)
 
-        self.cmd = self.NO_CONTROLLER
-
-    def move_left(self):
-        if self.chassis_mode == self.CHASSIS_MODE_SERVO:
-            self.CDS_SetSpeed(1, -self.SPEED)
-            self.CDS_SetSpeed(2, -self.SPEED)
-            self.CDS_SetSpeed(3, self.SPEED)
-            self.CDS_SetSpeed(4, self.SPEED)
-
-        if self.chassis_mode == self.CHASSIS_MODE_CONTROLLER:
-            self.CDS_SetSpeed(1, 156)
-            self.CDS_SetSpeed(2, -200)
-        self.cmd = self.NO_CONTROLLER
-
-    def move_right(self):
-        if self.chassis_mode == self.CHASSIS_MODE_SERVO:
-            self.CDS_SetSpeed(1, self.SPEED)
-            self.CDS_SetSpeed(2, self.SPEED)
-            self.CDS_SetSpeed(3, -self.SPEED)
-            self.CDS_SetSpeed(4, -self.SPEED)
-
-        if self.chassis_mode == self.CHASSIS_MODE_CONTROLLER:
-            self.CDS_SetSpeed(1, 200)
-            self.CDS_SetSpeed(2, -156)
-        self.cmd = self.NO_CONTROLLER
-
-    def move_yaw_left(self):
-        if self.chassis_mode == self.CHASSIS_MODE_SERVO:
-            self.CDS_SetSpeed(1, -self.SPEED)
-            self.CDS_SetSpeed(2, self.SPEED)
-            self.CDS_SetSpeed(3, -self.SPEED)
-            self.CDS_SetSpeed(4, self.SPEED)
-
-        if self.chassis_mode == self.CHASSIS_MODE_CONTROLLER:
-            self.CDS_SetSpeed(1, -self.YAW_SPEED)
-            self.CDS_SetSpeed(2, -self.YAW_SPEED)
-        self.cmd = self.NO_CONTROLLER
-
-    def move_yaw_right(self):
-        if self.chassis_mode == self.CHASSIS_MODE_SERVO:
-            self.CDS_SetSpeed(1, -self.SPEED)
-            self.CDS_SetSpeed(2, self.SPEED)
-            self.CDS_SetSpeed(3, -self.SPEED)
-            self.CDS_SetSpeed(4, self.SPEED)
-
-        if self.chassis_mode == self.CHASSIS_MODE_CONTROLLER:
-            self.CDS_SetSpeed(1, self.YAW_SPEED)
-            self.CDS_SetSpeed(2, self.YAW_SPEED)
-        self.cmd = self.NO_CONTROLLER
-
-    def move_stop(self):
-        self.CDS_SetSpeed(1, 0)
-        self.CDS_SetSpeed(2, 0)
-        self.CDS_SetSpeed(3, 0)
-        self.CDS_SetSpeed(4, 0)
-        self.cmd = self.NO_CONTROLLER
-
-    def pick_up_ball(self):
-        self.move_stop()
-        time.sleep(2)
-        self.CDS_SetAngle(5, 512, self.SPEED)
-        time.sleep(2)
-        self.CDS_SetAngle(6, 580, self.SPEED)
-        self.CDS_SetAngle(7, 450, self.SPEED)
-        time.sleep(2)
-        self.CDS_SetAngle(5, 921, self.SPEED)
-        time.sleep(2)
-        self.CDS_SetAngle(6, 495, self.SPEED)
-        self.CDS_SetAngle(7, 530, self.SPEED)
-        self.cmd = self.NO_CONTROLLER
-
-    def go_up_platform(self):
-        self.move_up()
-        time.sleep(1)
-        self.CDS_SetAngle(5, 900, self.SPEED)
-        self.CDS_SetAngle(6, 100, self.SPEED)
-        time.sleep(3)
-        self.CDS_SetAngle(5, 512, self.SPEED)
-        self.CDS_SetAngle(6, 512, self.SPEED)
-        time.sleep(2)
-        self.CDS_SetAngle(7, 100, self.SPEED)
-        self.CDS_SetAngle(8, 900, self.SPEED)
-        time.sleep(2)
-        time.sleep(1)
-        self.CDS_SetAngle(7, 512, self.SPEED)
-        self.CDS_SetAngle(8, 512, self.SPEED)
-        # self.CDS_SetAngle(9,500,self.SPEED * 3)
-
-    def servo_reset(self):
-        self.CDS_SetAngle(5, 512, self.SPEED)
-        self.CDS_SetAngle(6, 512, self.SPEED)
-        self.CDS_SetAngle(7, 512, self.SPEED)
-        self.CDS_SetAngle(8, 512, self.SPEED)
-
-    def set_cds_mode(self, ids, mode):
-        for id in ids:
-            self.CDS_SetMode(id, mode)
-
-    def set_controller_cmd(self, cmd):
-        self.cmd = cmd
 
     def lcd_display(self, content):
         self.LCD_PutString(30, 0, content)
@@ -245,12 +115,8 @@ class UpController(UpTech, CloseLoopController):
 if __name__ == '__main__':
     up_controller = UpController()
     ids = [1, 2]
-    servoids = [5, 6, 7, 8]
+
     up_controller.set_chassis_mode(up_controller.CHASSIS_MODE_CONTROLLER)
-    up_controller.set_cds_mode(ids, 1)
-    up_controller.set_cds_mode(servoids, 0)
-    up_controller.go_up_platform()
-    up_controller.servo_reset()
     up_controller.open_adc_io_update_thread()
     b = int("0x0b", 16)
     c = '{:08b}'.format(b)

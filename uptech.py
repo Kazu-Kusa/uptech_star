@@ -1,11 +1,12 @@
 import copy
 import ctypes
-import warnings
+import sys
+
 from ctypes import cdll
 
 import pigpio
 
-__version__ = "1.0"
+
 # hPi=pigpio.pi()
 # #hPi=pigpio.pi()
 # hSpi0=-1
@@ -15,7 +16,10 @@ FAN_GPIO_PWM = 18
 FAN_pulse_frequency = 20000
 FAN_duty_time_us = 1000000
 FAN_PWN_range = 100
-so_up = cdll.LoadLibrary("libuptech.so")
+
+lib_file_name = 'libuptech.so'
+print(f'Loading [{lib_file_name}]')
+so_up = cdll.LoadLibrary(f"{sys.path[0]}/{lib_file_name}")
 
 
 class UpTech:
@@ -85,16 +89,17 @@ class UpTech:
         self.gyro_all = copy.deepcopy(self.__mpu_float)
         self.atti_all = copy.deepcopy(self.__mpu_float)
         if self.debug:
-            print(f'Sensor data temp loaded')
+            print('Sensor data temp loaded')
 
         self.hPi.hardware_PWM(FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us)
         self.hPi.set_PWM_range(FAN_GPIO_PWM, FAN_PWN_range)
+        self.FAN_Set_Speed()
 
-    def FAN_Set_Speed(self, speed):
+    def FAN_Set_Speed(self, speed: int = 0):
         """
         set the speed of the raspberry's fan
-        """
 
+        """
         self.hPi.set_PWM_dutycycle(FAN_GPIO_PWM, speed)
 
     @staticmethod
@@ -147,48 +152,6 @@ class UpTech:
         get all io plug input level
         """
         return so_up.adc_io_InputGetAll()
-
-    @staticmethod
-    def CDS_Open():
-        """
-        open all servos
-        """
-        so_up.cds_servo_open()
-
-    @staticmethod
-    def CDS_Close():
-        """
-        close all servos
-        """
-        so_up.cds_servo_close()
-
-    @staticmethod
-    def CDS_SetMode(servos_id, mode):
-        """
-        set servos motion mode according to servos_id and mode
-        """
-        so_up.cds_servo_SetMode(servos_id, mode)
-
-    @staticmethod
-    def CDS_SetAngle(servos_id, angle, speed):
-        """
-        set servos angle according to servos_id and angle
-        """
-        so_up.cds_servo_SetAngle(servos_id, angle, speed)
-
-    @staticmethod
-    def CDS_SetSpeed(servos_id, speed):
-        """
-        set servos speed according to servos_id and speed
-        """
-        so_up.cds_servo_SetSpeed(servos_id, speed)
-
-    @staticmethod
-    def CDS_GetCurPos(servos_id):
-        """
-        get current servos position
-        """
-        return so_up.cds_servo_GetPos(servos_id)
 
     @staticmethod
     def MPU6500_Open():

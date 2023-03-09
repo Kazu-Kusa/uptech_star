@@ -3,7 +3,6 @@ import logging
 import platform
 import threading
 import time
-
 import serial
 
 if platform.system() == "Windows":
