@@ -1,11 +1,10 @@
 import copy
 import ctypes
 import sys
-
+import os
 from ctypes import cdll
 
 import pigpio
-
 
 # hPi=pigpio.pi()
 # #hPi=pigpio.pi()
@@ -17,9 +16,10 @@ FAN_pulse_frequency = 20000
 FAN_duty_time_us = 1000000
 FAN_PWN_range = 100
 
-lib_file_name = 'libuptech.so'
+ld_library_path = os.environ.get('LD_LIBRARY_PATH')
+lib_file_name = f'{ld_library_path}/libuptech.so'
 print(f'Loading [{lib_file_name}]')
-so_up = cdll.LoadLibrary(f"{sys.path[0]}/{lib_file_name}")
+so_up = cdll.LoadLibrary(lib_file_name)
 
 
 class UpTech:
