@@ -10,6 +10,7 @@ from .uptech import *
 from .up_controller import *
 from .serial_helper import *
 from .close_loop_controller import *
+from .valueTest import *
 
 __version__ = "1.0"
 __all__ = [
@@ -17,4 +18,5 @@ __all__ = [
     'up_controller',
     'serial_helper',
     'close_loop_controller',
+    'valueTest'
 ]

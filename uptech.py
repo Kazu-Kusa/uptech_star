@@ -72,22 +72,22 @@ class UpTech:
     # endregion
 
     __adc_data = ctypes.c_uint16 * 10
-    __ADC_DATA = __adc_data()
 
     __mpu_float = ctypes.c_float * 3
-    __MPU_DATA = __mpu_float()
 
-    def __init__(self, debug=False):
+    def __init__(self, open_mpu: bool = True, debug=False):
         self.debug = debug
         pigpio.exceptions = True
         self.hPi = pigpio.pi()
         assert self.hPi.connected, 'pi is not connected'
 
-        self.adc_all = copy.deepcopy(self.__ADC_DATA)
+        self.adc_all = self.__adc_data()
         self.io_all = []
-        self.accel_all = copy.deepcopy(self.__mpu_float)
-        self.gyro_all = copy.deepcopy(self.__mpu_float)
-        self.atti_all = copy.deepcopy(self.__mpu_float)
+        self.accel_all = self.__mpu_float()
+        self.gyro_all = self.__mpu_float()
+        self.atti_all = self.__mpu_float()
+        if open_mpu:
+            self.MPU6500_Open()
         if self.debug:
             print('Sensor data temp loaded')
 

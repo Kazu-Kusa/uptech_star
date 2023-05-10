@@ -1,7 +1,7 @@
 import sys
+import time
 
-
-from uptech import UpTech
+from .uptech import UpTech
 
 up = UpTech()
 
@@ -10,11 +10,9 @@ up.ADC_IO_Open()
 up.ADC_Led_SetColor(0, 0x2F0000)
 up.ADC_Led_SetColor(1, 0x002F00)
 
-up.MPU6500_Open()
-
 up.LCD_PutString(30, 0, 'InnoStarTest')
 up.LCD_Refresh()
-up.LCD_SetFontSize(up.FONT_8X14)
+# up.LCD_SetFontSize(up.FONT_8X14)
 
 count = 0
 sign = 0
@@ -54,8 +52,7 @@ def display(mode):
     up.LCD_Refresh()
 
 
-if __name__ == '__main__':
-
+def read_sensors(mode: int = 1, interval: float = 1):
     while True:
         adc_value = up.ADC_Get_All_Channel()
         battery_voltage_float = adc_value[9] * 3.3 * 4.0 / 4096
@@ -69,7 +66,7 @@ if __name__ == '__main__':
         io_array = '{:08b}'.format(io_all_input)
         io_data.clear()
 
-        display(2)
+        display(mode)
 
         for index, value in enumerate(io_array):
             io = int(value)
@@ -86,7 +83,8 @@ if __name__ == '__main__':
         for i in range(len(io_data)):
             print(f"({i}):", io_data[i], end=" |")
         print("\n")
-        # time.sleep(1.8)
+
+        time.sleep(interval)
         # if count >= 20:
         #     if sign != 0:
         #         up.CDS_SetAngle(5,0,250)
@@ -101,3 +99,7 @@ if __name__ == '__main__':
         #     count = 0
         # else:
         #     count += 1
+
+
+if __name__ == '__main__':
+    read_sensors()
