@@ -91,9 +91,9 @@ class UpController(UpTech, CloseLoopController):
 
     def move_cmd(self, left_speed, right_speed, print_log=False):
         def move():
-            self.set_motor_speed(1, -left_speed)
+            self.set_motor_speed(1, left_speed)
             self.set_motor_speed(2, right_speed)
-            self.set_motor_speed(3, -left_speed)
+            self.set_motor_speed(3, left_speed)
             self.set_motor_speed(4, right_speed)
 
         if print_log:
@@ -102,9 +102,6 @@ class UpController(UpTech, CloseLoopController):
             self.block_print()
             move()
             self.enable_print()
-
-
-
 
     def lcd_display(self, content):
         self.LCD_PutString(30, 0, content)
