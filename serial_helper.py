@@ -56,9 +56,16 @@ class SerialHelper:
         return self._stopbits
 
     def connect(self):
+        """
+        Connect to the serial port with the settings specified in the instance attributes using a thread-safe mechanism.
+        Return True if the connection is successful, else False.
+        """
+        # 使用串口锁 `_serial_lock` 确保线程安全
         with self._serial_lock:
+            # 如果当前尚未连接
             if not self.is_connected:
                 try:
+                    # 创建一个 `Serial` 实例连接到对应的串口，并根据实例属性设置相关参数
                     self._serial = serial.Serial(
                         port=self.serial_port,
                         baudrate=self.baudrate,
@@ -67,12 +74,16 @@ class SerialHelper:
                         stopbits=self.stopbits,
                         timeout=1
                     )
+                    # 设置成功连接标志为 True，使用连接标志锁 `_is_connected_lock` 确保线程安全
                     with self._is_connected_lock:
                         self._is_connected = True
+                    # 返回 True 表示连接成功
                     return True
                 except serial.serialutil.SerialException as e:
+                    # 如果连接失败，则打印错误信息并返回 False 表示连接失败
                     print(f"Failed to connect with port {self.serial_port}, baudrate {self.baudrate}: {e}")
-        return False
+            # 如果已经连接，直接返回 True 表示已连接
+            return False
 
     def disconnect(self):
         with self._serial_lock:
@@ -117,6 +128,11 @@ class SerialHelper:
         return tty_list
 
     def start_read_thread(self, interval=0.1):
+        """
+
+        :param interval:
+        :return:
+        """
         while True:
             with self._is_connected_lock:
                 connected = self.is_connected
