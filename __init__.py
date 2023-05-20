@@ -13,12 +13,18 @@ from .up_controller import *
 from .serial_helper import *
 from .close_loop_controller import *
 from .hotConfigure.valueTest import *
+from .timer import *
+from .setup import *
+from .utils import *
 
-__version__ = "1.0"
+__version__ = "1.1"
 __all__ = [
     'uptech',
     'up_controller',
     'serial_helper',
     'close_loop_controller',
-    'hotConfigure'
+    'hotConfigure',
+    'timer',
+    'setup',
+    'utils'
 ]
