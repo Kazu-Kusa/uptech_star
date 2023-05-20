@@ -23,7 +23,7 @@ class CloseLoopController:
         sendThread.start()
 
     # 串口连接状态回调函数
-    def myserial_on_connected_changed(self, is_connected:bool):
+    def myserial_on_connected_changed(self, is_connected: bool):
         if is_connected:
             print("Connected")
             self._isConn = True
@@ -44,22 +44,30 @@ class CloseLoopController:
                 time.sleep(0.0001)
                 self.msg_list.remove(self.msg_list[0])
 
-    # 串口数据包构建方法
     @staticmethod
-    def generateCmd(cmd):
+    def generateCmd(cmd: str):
+        """
+        convert a command to a tx/rx binary
+        :param cmd: the string that will be converted to binary format according to the convey protocol
+        :return: the binary format cmd
+        """
         buffer = [0] * (len(cmd) + 1)
         for index, cmd_char in enumerate(cmd):
             buffer[index] = (ord(cmd_char)) & 0xFF
         buffer[len(cmd)] = 0x0D
-        # for i in range(len(buffer)):
-        #     print(hex(int(buffer[i])))
         return buffer
 
-    # 控制节点电机运动，servos_id:节点 speed :速度
-    def set_motor_speed(self, id, speed, debug=False):
-        cmd = f'{id}v{speed}'
-        data = self.generateCmd(cmd)
-        self.write(data)
+    def set_motor_speed(self, motor_id: int, speed: int, debug: bool = False):
+        """
+        控制节点电机运动
+        :param motor_id: the id of the motor that you want to control
+        :param speed: the desired speed of the motor
+        :param debug: if open the debugging info
+        :return: None
+        """
+        cmd = f'{motor_id}v{speed}'  # make the command to string
+        data = self.generateCmd(cmd)  # build the command
+        self.write(data)  # send the binary data to channel
         if debug:
             print(cmd)
 
