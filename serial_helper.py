@@ -110,21 +110,61 @@ class SerialHelper:
                     print(f"Serial read error: {e}")
         return b''
 
-    def find_usb_tty(self, id_product: int, id_vendor: int) -> List[str]:
+    def find_usb_tty(self, id_product: int = 0, id_vendor: int = 0) -> List[str]:
+        """
+        该函数实现在 Linux 系统下查找指定厂商和产品 ID 的 USB 串口设备，并返回设备名列表。
+
+        具体实现方式是通过调用 serial.tools.list_ports.comports() 函数获取当前系统可用的串口设备信息，
+        检查每个设备名称中是否包含 "USB" 或者 "ACM" 关键字（因为基本上所有的 USB 转串口设备都会以这些字符开头），
+        然后进一步解析设备的 USB 相关属性信息来确定其所属厂商和产品类型。
+
+        此处使用了 Python 库 serial 提供的 list_ports.comports() 函数，
+        它的功能是获取当前系统的可用串口设备列表。调用该函数时，操作系统将扫描所有可能的串口设备号，
+        并尝试打开其中可用的端口，提取并返回它们的相关信息，包括设备名、描述信息、VID/PID 等。
+
+        Args:
+        id_vendor: 符合条件的 USB 设备的厂商 ID（默认为 0）
+        id_product: 符合条件的 USB 设备的产品 ID（默认为 0）
+
+        Returns:
+        一个字符串列表，包含所有符合条件的 USB to Serial 转换器设备名（如 '/dev/ttyUSB0'）
+
+        Examples:
+        usb = USBFinder()
+        tty_list = usb.find_usb_tty(id_vendor=1027, id_product=24577)
+        print(tty_list)
+
+        >> ['/dev/ttyUSB0', '/dev/ttyUSB1']
+
+        Note:
+        需要先安装 pyserial 模块，并且当前用户需要有足够权限访问串口设备。
+
+
+    """
+        # 初始化结果列表
         tty_list = []
+
+        # 如果当前操作系统是 Linux，则开始搜索 USB to Serial 设备
         if platform.system() == 'Linux':
+            # 查询系统中所有可用串口
             for i in comports():
+                # 判断串口文件名是否包含有 "USB" 或 "ACM"
                 if 'USB' in i[0] or 'ACM' in i[0]:
+                    # 读取串口设备的描述符信息（字符串格式）
                     info = i[2]
+                    # 查找设备描述符中的 idVendor 和 idProduct 字段
                     vendor_id_loc = info.find('idVendor')
                     product_id_loc = info.find('idProduct')
+                    # 如果设备描述符中存在产品 ID 和厂商 ID，则尝试解析出这两个值并进行匹配
                     if product_id_loc != -1 and vendor_id_loc != -1:
                         vendor_id_str = info[vendor_id_loc:]
                         product_id_str = info[product_id_loc:]
                         vendor_id = int(vendor_id_str.split("=")[1].strip(), 16)
                         product_id = int(product_id_str.split("=")[1].strip(), 16)
                         if product_id == id_product and vendor_id == id_vendor:
-                            tty_list.append(i[0])
+                            tty_list.append(i[0])  # 将符合条件的串口设备加入到结果列表中
+
+        # 返回结果列表
         return tty_list
 
     def start_read_thread(self, interval=0.1):
