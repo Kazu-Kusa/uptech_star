@@ -6,15 +6,16 @@ from .serial_helper import SerialHelper
 
 class CloseLoopController:
 
-    def __init__(self):
+    def __init__(self, motor_ids_list: tuple = (1, 2, 3, 4)):
         # 创建串口对象
-        self.msg_send_thread = None
-        self.serial = SerialHelper()
 
+        self.serial = SerialHelper()
+        self.msg_send_thread = None
         # 发送的数据队列
         self.msg_list = []
-
         self.start_msg_sending()
+
+        self.motor_id_list = motor_ids_list
 
     def start_msg_sending(self):
         # 通信线程创建启动
@@ -53,6 +54,16 @@ class CloseLoopController:
         for cmd in cmd_list:
             self.msg_list.append(self.makeCmd(cmd))
 
+    def set_motors_speed(self, speed_list: list[int], id_list: tuple[int] = None, debug: bool = False):
+        if id_list is None:
+            id_list = self.motor_id_list
+        cmd_list = []
+        for i, motor_id in enumerate(id_list):
+            cmd_list.append(self.makeCmd(f'{motor_id}v{speed_list[i]}'))
+        if debug:
+            print(f'- {cmd_list}')
+        self.msg_list += cmd_list
+
     def set_motor_speed(self, motor_id: int, speed: int, debug: bool = False):
         """
         控制节点电机运动
@@ -70,6 +81,3 @@ class CloseLoopController:
 
 if __name__ == '__main__':
     connect = CloseLoopController()
-    time.sleep(1)
-    connect.set_motor_speed(4, -9999)
-    # connect.set_motor_speed(3, 0)
