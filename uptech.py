@@ -3,7 +3,7 @@ import ctypes
 import sys
 import os
 from ctypes import cdll
-
+import warnings
 import pigpio
 
 # hPi=pigpio.pi()
@@ -83,17 +83,17 @@ class UpTech:
 
         self.adc_all = self.__adc_data()
         self.io_all = []
-        self.accel_all = self.__mpu_float()
-        self.gyro_all = self.__mpu_float()
-        self.atti_all = self.__mpu_float()
+
         if open_mpu:
+            self.accel_all = self.__mpu_float()
+            self.gyro_all = self.__mpu_float()
+            self.atti_all = self.__mpu_float()
             self.MPU6500_Open()
         if self.debug:
             print('Sensor data temp loaded')
 
         self.hPi.hardware_PWM(FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us)
         self.hPi.set_PWM_range(FAN_GPIO_PWM, FAN_PWN_range)
-        self.FAN_Set_Speed()
 
     def FAN_Set_Speed(self, speed: int = 0):
         """
@@ -162,7 +162,8 @@ class UpTech:
             gyro: -+2000 degree/s
             sampling rate: 1kHz
         """
-        so_up.mpu6500_dmp_init()
+        if so_up.mpu6500_dmp_init():
+            warnings.warn('#failed to initialize MPU6500', category=RuntimeWarning)
 
     def MPU6500_GetAccel(self):
         """
@@ -190,7 +191,7 @@ class UpTech:
         return self.atti_all
 
     @staticmethod
-    def LCD_Open(direction: int):
+    def LCD_Open(direction: int = 2):
         """
         open with lcd ,and set the LCD displaying direction
 
