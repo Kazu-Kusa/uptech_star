@@ -100,7 +100,7 @@ class SerialHelper:
             if self.is_connected and self._serial.isOpen():
                 self._serial.close()
 
-    def write(self, data: bytes) -> bool:
+    def write(self, data: bytes or bytearray) -> bool:
         """
         向串口设备中写入二进制数据。
 
@@ -114,8 +114,8 @@ class SerialHelper:
             无异常抛出。
 
         Examples:
-            ser = SerialPort('/dev/ttyUSB0', 9600)
-            if ser.write(b'hello world'):
+            serial = SerialHelper()
+            if serial.write(b'hello world'):
                 print('Data was successfully written to serial port.')
             else:
                 print('Failed to write data to serial port.')
@@ -268,3 +268,7 @@ class DummyLock:
 
     def release(self):
         pass
+
+
+if __name__ == '__main__':
+    pass
