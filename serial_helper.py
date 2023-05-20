@@ -3,6 +3,7 @@ from typing import List
 import platform
 import serial
 from serial.tools.list_ports import comports
+import warnings
 
 
 class SerialHelper:
@@ -86,28 +87,75 @@ class SerialHelper:
             return False
 
     def disconnect(self):
+        """
+        disconnects the connection
+        :return:
+        """
         with self._serial_lock:
             if self.is_connected and self._serial.isOpen():
                 self._serial.close()
 
     def write(self, data: bytes) -> bool:
+        """
+        向串口设备中写入二进制数据。
+
+        Args:
+            data: 要写入的二进制数据
+
+        Returns:
+            如果写入成功则返回 True，否则返回 False。
+
+        Raises:
+            无异常抛出。
+
+        Examples:
+            ser = SerialPort('/dev/ttyUSB0', 9600)
+            if ser.write(b'hello world'):
+                print('Data was successfully written to serial port.')
+            else:
+                print('Failed to write data to serial port.')
+
+        Note:
+            1. 此方法需要确保串口设备已经连接并打开，并且调用此方法前应该先检查设备的状态是否正常。
+            2. 在多线程或多进程环境下使用此方法时，需要确保对串口上下文对象（即 SerialPort 类的实例）进行正确的锁定保护，以避免多个线程或进程同时访问串口设备造成不可预期的错误。
+        """
         with self._serial_lock:
             try:
                 if self.is_connected:
                     self._serial.write(data)
                     return True
             except serial.serialutil.SerialException as e:
-                print(f"Serial write error: {e}")
+                warnings.warn(f"Serial write error: {e}", category=RuntimeWarning)
         return False
 
     def read(self, length: int) -> bytes:
+        """
+                从串口设备中读取指定长度的字节数据。
+
+                Args:
+                    length: 整数类型，要读取的字节长度。
+
+                Returns:
+                    字节串类型，表示所读取的字节数据。如果读取失败，则返回一个空字节串（b''）。
+
+                Raises:
+                    无异常抛出。
+
+                Example:
+                    data = serial.read(length=10)
+                    print(data)
+
+                Note:
+                    如果连接断开或者读取过程中发生异常，会在控制台打印错误信息并返回一个空字节串（b''）。
+        """
         with self._serial_lock:
             if self.is_connected:
                 try:
                     data: bytes = self._serial.read(length)
                     return data
                 except serial.serialutil.SerialException as e:
-                    print(f"Serial read error: {e}")
+                    warnings.warn(f"Serial read error: {e}", category=RuntimeWarning)
+
         return b''
 
     def find_usb_tty(self, id_product: int = 0, id_vendor: int = 0) -> List[str]:
@@ -167,17 +215,19 @@ class SerialHelper:
         # 返回结果列表
         return tty_list
 
-    def start_read_thread(self, interval=0.1):
+    def start_read_thread(self, interval: float = 0.1, read_buffer_size: int = 512) -> None:
         """
+        在一个新线程中启动读取数据的循环。
 
-        :param interval:
-        :return:
+        :param interval: 循环间隔时间，以秒为单位。默认值为0.1。
+        :param read_buffer_size: 每次读取的字节数。默认值为512。
+        :return: None
         """
         while True:
             with self._is_connected_lock:
                 connected = self.is_connected
             if connected:
-                data: bytes = self.read(512)
+                data: bytes = self.read(read_buffer_size)
                 if len(data) > 0:
                     self.on_data_received_handler(data)
             time.sleep(interval)
