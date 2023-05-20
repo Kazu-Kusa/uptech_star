@@ -49,17 +49,12 @@ class UpController(UpTech, CloseLoopController):
             self.io_all = [int(bit) for bit in f"{self.ADC_IO_GetAllInputLevel():08b}"]
 
     def move_cmd(self, left_speed, right_speed, print_log=False):
-        def move():
-            self.set_motor_speed(1, left_speed)
-            self.set_motor_speed(2, right_speed)
-            self.set_motor_speed(3, -left_speed)
-            self.set_motor_speed(4, -right_speed)
 
         if print_log:
-            move()
+            self.set_motors_speed([left_speed, right_speed, -left_speed, -right_speed])
         else:
             self.block_print()
-            move()
+            self.set_motors_speed([left_speed, right_speed, -left_speed, -right_speed])
             self.enable_print()
 
     def lcd_display(self, content):
