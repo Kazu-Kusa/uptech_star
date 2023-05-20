@@ -93,8 +93,8 @@ class UpController(UpTech, CloseLoopController):
         def move():
             self.set_motor_speed(1, left_speed)
             self.set_motor_speed(2, right_speed)
-            self.set_motor_speed(3, left_speed)
-            self.set_motor_speed(4, right_speed)
+            self.set_motor_speed(3, -left_speed)
+            self.set_motor_speed(4, -right_speed)
 
         if print_log:
             move()
