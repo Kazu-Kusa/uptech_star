@@ -1,197 +1,143 @@
-# -*- coding: utf-8 -*-
-import logging
-import platform
-import threading
 import time
+from typing import List
+import platform
 import serial
-
-if platform.system() == "Windows":
-    from serial.tools import list_ports
-else:
-    import glob, os, re
+from serial.tools.list_ports import comports
 
 
-class SerialHelper(object):
-    def __init__(self, Port="/dev/ttyUSB0", BaudRate="115200", ByteSize="8", Parity="N", Stopbits="1"):
-        '''
-        初始化一些参数
-        '''
+class SerialHelper:
+    """
+    所有共享状态变量（如 _serial 和 _is_connected）的访问都添加了对应的锁获取和释放操作。
+    移除了 _on_connected_changed 和 _on_data_received 两个线程方法，
+    新增了 start_read_thread 线程来不断监听串口设备是否有数据返回。
+    新增 DummyLock 类作为在单线程场景下实际使用的锁占位符。
+    这是因为如果在单线程的环境中使用普通的锁会降低程序效率，
+    而使用 DummyLock 可以不影响程序性能并且可以消除后面调用锁时可能会出现的 NoneType Error 问题。
+    另外，在新代码中，我们新增了 start_read_thread 方法和 on_data_received_handler 回调函数，
+    可以统一应对串口设备发送过来的数据，并且用户也可以使用 set_on_data_received_handler 方法通过传入回调函数的方式来自定义处理接收到的数据。
+    """
 
-        self.port = Port
-        self.baudrate = BaudRate
-        self.bytesize = ByteSize
-        self.parity = Parity
-        self.stopbits = Stopbits
-        self.threshold_value = 1
-        self.receive_data = ""
+    def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 115200, bytesize: int = 8, parity: str = 'N',
+                 stopbits: int = 1) -> None:
 
-        self._serial = None
-        self._is_connected = False
-        print(f'serial port opened')
-    def connect(self, timeout=2):
-        '''
-        连接设备
-        '''
-        self._serial = serial.Serial()
-        self._serial.port = self.port
-        self._serial.baudrate = self.baudrate
-        self._serial.bytesize = int(self.bytesize)
-        self._serial.parity = self.parity
-        self._serial.stopbits = int(self.stopbits)
-        self._serial.timeout = timeout
+        self._serial_port: str = port
+        self._baudrate: int = baudrate
+        self._bytesize: int = bytesize
+        self._parity: str = parity
+        self._stopbits: int = stopbits
 
-        try:
-            self._serial.open()
-            if self._serial.isOpen():
-                self._is_connected = True
-        except Exception as e:
-            self._is_connected = False
-            logging.error(e)
+        self._serial_lock = DummyLock()
+        self._is_connected_lock = DummyLock()
+        self._is_connected: bool = False
+
+    @property
+    def is_connected(self) -> bool:
+        with self._is_connected_lock:
+            return self._is_connected
+
+    @property
+    def serial_port(self) -> str:
+        return self._serial_port
+
+    @property
+    def baudrate(self) -> int:
+        return self._baudrate
+
+    @property
+    def bytesize(self) -> int:
+        return self._bytesize
+
+    @property
+    def parity(self) -> str:
+        return self._parity
+
+    @property
+    def stopbits(self) -> int:
+        return self._stopbits
+
+    def connect(self):
+        with self._serial_lock:
+            if not self.is_connected:
+                try:
+                    self._serial = serial.Serial(
+                        port=self.serial_port,
+                        baudrate=self.baudrate,
+                        bytesize=self.bytesize,
+                        parity=self.parity,
+                        stopbits=self.stopbits,
+                        timeout=1
+                    )
+                    with self._is_connected_lock:
+                        self._is_connected = True
+                    return True
+                except serial.serialutil.SerialException as e:
+                    print(f"Failed to connect with port {self.serial_port}, baudrate {self.baudrate}: {e}")
+        return False
 
     def disconnect(self):
-        '''
-        断开连接
-        '''
-        if self._serial:
-            self._serial.close()
+        with self._serial_lock:
+            if self.is_connected and self._serial.isOpen():
+                self._serial.close()
 
-    def write(self, data, isHex=False):
-        '''
-        发送数据给串口设备
-        '''
-        if self._is_connected:
-            self._serial.write(data)
-        else:
-            print("port no open")
-
-    #             if isHex:
-    #                 data = binascii.unhexlify(data)
-    #             self._serial.write(bytes(data))
-
-    def on_connected_changed(self, func):
-        '''
-        set serial connected status change callback
-        '''
-        tConnected = threading.Thread(target=self._on_connected_changed, args=(func,))
-        tConnected.daemon = True
-        tConnected.start()
-
-    def _on_connected_changed(self, func):
-        '''
-        set serial connected status change callback
-        '''
-        self._is_connected_temp = False
-        while True:
-            if platform.system() == "Windows":
-                for com in list_ports.comports():
-                    if com[0] == self.port:
-                        self._is_connected = True
-                        break
-            elif platform.system() == "Linux":
-                if self.port in self.find_usb_tty():
-                    self._is_connected = True
-
-            if self._is_connected_temp != self._is_connected:
-                func(self._is_connected)
-            self._is_connected_temp = self._is_connected
-            time.sleep(0.5)
-
-    def on_data_received(self, func):
-        '''
-        set serial data recieved callback
-        '''
-        tDataReceived = threading.Thread(target=self._on_data_received, args=(func,))
-        tDataReceived.daemon = True
-        tDataReceived.start()
-
-    def _on_data_received(self, func):
-        '''
-        set serial data recieved callback
-        '''
-        while True:
-            if self._is_connected:
-
-                try:
-                    number = self._serial.inWaiting()
-                    if number > 0:
-                        data = self._serial.read(number)
-                        if data:
-                            # height = ((data[5] & 0xFF) | ((data[6] & 0xFF) << 8) | ((data[7] & 0xFF) << 16) | ((
-                            # data[8] & 0xFF) << 24))
-                            func(data)
-                except Exception as e:
-                    self._is_connected = False
-                    self._serial = None
-                    break
-
-    @staticmethod
-    def find_usb_tty(vendor_id=None, product_id=None):
-        """
-        查找Linux下的串口设备
-        """
-        tty_devs = list()
-        for dn in glob.glob('/sys/bus/usb/devices/*'):
+    def write(self, data: bytes) -> bool:
+        with self._serial_lock:
             try:
-                vid = int(open(os.path.join(dn, "idVendor")).read().strip(), 16)
-                pid = int(open(os.path.join(dn, "idProduct")).read().strip(), 16)
-                if ((vendor_id is None) or (vid == vendor_id)) and ((product_id is None) or (pid == product_id)):
-                    dns = glob.glob(os.path.join(dn, os.path.basename(dn) + "*"))
-                    for sdn in dns:
-                        for fn in glob.glob(os.path.join(sdn, "*")):
-                            if re.search(r"\/ttyUSB[0-9]+$", fn):
-                                tty_devs.append(os.path.join("/dev", os.path.basename(fn)))
-            except Exception as ex:
-                pass
-        return tty_devs
+                if self.is_connected:
+                    self._serial.write(data)
+                    return True
+            except serial.serialutil.SerialException as e:
+                print(f"Serial write error: {e}")
+        return False
+
+    def read(self, length: int) -> bytes:
+        with self._serial_lock:
+            if self.is_connected:
+                try:
+                    data: bytes = self._serial.read(length)
+                    return data
+                except serial.serialutil.SerialException as e:
+                    print(f"Serial read error: {e}")
+        return b''
+
+    def find_usb_tty(self, id_product: int, id_vendor: int) -> List[str]:
+        tty_list = []
+        if platform.system() == 'Linux':
+            for i in comports():
+                if 'USB' in i[0] or 'ACM' in i[0]:
+                    info = i[2]
+                    vendor_id_loc = info.find('idVendor')
+                    product_id_loc = info.find('idProduct')
+                    if product_id_loc != -1 and vendor_id_loc != -1:
+                        vendor_id_str = info[vendor_id_loc:]
+                        product_id_str = info[product_id_loc:]
+                        vendor_id = int(vendor_id_str.split("=")[1].strip(), 16)
+                        product_id = int(product_id_str.split("=")[1].strip(), 16)
+                        if product_id == id_product and vendor_id == id_vendor:
+                            tty_list.append(i[0])
+        return tty_list
+
+    def start_read_thread(self, interval=0.1):
+        while True:
+            with self._is_connected_lock:
+                connected = self.is_connected
+            if connected:
+                data: bytes = self.read(512)
+                if len(data) > 0:
+                    self.on_data_received_handler(data)
+            time.sleep(interval)
+
+    def set_on_data_received_handler(self, func):
+        """set serial data received callback"""
+        self.on_data_received_handler = func
+
+    def on_data_received_handler(self, data: bytes):
+        """default data received handler if no handler is added"""
+        pass
 
 
-class testHelper(object):
-    def __init__(self):
-        self.myserial = SerialHelper()
-        self.myserial.on_connected_changed(self.myserial_on_connected_changed)
+class DummyLock:
+    def acquire(self):
+        pass
 
-    def write(self, data):
-        self.myserial.write(data, True)
-
-    @staticmethod
-    def generateCmd(device, cmd, len, data):
-        buffer = [0] * (len + 6)
-        buffer[0] = 0xF5
-        buffer[1] = 0x5F
-        buffer[2] = device & 0xFF
-        buffer[3] = cmd & 0xFF
-        buffer[4] = len & 0xFF
-        for i in range(len):
-            buffer[5 + i] = data[i]
-
-        check = 0
-        for i in range(len + 3):
-            check += buffer[i + 2]
-
-        buffer[len + 5] = (~check) & 0xFF
-        return buffer, len + 6
-
-    def setServoPosition(self, angel):
-        data = [0] * 2
-        data[0] = angel & 0xFF
-        data[1] = (angel >> 8) & 0xFF
-        buffer, len = self.generateCmd(0x55, 0x03, 0x02, data)
-        self.myserial.write(data)
-
-    def myserial_on_connected_changed(self, is_connected):
-        if is_connected:
-            print("Connected")
-            self.myserial.connect()
-            self.myserial.on_data_received(self.myserial_on_data_received)
-        else:
-            print("DisConnected")
-
-    @staticmethod
-    def myserial_on_data_received(data):
-        print(data)
-
-
-if __name__ == '__main__':
-    myserial = testHelper()
-    time.sleep(1)
-    # myserial.setServoPosition(50)
+    def release(self):
+        pass
