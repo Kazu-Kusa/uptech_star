@@ -1,9 +1,10 @@
 import time
-from typing import List
+from typing import List, Callable, Any
 import platform
 import serial
 from serial.tools.list_ports import comports
 import warnings
+import threading
 
 
 class SerialHelper:
@@ -21,6 +22,7 @@ class SerialHelper:
     def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 115200, bytesize: int = 8, parity: str = 'N',
                  stopbits: int = 1) -> None:
 
+        self._serial = None
         self._serial_port: str = port
         self._baudrate: int = baudrate
         self._bytesize: int = bytesize
@@ -30,6 +32,9 @@ class SerialHelper:
         self._serial_lock = DummyLock()
         self._is_connected_lock = DummyLock()
         self._is_connected: bool = False
+
+        self._read_thread_should_stop = None
+        self._read_thread = None
 
     @property
     def is_connected(self) -> bool:
@@ -216,27 +221,43 @@ class SerialHelper:
         return tty_list
 
     def start_read_thread(self, interval: float = 0.1, read_buffer_size: int = 512) -> None:
+        """Start the thread reading loop."""
+        self._read_thread_should_stop = False
+        self._read_thread = threading.Thread(target=self._read_loop, args=(interval, read_buffer_size),
+                                             name="read_thread")
+        self._read_thread.daemon = True
+        self._read_thread.start()
+
+    def stop_read_thread(self, wait: bool = True):
         """
-        在一个新线程中启动读取数据的循环。
+        Stop the thread reading loop.
+        :param wait: Whether to wait for the thread to finish. Default is true.
+        """
+        self._read_thread_should_stop = True
+        if wait and self._read_thread is not None and threading.current_thread() != self._read_thread:
+            self._read_thread.join()
+        self._read_thread = None
+
+    def _read_loop(self, interval: float, read_buffer_size: int) -> None:
+        """
+        Thread loop that reads data from the serial port.
 
         :param interval: 循环间隔时间，以秒为单位。默认值为0.1。
         :param read_buffer_size: 每次读取的字节数。默认值为512。
         :return: None
+
         """
-        while True:
-            with self._is_connected_lock:
-                connected = self.is_connected
-            if connected:
-                data: bytes = self.read(read_buffer_size)
-                if len(data) > 0:
-                    self.on_data_received_handler(data)
+        while not self._read_thread_should_stop:
+            data = self.read(read_buffer_size)
+            if len(data) > 0:
+                self.on_data_received_handler(data)
             time.sleep(interval)
 
-    def set_on_data_received_handler(self, func):
+    def set_on_data_received_handler(self, func: Callable[[bytes], Any]):
         """set serial data received callback"""
         self.on_data_received_handler = func
 
-    def on_data_received_handler(self, data: bytes):
+    def on_data_received_handler(self, data: bytes) -> None:
         """default data received handler if no handler is added"""
         pass
 
