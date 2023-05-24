@@ -9,7 +9,7 @@ class CloseLoopController:
     def __init__(self, motor_ids_list: tuple = (1, 2, 3, 4)):
         # 创建串口对象
 
-        self.serial = SerialHelper(con_when_created=True, auto_search=True)
+        self.serial = SerialHelper(con2port_when_created=True, auto_search_port=True)
         self.msg_send_thread = None
         # 发送的数据队列
         self.msg_list = []
@@ -23,15 +23,18 @@ class CloseLoopController:
         self.msg_send_thread.daemon = True
         self.msg_send_thread.start()
 
-    def msg_sending_thread(self):
+    def msg_sending_thread(self,print_info:bool=False):
         """
         串口通信线程发送函数
         :return:
         """
-        print("msg_sending_thread_start")
+        print(f"msg_sending_thread_start, the debugger is [{print_info}]")
         while True:
             if self.msg_list:
-                self.serial.write(self.msg_list.pop(0))
+                temp = self.msg_list.pop(0)
+                if print_info:
+                    print(f'writing {temp} to channel,remaining {len(self.msg_list)}')
+                self.serial.write(temp)
 
     @staticmethod
     def generateCmd(cmd: str):
@@ -48,13 +51,13 @@ class CloseLoopController:
 
     @staticmethod
     def makeCmd(cmd: str) -> bytes:
-        return cmd.encode('ascii') + b'\x0D'
+        return cmd.encode('ascii') + b'\r'
 
     def appendCmds(self, cmd_list: list[str]):
         for cmd in cmd_list:
             self.msg_list.append(self.makeCmd(cmd))
 
-    def set_motors_speed(self, speed_list: list[int], id_list: tuple[int] = None, debug: bool = False):
+    def set_motors_speed(self, speed_list: list[int], id_list: tuple = (1, 2, 3, 4), debug: bool = False):
         if id_list is None:
             id_list = self.motor_id_list
         cmd_list = []
