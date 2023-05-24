@@ -20,7 +20,7 @@ class SerialHelper:
     """
 
     def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 115200, bytesize: int = 8, parity: str = 'N',
-                 stopbits: int = 1) -> None:
+                 stopbits: int = 1, con_when_created: bool = False, auto_search: bool = False) -> None:
 
         self._serial = None
         self._serial_port: str = port
@@ -35,6 +35,16 @@ class SerialHelper:
 
         self._read_thread_should_stop = None
         self._read_thread = None
+        if con_when_created and not self.connect() and auto_search:
+            # connection to the default has failed
+            # try to search for a new port
+            warnings.warn(f'failed to connect to {self.serial_port}, try to search')
+            for i in self.find_usb_tty():
+                self.serial_port = i
+                warnings.warn(f'try to connect to {self.serial_port}')
+                if self.connect():
+                    warnings.warn(f'Successfully connect to {self.serial_port}')
+                    break
 
     @property
     def is_connected(self) -> bool:
@@ -44,6 +54,10 @@ class SerialHelper:
     @property
     def serial_port(self) -> str:
         return self._serial_port
+
+    @serial_port.setter
+    def serial_port(self, value: str):
+        self._serial_port = value
 
     @property
     def baudrate(self) -> int:
@@ -129,6 +143,8 @@ class SerialHelper:
                 if self.is_connected:
                     self._serial.write(data)
                     return True
+                else:
+                    warnings.warn("Connection is not set")
             except serial.serialutil.SerialException as e:
                 warnings.warn(f"Serial write error: {e}", category=RuntimeWarning)
         return False
@@ -160,10 +176,11 @@ class SerialHelper:
                     return data
                 except serial.serialutil.SerialException as e:
                     warnings.warn(f"Serial read error: {e}", category=RuntimeWarning)
-
+            warnings.warn("Connection is not set")
         return b''
 
-    def find_usb_tty(self, id_product: int = 0, id_vendor: int = 0) -> List[str]:
+    @staticmethod
+    def find_usb_tty(id_product: int = 0, id_vendor: int = 0) -> List[str]:
         """
         该函数实现在 Linux 系统下查找指定厂商和产品 ID 的 USB 串口设备，并返回设备名列表。
 
@@ -263,10 +280,29 @@ class SerialHelper:
 
 
 class DummyLock:
-    def acquire(self):
+    '''
+    这个 DummyLock 类的作用是提供一种无操作（no-op）的锁定机制。
+    在某些业务逻辑中可能需要加锁保证并发安全性，但如果暂时不需要对共享资源进行访问就可以使用这个类来替代真正的锁定机制。
+    当使用 with 语句将这个类实例化并运行时，进入该上下文后会直接进入 pass 语句，而退出上下文则也立即进入 pass 语句，
+    从而忽略了实际的加锁解锁操作。虽然 DummyLock 不实现真正的锁定功能，但其语法合法，可以用于某些场景下仅需占位符的临时方案。
+    '''
+
+    def __enter__(self):
+        """
+        enter the state of the dummy locker
+        :return:
+        """
         pass
 
-    def release(self):
+    def __exit__(self, exception_type, exception_value, traceback):
+        """
+        exit the state of the dummy locker
+        :param exception_type:
+        :param exception_value:
+        :param traceback:
+        :return:
+        """
+
         pass
 
 

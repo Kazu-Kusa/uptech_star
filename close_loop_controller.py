@@ -9,7 +9,7 @@ class CloseLoopController:
     def __init__(self, motor_ids_list: tuple = (1, 2, 3, 4)):
         # 创建串口对象
 
-        self.serial = SerialHelper()
+        self.serial = SerialHelper(con_when_created=True, auto_search=True)
         self.msg_send_thread = None
         # 发送的数据队列
         self.msg_list = []
