@@ -20,7 +20,7 @@ class SerialHelper:
     """
 
     def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 115200, bytesize: int = 8, parity: str = 'N',
-                 stopbits: int = 1, con_when_created: bool = False, auto_search: bool = False) -> None:
+                 stopbits: int = 1, con2port_when_created: bool = False, auto_search_port: bool = False) -> None:
 
         self._serial = None
         self._serial_port: str = port
@@ -35,16 +35,21 @@ class SerialHelper:
 
         self._read_thread_should_stop = None
         self._read_thread = None
-        if con_when_created and not self.connect() and auto_search:
-            # connection to the default has failed
-            # try to search for a new port
-            warnings.warn(f'failed to connect to {self.serial_port}, try to search')
-            for i in self.find_usb_tty():
-                self.serial_port = i
-                warnings.warn(f'try to connect to {self.serial_port}')
-                if self.connect():
-                    warnings.warn(f'Successfully connect to {self.serial_port}')
-                    break
+        if con2port_when_created:
+            if self.connect():
+                warnings.warn(f"Successfully connect to {self.serial_port}[Default]")
+            elif auto_search_port:
+                # connection to the default has failed
+                # try to search for a new port
+                warnings.warn(f'failed to connect to {self.serial_port}, try to search')
+                for i in self.find_usb_tty():
+                    self.serial_port = i
+                    warnings.warn(f'try to connect to {self.serial_port}')
+                    if self.connect():
+                        warnings.warn(f'Successfully connect to {self.serial_port}')
+                        break
+            else:
+                warnings.warn(f'failed to connect to {self.serial_port},please change the port or check the connection')
 
     @property
     def is_connected(self) -> bool:
