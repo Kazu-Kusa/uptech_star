@@ -14,8 +14,12 @@ from .serial_helper import *
 from .close_loop_controller import *
 from .hotConfigure.valueTest import *
 from .timer import *
-from .setup import *
-from .utils import *
+
+try:
+    from .setup import *
+    from .utils import *
+except ImportError:
+    pass
 
 __version__ = "1.1"
 __all__ = [
