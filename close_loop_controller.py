@@ -23,7 +23,7 @@ class CloseLoopController:
         self.msg_send_thread.daemon = True
         self.msg_send_thread.start()
 
-    def msg_sending_thread(self,print_info:bool=False):
+    def msg_sending_thread(self, print_info: bool = False):
         """
         串口通信线程发送函数
         :return:
@@ -52,10 +52,6 @@ class CloseLoopController:
     @staticmethod
     def makeCmd(cmd: str) -> bytes:
         return cmd.encode('ascii') + b'\r'
-
-    def appendCmds(self, cmd_list: list[str]):
-        for cmd in cmd_list:
-            self.msg_list.append(self.makeCmd(cmd))
 
     def set_motors_speed(self, speed_list: list[int], id_list: tuple = (1, 2, 3, 4), debug: bool = False):
         if id_list is None:
