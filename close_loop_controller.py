@@ -63,6 +63,9 @@ class CloseLoopController:
             print(f'- {cmd_list}')
         self.msg_list += cmd_list
 
+    def set_all_motors_speed(self, speed: int):
+        self.msg_list.append(self.makeCmd(f'v{speed}'))
+
     def set_motor_speed(self, motor_id: int, speed: int, debug: bool = False):
         """
         控制节点电机运动

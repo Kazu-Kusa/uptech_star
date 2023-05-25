@@ -1,6 +1,7 @@
 import os
 import sys
 import threading
+import time
 
 from .close_loop_controller import CloseLoopController
 from .uptech import UpTech
@@ -61,6 +62,25 @@ class UpController(UpTech, CloseLoopController):
         self.LCD_PutString(30, 0, content)
         self.LCD_Refresh()
         self.LCD_SetFontSize(self.FONT_8X14)
+
+
+def motor_speed_test(speed_level: int = 11, using_id: bool = True, laps: int = 3):
+    con = UpController()
+    try:
+        for _ in range(laps):
+            if using_id:
+                for i in range(speed_level):
+                    print(f'doing {i * 1000}')
+                    con.set_motors_speed([i * 1000] * 4)
+                    time.sleep(1)
+            else:
+                for i in range(speed_level):
+                    print(f'doing {i * 1000}')
+                    con.set_all_motors_speed(i * 1000)
+                    time.sleep(1)
+    finally:
+        con.set_all_motors_speed(0)
+    print('over')
 
 
 if __name__ == '__main__':
