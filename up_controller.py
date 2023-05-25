@@ -2,6 +2,7 @@ import os
 import sys
 import threading
 import time
+import warnings
 
 from .close_loop_controller import CloseLoopController
 from .uptech import UpTech
@@ -9,17 +10,19 @@ from .uptech import UpTech
 
 class UpController(UpTech, CloseLoopController):
 
-    def __init__(self, debug=False):
+    def __init__(self, debug=False, using_updating_thread: bool = False):
         self.debug = debug
         # call father class init
         UpTech.__init__(self)
         CloseLoopController.__init__(self)
-        # set the display direction to Horizontal display
-        self.LCD_Open()
-        # open the io-adc plug and print the returned log
-        print(f"ad_io_open_times: {self.ADC_IO_Open()}")
 
-        self.open_adc_io_update_thread()
+        # open the io-adc plug and print the returned log
+        print(f"Sensor channel Init times: {self.ADC_IO_Open()}")
+        if using_updating_thread:
+            warnings.warn('opening sensors update thread')
+            self.open_adc_io_update_thread()
+        else:
+            warnings.warn('NOT using sensors update thread')
 
     @staticmethod
     def block_print():
@@ -49,19 +52,14 @@ class UpController(UpTech, CloseLoopController):
             self.adc_all = self.ADC_Get_All_Channel()
             self.io_all = [int(bit) for bit in f"{self.ADC_IO_GetAllInputLevel():08b}"]
 
-    def move_cmd(self, left_speed, right_speed, print_log=False):
-
-        if print_log:
-            self.set_motors_speed([left_speed, right_speed, -left_speed, -right_speed])
-        else:
-            self.block_print()
-            self.set_motors_speed([left_speed, right_speed, -left_speed, -right_speed])
-            self.enable_print()
-
-    def lcd_display(self, content):
-        self.LCD_PutString(30, 0, content)
-        self.LCD_Refresh()
-        self.LCD_SetFontSize(self.FONT_8X14)
+    def move_cmd(self, left_speed, right_speed) -> None:
+        """
+        control the motor
+        :param left_speed:
+        :param right_speed:
+        :return:
+        """
+        self.set_motors_speed([left_speed, right_speed, -left_speed, -right_speed], debug=self.debug)
 
 
 def motor_speed_test(speed_level: int = 11, using_id: bool = True, laps: int = 3):
