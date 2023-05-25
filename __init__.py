@@ -21,8 +21,8 @@ try:
 except ImportError:
     pass
 
-__version__ = "1.1"
-__all__ = [
+__version__ = "0.2"
+__all__ = {
     'uptech',
     'up_controller',
     'serial_helper',
@@ -31,4 +31,4 @@ __all__ = [
     'timer',
     'setup',
     'utils'
-]
+}
