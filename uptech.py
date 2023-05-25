@@ -6,11 +6,6 @@ from ctypes import cdll
 import warnings
 import pigpio
 
-# hPi=pigpio.pi()
-# #hPi=pigpio.pi()
-# hSpi0=-1
-# hSpi1=-1
-
 FAN_GPIO_PWM = 18
 FAN_pulse_frequency = 20000
 FAN_duty_time_us = 1000000
@@ -26,8 +21,6 @@ class UpTech:
     """
     provides sealed methods accessing to the IOs and builtin sensors
     """
-    CDS_MODE_SERVO = 0
-    CDS_MODE_MOTOR = 1
 
     # region font size definitions
     FONT_4X6 = 0
@@ -78,8 +71,8 @@ class UpTech:
     def __init__(self, open_mpu: bool = True, debug=False):
         self.debug = debug
         pigpio.exceptions = True
-        self.hPi = pigpio.pi()
-        assert self.hPi.connected, 'pi is not connected'
+        self.Pi = pigpio.pi()
+        assert self.Pi.connected, 'pi is not connected'
 
         self.adc_all = self.__adc_data()
         self.io_all = []
@@ -92,15 +85,15 @@ class UpTech:
         if self.debug:
             print('Sensor data temp loaded')
 
-        self.hPi.hardware_PWM(FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us)
-        self.hPi.set_PWM_range(FAN_GPIO_PWM, FAN_PWN_range)
+        self.Pi.hardware_PWM(FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us)
+        self.Pi.set_PWM_range(FAN_GPIO_PWM, FAN_PWN_range)
 
     def FAN_Set_Speed(self, speed: int = 0):
         """
         set the speed of the raspberry's fan
 
         """
-        self.hPi.set_PWM_dutycycle(FAN_GPIO_PWM, speed)
+        self.Pi.set_PWM_dutycycle(FAN_GPIO_PWM, speed)
 
     @staticmethod
     def ADC_IO_Open():
@@ -154,7 +147,7 @@ class UpTech:
         return so_up.adc_io_InputGetAll()
 
     @staticmethod
-    def MPU6500_Open():
+    def MPU6500_Open(debug_info: bool = False):
         """
         initialize the MPU6500
         default settings:
@@ -164,6 +157,8 @@ class UpTech:
         """
         if so_up.mpu6500_dmp_init():
             warnings.warn('#failed to initialize MPU6500', category=RuntimeWarning)
+        elif debug_info:
+            warnings.warn('#MPU6500 successfully initialized')
 
     def MPU6500_GetAccel(self):
         """
