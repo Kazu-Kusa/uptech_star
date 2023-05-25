@@ -21,7 +21,7 @@ class UpTech:
     """
     provides sealed methods accessing to the IOs and builtin sensors
     """
-
+    # TODO: move this type def out of here
     __adc_data = ctypes.c_uint16 * 10
 
     __mpu_float = ctypes.c_float * 3
@@ -45,6 +45,14 @@ class UpTech:
 
         self.Pi.hardware_PWM(FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us)
         self.Pi.set_PWM_range(FAN_GPIO_PWM, FAN_PWN_range)
+
+    def get_io(self, index: int):
+
+        # 计算要移动的位数
+        shift = index * 8
+        # 移动到最低 8 位，并获取末尾 8 位的值
+        byte_value = (self.ADC_IO_GetAllInputLevel() >> shift) & 0xff
+        return byte_value
 
     def FAN_Set_Speed(self, speed: int = 0):
         """
@@ -101,6 +109,8 @@ class UpTech:
     def ADC_IO_GetAllInputLevel():
         """
         get all io plug input level
+
+        unsigned 8int
         """
         return so_up.adc_io_InputGetAll()
 
