@@ -225,25 +225,23 @@ class SerialHelper:
         # 初始化结果列表
         tty_list = []
 
-        # 如果当前操作系统是 Linux，则开始搜索 USB to Serial 设备
-        if platform.system() == 'Linux':
-            # 查询系统中所有可用串口
-            for i in comports():
-                # 判断串口文件名是否包含有 "USB" 或 "ACM"
-                if 'USB' in i[0] or 'ACM' in i[0]:
-                    # 读取串口设备的描述符信息（字符串格式）
-                    info = i[2]
-                    # 查找设备描述符中的 idVendor 和 idProduct 字段
-                    vendor_id_loc = info.find('idVendor')
-                    product_id_loc = info.find('idProduct')
-                    # 如果设备描述符中存在产品 ID 和厂商 ID，则尝试解析出这两个值并进行匹配
-                    if product_id_loc != -1 and vendor_id_loc != -1:
-                        vendor_id_str = info[vendor_id_loc:]
-                        product_id_str = info[product_id_loc:]
-                        vendor_id = int(vendor_id_str.split("=")[1].strip(), 16)
-                        product_id = int(product_id_str.split("=")[1].strip(), 16)
-                        if product_id == id_product and vendor_id == id_vendor:
-                            tty_list.append(i[0])  # 将符合条件的串口设备加入到结果列表中
+        # 查询系统中所有可用串口
+        for i in comports():
+            # 判断串口文件名是否包含有 "USB" 或 "ACM"
+            if 'USB' in i[0] or 'ACM' in i[0]:
+                # 读取串口设备的描述符信息（字符串格式）
+                info = i[2]
+                # 查找设备描述符中的 idVendor 和 idProduct 字段
+                vendor_id_loc = info.find('idVendor')
+                product_id_loc = info.find('idProduct')
+                # 如果设备描述符中存在产品 ID 和厂商 ID，则尝试解析出这两个值并进行匹配
+                if product_id_loc != -1 and vendor_id_loc != -1:
+                    vendor_id_str = info[vendor_id_loc:]
+                    product_id_str = info[product_id_loc:]
+                    vendor_id = int(vendor_id_str.split("=")[1].strip(), 16)
+                    product_id = int(product_id_str.split("=")[1].strip(), 16)
+                    if product_id == id_product and vendor_id == id_vendor:
+                        tty_list.append(i[0])  # 将符合条件的串口设备加入到结果列表中
 
         # 返回结果列表
         return tty_list

@@ -11,7 +11,7 @@ python setup.py
 """
 
 start_time = time.time()
-curr_dir = os.path.abspath('.')
+curr_dir = os.path.abspath('')
 parent_path = sys.argv[1] if len(sys.argv) > 1 else ""
 setup_file = __file__.replace('/', '\\')
 build_dir = "build"
@@ -20,7 +20,7 @@ build_tmp_dir = build_dir + "/temp"
 s = "# cython: language_level=3"
 
 
-def get_py(base_path=os.path.abspath('.'), parent_path='', name='', excepts=(), copyOther=False, delC=False):
+def get_py(base_path=os.path.abspath(''), parent_path='', name='', excepts=(), copyOther=False, delC=False):
     """
     获取py文件的路径
     :param base_path: 根路径
