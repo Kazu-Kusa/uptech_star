@@ -16,10 +16,10 @@ from .hotConfigure.valueTest import *
 from .timer import *
 
 try:
-    from .setup import *
     from .utils import *
 except ImportError:
-    pass
+
+    warnings.warn('failed to import utils')
 
 __version__ = "0.2"
 __all__ = {
@@ -29,6 +29,5 @@ __all__ = {
     'close_loop_controller',
     'hotConfigure',
     'timer',
-    'setup',
     'utils'
 }
