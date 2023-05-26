@@ -49,6 +49,7 @@ class Screen(object):
 
     def __init__(self):
         self.LCD_Open()
+        self.LCD_FillScreen(self.COLOR_BLACK)
         self.LCD_Refresh()
 
     @staticmethod
