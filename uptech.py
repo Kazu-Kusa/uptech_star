@@ -56,14 +56,6 @@ class UpTech:
         elif debug:
             warnings.warn('fan control disabled')
 
-    def get_io(self, index: int):
-
-        # 计算要移动的位数
-        shift = index * 8
-        # 移动到最低 8 位，并获取末尾 8 位的值
-        byte_value = (self.ADC_IO_GetAllInputLevel() >> shift) & 0xff
-        return byte_value
-
     def FAN_Set_Speed(self, speed: int = 0):
         """
         set the speed of the raspberry's fan
@@ -116,13 +108,25 @@ class UpTech:
         so_up.adc_io_ModeSet(index, mode)
 
     @staticmethod
-    def ADC_IO_GetAllInputLevel():
+    def get_io(index: int):
+        """
+        get io plug input level by index
+        :param index:
+        :return:
+        """
+        return int(f'{so_up.adc_io_InputGetAll():08b}'[index])
+
+    @staticmethod
+    def ADC_IO_GetAllInputLevel(make_list: bool = True):
         """
         get all io plug input level
 
         unsigned 8int
         """
-        return so_up.adc_io_InputGetAll()
+        if make_list:
+            return list(f'{so_up.adc_io_InputGetAll():08b}')
+        else:
+            return so_up.adc_io_InputGetAll()
 
     @staticmethod
     def MPU6500_Open(debug_info: bool = False):
