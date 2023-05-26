@@ -10,10 +10,10 @@ from .uptech import UpTech
 
 class UpController(UpTech, CloseLoopController):
 
-    def __init__(self, debug=False, using_updating_thread: bool = False):
+    def __init__(self, debug: bool = False, using_updating_thread: bool = False, fan_control: bool = True):
         self.debug = debug
         # call father class init
-        UpTech.__init__(self)
+        UpTech.__init__(self, debug=debug, fan_control=fan_control)
         CloseLoopController.__init__(self)
 
         # open the io-adc plug and print the returned log
