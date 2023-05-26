@@ -114,17 +114,17 @@ class UpTech:
         :param index:
         :return:
         """
-        return int(f'{so_up.adc_io_InputGetAll():08b}'[index])
+        return f'{so_up.adc_io_InputGetAll():08b}'[index]
 
     @staticmethod
-    def ADC_IO_GetAllInputLevel(make_list: bool = True):
+    def ADC_IO_GetAllInputLevel(make_str_list: bool = True):
         """
         get all io plug input level
 
         unsigned 8int
         """
-        if make_list:
-            return list(f'{so_up.adc_io_InputGetAll():08b}')
+        if make_str_list:
+            return f'{so_up.adc_io_InputGetAll():08b}'
         else:
             return so_up.adc_io_InputGetAll()
 
