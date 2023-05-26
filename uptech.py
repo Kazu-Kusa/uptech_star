@@ -26,11 +26,8 @@ class UpTech:
 
     __mpu_float = ctypes.c_float * 3
 
-    def __init__(self, open_mpu: bool = True, debug=False):
+    def __init__(self, open_mpu: bool = True, debug: bool = False, fan_control: bool = True):
         self.debug = debug
-        pigpio.exceptions = True
-        self.Pi = pigpio.pi()
-        assert self.Pi.connected, 'pi is not connected'
 
         self.adc_all = self.__adc_data()
         self.io_all = []
@@ -41,10 +38,17 @@ class UpTech:
             self.atti_all = self.__mpu_float()
             self.MPU6500_Open()
         if self.debug:
-            print('Sensor data temp loaded')
-
-        self.Pi.hardware_PWM(FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us)
-        self.Pi.set_PWM_range(FAN_GPIO_PWM, FAN_PWN_range)
+            print('Sensor data buffer loaded')
+        if fan_control:
+            warnings.warn('loading fan control')
+            pigpio.exceptions = True
+            self.Pi = pigpio.pi()
+            assert self.Pi.connected, 'pi is not connected'
+            self.Pi.hardware_PWM(FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us)
+            self.Pi.set_PWM_range(FAN_GPIO_PWM, FAN_PWN_range)
+            warnings.warn('fan control loaded')
+        elif debug:
+            warnings.warn('fan control disabled')
 
     def get_io(self, index: int):
 
@@ -155,6 +159,4 @@ class UpTech:
 
 
 if __name__ == "__main__":
-    a = UpTech()
-
     pass
