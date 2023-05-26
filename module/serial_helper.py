@@ -1,6 +1,5 @@
 import time
 from typing import List, Callable, Any
-import platform
 import serial
 from serial.tools.list_ports import comports
 import warnings

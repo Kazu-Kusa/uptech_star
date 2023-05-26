@@ -1,6 +1,4 @@
 import threading
-import time
-
 from .serial_helper import SerialHelper
 
 

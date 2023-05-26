@@ -1,6 +1,4 @@
-import copy
 import ctypes
-import sys
 import os
 from ctypes import cdll
 import warnings
@@ -16,8 +14,7 @@ def load_lib(libname: str) -> object:
     ld_library_path = os.environ.get('LD_LIBRARY_PATH')
     lib_file_name = f'{ld_library_path}/{libname}'
     print(f'Loading [{lib_file_name}]')
-    lib = cdll.LoadLibrary(lib_file_name)
-    return lib
+    return cdll.LoadLibrary(lib_file_name)
 
 
 so_up = load_lib('libuptech.so')

@@ -3,31 +3,26 @@ import sys
 
 sys.path.append(os.path.abspath('.'))
 sys.path.append(os.path.abspath('./hotConfigure'))
-
-# 设置运行环境变量LD_LIBRARY_PATH，添加lib库搜索路径
 libdir = os.path.abspath(os.path.dirname(__file__))
 os.environ['LD_LIBRARY_PATH'] = os.path.join(libdir, 'lib')
 
-from .uptech import *
-from .up_controller import *
-from .serial_helper import *
-from .close_loop_controller import *
-from .hotConfigure.valueTest import *
-from .timer import *
+from .module.uptech import *
+from .module.up_controller import *
+from .module.serial_helper import *
+from .module.close_loop_controller import *
+from .module.timer import *
 
 try:
-    from .utils import *
+    from .module.utils import *
 except ImportError:
-
     warnings.warn('failed to import utils')
+
+from .module.hotConfigure.valueTest import *
+from .module.hotConfigure.status import *
+from .module.hotConfigure.sensors import *
 
 __version__ = "0.2"
 __all__ = {
-    'uptech',
-    'up_controller',
-    'serial_helper',
-    'close_loop_controller',
-    'hotConfigure',
-    'timer',
-    'utils'
+    'module',
+    'extension'
 }

@@ -81,3 +81,7 @@ def morphologyEx(src, r, i, type):
         s = cv2.getStructuringElement(cv2.MORPH_RECT, (2 * r + 1, 2 * r + 1))
         d = cv2.morphologyEx(src, cv2.MORPH_CLOSE, s, iterations=i)
     return d
+
+
+if __name__ == '__main__':
+    pass
