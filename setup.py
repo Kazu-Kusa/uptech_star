@@ -11,10 +11,10 @@ python setup.py
 """
 
 start_time = time.time()
-curr_dir = os.path.abspath('')
+module_dir = os.path.abspath('module')
 parent_path = sys.argv[1] if len(sys.argv) > 1 else ""
 setup_file = __file__.replace('/', '\\')
-build_dir = "build"
+build_dir = "extension"
 build_tmp_dir = build_dir + "/temp"
 
 s = "# cython: language_level=3"
@@ -49,7 +49,7 @@ def get_py(base_path=os.path.abspath(''), parent_path='', name='', excepts=(), c
 
 def pack_pyd():
     # 获取py列表
-    module_list = list(get_py(base_path=curr_dir, parent_path=parent_path, excepts=(setup_file,)))
+    module_list = list(get_py(base_path=module_dir, parent_path=parent_path, excepts=(setup_file,)))
     try:
         setup(
             ext_modules=cythonize(module_list, compiler_directives={'language_level': "3"}),
@@ -58,9 +58,9 @@ def pack_pyd():
     except Exception as ex:
         print("error! ", str(ex))
     else:
-        module_list = list(get_py(base_path=curr_dir, parent_path=parent_path, excepts=(setup_file,), copyOther=True))
+        module_list = list(get_py(base_path=module_dir, parent_path=parent_path, excepts=(setup_file,), copyOther=True))
 
-    module_list = list(get_py(base_path=curr_dir, parent_path=parent_path, excepts=(setup_file,), delC=True))
+    module_list = list(get_py(base_path=module_dir, parent_path=parent_path, excepts=(setup_file,), delC=True))
     if os.path.exists(build_tmp_dir):
         shutil.rmtree(build_tmp_dir)
 
