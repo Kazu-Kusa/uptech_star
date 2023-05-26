@@ -21,7 +21,7 @@ from .module.hotConfigure.valueTest import *
 from .module.hotConfigure.status import *
 from .module.hotConfigure.sensors import *
 
-__version__ = "0.2"
+__version__ = "0.3"
 __all__ = {
     'module',
     'extension'

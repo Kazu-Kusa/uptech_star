@@ -11,8 +11,8 @@ python setup.py
 """
 
 start_time = time.time()
-module_dir = os.path.abspath('module')
-parent_path = sys.argv[1] if len(sys.argv) > 1 else ""
+module_dir = os.path.abspath('')
+parent_path = 'module'
 setup_file = __file__.replace('/', '\\')
 build_dir = "extension"
 build_tmp_dir = build_dir + "/temp"
