@@ -8,20 +8,26 @@ import threading
 
 
 class SerialHelper:
-    """
-    所有共享状态变量（如 _serial 和 _is_connected）的访问都添加了对应的锁获取和释放操作。
-    移除了 _on_connected_changed 和 _on_data_received 两个线程方法，
-    新增了 start_read_thread 线程来不断监听串口设备是否有数据返回。
-    新增 DummyLock 类作为在单线程场景下实际使用的锁占位符。
-    这是因为如果在单线程的环境中使用普通的锁会降低程序效率，
-    而使用 DummyLock 可以不影响程序性能并且可以消除后面调用锁时可能会出现的 NoneType Error 问题。
-    另外，在新代码中，我们新增了 start_read_thread 方法和 on_data_received_handler 回调函数，
-    可以统一应对串口设备发送过来的数据，并且用户也可以使用 set_on_data_received_handler 方法通过传入回调函数的方式来自定义处理接收到的数据。
-    """
 
     def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 115200, bytesize: int = 8, parity: str = 'N',
                  stopbits: int = 1, con2port_when_created: bool = False, auto_search_port: bool = False) -> None:
-
+        """
+        所有共享状态变量（如 _serial 和 _is_connected）的访问都添加了对应的锁获取和释放操作。
+        移除了 _on_connected_changed 和 _on_data_received 两个线程方法，
+        新增了 start_read_thread 线程来不断监听串口设备是否有数据返回。
+        新增 DummyLock 类作为在单线程场景下实际使用的锁占位符。
+        这是因为如果在单线程的环境中使用普通的锁会降低程序效率，
+        而使用 DummyLock 可以不影响程序性能并且可以消除后面调用锁时可能会出现的 NoneType Error 问题。
+        另外，在新代码中，我们新增了 start_read_thread 方法和 on_data_received_handler 回调函数，
+        可以统一应对串口设备发送过来的数据，并且用户也可以使用 set_on_data_received_handler 方法通过传入回调函数的方式来自定义处理接收到的数据。
+        :param port:
+        :param baudrate:
+        :param bytesize:
+        :param parity:
+        :param stopbits:
+        :param con2port_when_created:
+        :param auto_search_port:
+        """
         self._serial = None
         self._serial_port: str = port
         self._baudrate: int = baudrate
@@ -119,7 +125,7 @@ class SerialHelper:
             if self.is_connected and self._serial.isOpen():
                 self._serial.close()
 
-    def write(self, data: bytes or bytearray) -> bool:
+    def write(self, data: bytes) -> bool:
         """
         向串口设备中写入二进制数据。
 
