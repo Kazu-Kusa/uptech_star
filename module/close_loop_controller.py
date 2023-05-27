@@ -5,7 +5,7 @@ from .timer import delay_us
 
 class CloseLoopController:
 
-    def __init__(self, motor_ids_list: tuple = (1, 2, 3, 4), sending_delay: int = 1):
+    def __init__(self, motor_ids_list: tuple = (1, 2, 3, 4), sending_delay: int = 100):
         """
 
         :param motor_ids_list:
