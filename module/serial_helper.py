@@ -85,7 +85,7 @@ class SerialHelper:
     def stopbits(self) -> int:
         return self._stopbits
 
-    def connect(self):
+    def connect(self) -> bool:
         """
         Connect to the serial port with the settings specified in the instance attributes using a thread-safe mechanism.
         Return True if the connection is successful, else False.
