@@ -35,19 +35,6 @@ class CloseLoopController:
                 self.serial.write(temp)
 
     @staticmethod
-    def generateCmd(cmd: str):
-        """
-        convert a command to a tx/rx binary
-        :param cmd: the string that will be converted to binary format according to the convey protocol
-        :return: the binary format cmd
-        """
-        binary_buffer = [0] * (len(cmd) + 1)
-        for index, cmd_char in enumerate(cmd):
-            binary_buffer[index] = (ord(cmd_char)) & 0xFF
-        binary_buffer[len(cmd)] = 0x0D
-        return binary_buffer
-
-    @staticmethod
     def makeCmd(cmd: str) -> bytes:
         return cmd.encode('ascii') + b'\r'
 
