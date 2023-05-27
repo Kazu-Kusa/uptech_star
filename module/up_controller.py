@@ -81,5 +81,23 @@ def motor_speed_test(speed_level: int = 11, using_id: bool = True, laps: int = 3
     print('over')
 
 
+def motor_speed_test_liner(speed_level: int = 11, resolution: int = 10, detailed_info: bool = False,
+                           using_id: bool = True, laps: int = 3):
+    con = UpController()
+
+    try:
+        for i in range(0, speed_level * 1000, resolution):
+            con.set_motors_speed([i] * 4)
+            if detailed_info:
+                print(f'rising at {i}')
+        for i in range(speed_level * 1000, 0, -resolution):
+            con.set_motors_speed([i] * 4)
+            if detailed_info:
+                print(f'dropping at {i}')
+    finally:
+        con.set_all_motors_speed(0)
+    print('over')
+
+
 if __name__ == '__main__':
     pass
