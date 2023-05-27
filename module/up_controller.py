@@ -62,20 +62,20 @@ class UpController(UpTech, CloseLoopController):
         self.set_motors_speed([left_speed, right_speed, -left_speed, -right_speed], debug=self.debug)
 
 
-def motor_speed_test(speed_level: int = 11, using_id: bool = True, laps: int = 3):
-    con = UpController()
+def motor_speed_test(speed_level: int = 11, interval: float = 1, using_id: bool = True, laps: int = 3):
+    con = CloseLoopController()
     try:
         for _ in range(laps):
             if using_id:
                 for i in range(speed_level):
                     print(f'doing {i * 1000}')
                     con.set_motors_speed([i * 1000] * 4)
-                    time.sleep(1)
+                    time.sleep(interval)
             else:
                 for i in range(speed_level):
                     print(f'doing {i * 1000}')
                     con.set_all_motors_speed(i * 1000)
-                    time.sleep(1)
+                    time.sleep(interval)
     finally:
         con.set_all_motors_speed(0)
     print('over')
