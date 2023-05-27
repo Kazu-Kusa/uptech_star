@@ -50,17 +50,34 @@ class CloseLoopController:
 
     @staticmethod
     def makeCmd(cmd: str) -> bytes:
+        """
+        encode a cmd to a bstring
+        :param cmd:
+        :return:
+        """
         return cmd.encode('ascii') + b'\r'
+
+    @staticmethod
+    def makeCmd_list(cmd_list: list[str]) -> bytes:
+        """
+        encode a list of cmd strings into a single bstring
+        :param cmd_list:
+        :return:
+        """
+        temp = b''
+        for cmd in cmd_list:
+            temp += cmd.encode('ascii') + b'\r'
+        return temp
 
     def set_motors_speed(self, speed_list: list[int], id_list: tuple = (1, 2, 3, 4), debug: bool = False):
         if id_list is None:
             id_list = self._motor_id_list
         cmd_list = []
         for i, motor_id in enumerate(id_list):
-            cmd_list.append(self.makeCmd(f'{motor_id}v{speed_list[i]}'))
+            cmd_list.append(f'{motor_id}v{speed_list[i]}')
         if debug:
             print(f'- {cmd_list}')
-        self.msg_list += cmd_list
+        self.msg_list.append(self.makeCmd_list(cmd_list))
 
     def set_all_motors_speed(self, speed: int):
         self.msg_list.append(self.makeCmd(f'v{speed}'))
