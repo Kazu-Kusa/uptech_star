@@ -52,10 +52,23 @@ class CloseLoopController:
         self.msg_list.append(self.makeCmd(f'v{speed}'))
 
     def set_all_motors_acceleration(self, acceleration: int):
+        """
+        set the acceleration
+        :param acceleration:
+        :return:
+        """
+        assert 0 < acceleration < 30000, "Invalid acceleration value"
+        # TODO: all sealed cmd should check if the desired value is valid
         self.msg_list.append(self.makeCmd(f'ac{acceleration}'))
         self.eepSav()
 
     def eepSav(self):
+        """
+        save params into to the eeprom,
+        all value-setter should call this method to complete the value-setting process
+        :return:
+        """
+        # TODO: pre-complie the 'eepsav' cmd to binary instead of doing complie each time on called
         self.msg_list.append(self.makeCmd('eepsav'))
 
     def set_motor_speed(self, motor_id: int, speed: int, debug: bool = False):
