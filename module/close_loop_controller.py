@@ -5,20 +5,30 @@ from .timer import delay_us
 
 class CloseLoopController:
 
-    def __init__(self, motor_ids_list: tuple = (1, 2, 3, 4), sending_delay: int = 100):
+    def __init__(self, motor_ids_list: tuple = (1, 2, 3, 4), sending_delay: int = 100, debug: bool = False):
         """
 
         :param motor_ids_list:
         :param sending_delay:
         """
+        self._debug = debug
         # 创建串口对象
         self.serial = SerialHelper(con2port_when_created=True, auto_search_port=True)
         self.msg_send_thread = None
         # 发送的数据队列
-        self.msg_list = []
-        self.start_msg_sending()
+
         self._sending_delay = sending_delay
         self._motor_id_list = motor_ids_list
+        self.msg_list = []
+        self.start_msg_sending()
+
+    @property
+    def debug(self):
+        return self._debug
+
+    @debug.setter
+    def debug(self, debug: bool):
+        self._debug = debug
 
     @property
     def sending_delay(self):
@@ -34,17 +44,17 @@ class CloseLoopController:
         self.msg_send_thread.daemon = True
         self.msg_send_thread.start()
 
-    def msg_sending_thread(self, print_info: bool = False):
+    def msg_sending_thread(self):
         """
         串口通信线程发送函数
         :return:
         """
-        print(f"msg_sending_thread_start, the debugger is [{print_info}]")
+        print(f"msg_sending_thread_start, the debugger is [{self.debug}]")
         while True:
             if self.msg_list:
                 temp = self.msg_list.pop(0)
-                if print_info:
-                    print(f'writing {temp} to channel,remaining {len(self.msg_list)}')
+                if self.debug:
+                    print(f'\nwriting {temp} to channel,remaining {len(self.msg_list)}')
                 self.serial.write(temp)
                 delay_us(self.sending_delay)
 
@@ -68,6 +78,35 @@ class CloseLoopController:
         for cmd in cmd_list:
             temp += cmd.encode('ascii') + b'\r'
         return temp
+
+    def open_userInput_channel(self, debug: bool = False) -> None:
+        """
+        open a user input channel for direct access to the driver
+        :return:
+        """
+
+        ct = 0
+        print('\n\nuser input channel opened\nplease enter cmd below,enter [exit] to end the channel')
+        debug_temp = self.debug
+        self.debug = debug
+        if self.debug:
+            self.serial.start_read_thread()
+
+            def handler(data: bytes):
+                temp = data.decode('ascii')
+                print(f'\n>>out[{ct}]: {temp}')
+
+            self.serial.set_on_data_received_handler(handler)
+        while True:
+            user_input = input(f'in[{ct}]: ')
+            ct += 1
+            # 对输入的内容进行处理
+            if user_input == 'exit':
+                print('\nuser input channel closed')
+                self.debug = debug_temp
+                break
+            else:
+                self.msg_list.append(self.makeCmd(user_input))
 
     def set_motors_speed(self, speed_list: list[int], id_list: tuple = (1, 2, 3, 4), debug: bool = False):
         if id_list is None:
