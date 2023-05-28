@@ -59,7 +59,7 @@ class UpController(UpTech, CloseLoopController):
         :param right_speed:
         :return:
         """
-        self.set_motors_speed([left_speed, right_speed, -left_speed, -right_speed], debug=self.debug)
+        self.set_motors_speed([right_speed, right_speed, -left_speed, -left_speed], debug=self.debug)
 
 
 def motor_speed_test(speed_level: int = 11, interval: float = 1, using_id: bool = True, laps: int = 3):
