@@ -114,7 +114,7 @@ class UpTech:
         return f'{so_up.adc_io_InputGetAll():08b}'[index]
 
     @staticmethod
-    def ADC_IO_GetAllInputLevel(make_str_list: bool = True):
+    def ADC_IO_GetAllInputLevel(make_str_list: bool = True, ):
         """
         get all io plug input level
 
@@ -123,7 +123,7 @@ class UpTech:
         if make_str_list:
             return f'{so_up.adc_io_InputGetAll():08b}'
         else:
-            return so_up.adc_io_InputGetAll()
+            return list([int(x) for x in f'{so_up.adc_io_InputGetAll():08b}'])
 
     @staticmethod
     def MPU6500_Open(debug_info: bool = False):
