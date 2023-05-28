@@ -82,13 +82,6 @@ class UpTech:
         return self.adc_all
 
     @staticmethod
-    def ADC_Led_SetColor(index: int, color: int):
-        """
-        set the color of the LED according to index and color
-        """
-        so_up.adc_led_set(index, color)
-
-    @staticmethod
     def ADC_IO_SetIOLevel(index, level):
         so_up.adc_io_Set(index, level)
 

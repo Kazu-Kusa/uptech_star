@@ -47,7 +47,7 @@ class Screen(object):
 
     # endregion
 
-    def __init__(self):
+    def __init__(self, init_screen: bool = True):
         self.LCD_Open()
         self.LCD_FillScreen(self.COLOR_BLACK)
         self.LCD_Refresh()
@@ -152,6 +152,13 @@ class Screen(object):
     @staticmethod
     def LCD_DrawLine(x1, y1, x2, y2, color: int):
         so_up.UG_DrawLine(x1, y1, x2, y2, color)
+
+    @staticmethod
+    def ADC_Led_SetColor(index: int, color: int):
+        """
+        set the color of the LED according to index and color
+        """
+        so_up.adc_led_set(index, color)
 
 
 if __name__ == '__main__':
