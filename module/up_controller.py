@@ -97,7 +97,3 @@ def motor_speed_test_liner(speed_level: int = 11, resolution: int = 10, detailed
     finally:
         con.set_all_motors_speed(0)
     print('over')
-
-
-if __name__ == '__main__':
-    pass

@@ -15,7 +15,3 @@ def delay_us(microseconds: int):
         elapsed = (perf_counter() - start) * 1000000
         if elapsed > microseconds:
             break
-
-
-if __name__ == '__main__':
-    pass

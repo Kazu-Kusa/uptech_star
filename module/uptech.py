@@ -163,7 +163,3 @@ class UpTech:
         so_up.mpu6500_Get_Attitude(self.atti_all)
 
         return self.atti_all
-
-
-if __name__ == "__main__":
-    pass

@@ -152,7 +152,3 @@ class Screen(object):
     @staticmethod
     def LCD_DrawLine(x1, y1, x2, y2, color: int):
         so_up.UG_DrawLine(x1, y1, x2, y2, color)
-
-
-if __name__ == '__main__':
-    pass
