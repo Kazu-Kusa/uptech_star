@@ -154,7 +154,3 @@ class CloseLoopController:
         self.serial.write(data)  # send the binary data to channel
         if debug:
             print(cmd)
-
-
-if __name__ == '__main__':
-    connect = CloseLoopController()
