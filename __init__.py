@@ -20,7 +20,7 @@ except ImportError:
 from .module.hotConfigure.valueTest import *
 from .module.hotConfigure.status import *
 
-__version__ = "0.3"
+__version__ = "0.4"
 __all__ = {
     'module',
     'extension'
