@@ -1,12 +1,9 @@
+from numba import njit
 from time import perf_counter_ns
 
 
+@njit(fastmath=True)
 def delay_ms(milliseconds: int):
-    """
-
-    :param milliseconds:
-    :return:
-    """
     start = perf_counter_ns()
     while True:
         elapsed = (perf_counter_ns() - start) // 1000000
@@ -14,12 +11,8 @@ def delay_ms(milliseconds: int):
             break
 
 
+@njit(fastmath=True)
 def delay_us(microseconds: int):
-    """
-
-    :param microseconds:
-    :return:
-    """
     start = perf_counter_ns()
     while True:
         elapsed = (perf_counter_ns() - start) // 1000
