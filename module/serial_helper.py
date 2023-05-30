@@ -220,7 +220,7 @@ class SerialHelper:
         需要先安装 pyserial 模块，并且当前用户需要有足够权限访问串口设备。
 
 
-    """
+        """
         # 初始化结果列表
         tty_list = []
 

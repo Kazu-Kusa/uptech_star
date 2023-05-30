@@ -25,20 +25,19 @@ class UpTech:
     provides sealed methods accessing to the IOs and builtin sensors
     """
     # TODO: move this type def out of here
-    __adc_data = ctypes.c_uint16 * 10
+    _adc_data_list_type = ctypes.c_uint16 * 10
 
-    __mpu_float = ctypes.c_float * 3
+    __mpu_data_list_type = ctypes.c_float * 3
 
     def __init__(self, open_mpu: bool = True, debug: bool = False, fan_control: bool = True):
         self.debug = debug
 
-        self.adc_all = self.__adc_data()
-        self.io_all = []
+        self._adc_all = self._adc_data_list_type()
 
         if open_mpu:
-            self.accel_all = self.__mpu_float()
-            self.gyro_all = self.__mpu_float()
-            self.atti_all = self.__mpu_float()
+            self._accel_all = self.__mpu_data_list_type()
+            self._gyro_all = self.__mpu_data_list_type()
+            self._atti_all = self.__mpu_data_list_type()
             self.MPU6500_Open()
         if self.debug:
             print('Sensor data buffer loaded')
@@ -74,12 +73,13 @@ class UpTech:
         """
         so_up.adc_io_close()
 
-    def ADC_Get_All_Channel(self):
+    @property
+    def adc_all_channels(self):
         """
         get all adc channels and return they as a tuple
         """
-        so_up.ADC_GetAll(self.adc_all)
-        return self.adc_all
+        so_up.ADC_GetAll(self._adc_all)
+        return self._adc_all
 
     @staticmethod
     def ADC_IO_SetIOLevel(index, level):
@@ -106,17 +106,15 @@ class UpTech:
         """
         return f'{so_up.adc_io_InputGetAll():08b}'[index]
 
-    @staticmethod
-    def ADC_IO_GetAllInputLevel(make_str_list: bool = True, ):
+    @property
+    def io_all_channels(self):
         """
         get all io plug input level
 
         unsigned 8int
         """
-        if make_str_list:
-            return f'{so_up.adc_io_InputGetAll():08b}'
-        else:
-            return list([int(x) for x in f'{so_up.adc_io_InputGetAll():08b}'])
+
+        return list([int(x) for x in f'{so_up.adc_io_InputGetAll():08b}'])
 
     @staticmethod
     def MPU6500_Open(debug_info: bool = False):
@@ -132,27 +130,30 @@ class UpTech:
         elif debug_info:
             warnings.warn('#MPU6500 successfully initialized')
 
-    def MPU6500_GetAccel(self):
+    @property
+    def acc_all(self):
         """
         get the acceleration from MPU6500
         """
-        so_up.mpu6500_Get_Accel(self.accel_all)
+        so_up.mpu6500_Get_Accel(self._accel_all)
 
-        return self.accel_all
+        return self._accel_all
 
-    def MPU6500_GetGyro(self):
+    @property
+    def gyro_all(self):
         """
         get gyro from MPU6500
         """
-        so_up.mpu6500_Get_Gyro(self.gyro_all)
+        so_up.mpu6500_Get_Gyro(self._gyro_all)
 
-        return self.gyro_all
+        return self._gyro_all
 
-    def MPU6500_GetAttitude(self):
+    @property
+    def atti_all(self):
         """
         get attitude from MPU6500
         """
 
-        so_up.mpu6500_Get_Attitude(self.atti_all)
+        so_up.mpu6500_Get_Attitude(self._atti_all)
 
-        return self.atti_all
+        return self._atti_all
