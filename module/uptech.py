@@ -97,15 +97,6 @@ class UpTech:
     def ADC_IO_SetIOMode(index, mode):
         so_up.adc_io_ModeSet(index, mode)
 
-    @staticmethod
-    def get_io(index: int):
-        """
-        get io plug input level by index
-        :param index:
-        :return:
-        """
-        return f'{so_up.adc_io_InputGetAll():08b}'[index]
-
     @property
     def io_all_channels(self):
         """

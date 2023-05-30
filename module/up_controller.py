@@ -26,15 +26,6 @@ class UpController(UpTech, CloseLoopController):
         else:
             warnings.warn('NOT using sensors update thread')
 
-    @staticmethod
-    def block_print():
-        sys.stdout = open(os.devnull, 'w')
-
-    # Restore
-    @staticmethod
-    def enable_print():
-        sys.stdout = sys.__stdout__
-
     def open_adc_io_update_thread(self):
         """
         open data update thread
