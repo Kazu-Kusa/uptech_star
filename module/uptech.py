@@ -130,7 +130,8 @@ class UpTech:
         elif debug_info:
             warnings.warn('#MPU6500 successfully initialized')
 
-    def MPU6500_GetAccel(self):
+    @property
+    def acc_all(self):
         """
         get the acceleration from MPU6500
         """
@@ -138,7 +139,8 @@ class UpTech:
 
         return self._accel_all
 
-    def MPU6500_GetGyro(self):
+    @property
+    def gyro_all(self):
         """
         get gyro from MPU6500
         """
@@ -146,7 +148,8 @@ class UpTech:
 
         return self._gyro_all
 
-    def MPU6500_GetAttitude(self):
+    @property
+    def atti_all(self):
         """
         get attitude from MPU6500
         """

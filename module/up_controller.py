@@ -49,8 +49,8 @@ class UpController(UpTech, CloseLoopController):
         update data thread
         """
         while 1:
-            self.adc_all = self.ADC_Get_All_Channel()
-            self.io_all = [int(bit) for bit in f"{self.ADC_IO_GetAllInputLevel():08b}"]
+            self.adc_all = self.adc_all_channels()
+            self.io_all = [int(bit) for bit in f"{self.io_all_channels():08b}"]
 
     def move_cmd(self, left_speed, right_speed) -> None:
         """
