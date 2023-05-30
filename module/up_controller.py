@@ -14,12 +14,14 @@ class UpController(UpTech, CloseLoopController):
         self.debug = debug
         # call father class init
         UpTech.__init__(self, debug=debug, fan_control=fan_control)
-        CloseLoopController.__init__(self)
+        CloseLoopController.__init__(self, debug=debug)
 
         # open the io-adc plug and print the returned log
         print(f"Sensor channel Init times: {self.ADC_IO_Open()}")
         if using_updating_thread:
             warnings.warn('opening sensors update thread')
+            self.io_all_syncing = None
+            self.adc_all_syncing = None
             self.open_adc_io_update_thread()
         else:
             warnings.warn('NOT using sensors update thread')
@@ -49,10 +51,10 @@ class UpController(UpTech, CloseLoopController):
         update data thread
         """
         while 1:
-            self.adc_all = self.adc_all_channels()
-            self.io_all = [int(bit) for bit in f"{self.io_all_channels():08b}"]
+            self.adc_all_syncing = self.adc_all_channels
+            self.io_all_syncing = self.io_all_channels
 
-    def move_cmd(self, left_speed, right_speed) -> None:
+    def move_cmd(self, left_speed: int, right_speed: int) -> None:
         """
         control the motor
         :param left_speed:
