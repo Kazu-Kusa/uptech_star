@@ -140,17 +140,3 @@ class CloseLoopController:
         """
         # TODO: pre-complie the 'eepsav' cmd to binary instead of doing complie each time on called
         self.msg_list.append(self.makeCmd('eepsav'))
-
-    def set_motor_speed(self, motor_id: int, speed: int, debug: bool = False):
-        """
-        控制节点电机运动
-        :param motor_id: the id of the motor that you want to control
-        :param speed: the desired speed of the motor
-        :param debug: if open the debugging info
-        :return: None
-        """
-        cmd = f'{motor_id}v{speed}'  # make the command to string
-        data = self.generateCmd(cmd)  # build the command
-        self.serial.write(data)  # send the binary data to channel
-        if debug:
-            print(cmd)
