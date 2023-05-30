@@ -25,20 +25,20 @@ class UpTech:
     provides sealed methods accessing to the IOs and builtin sensors
     """
     # TODO: move this type def out of here
-    __adc_data = ctypes.c_uint16 * 10
+    _adc_data_list_type = ctypes.c_uint16 * 10
 
-    __mpu_float = ctypes.c_float * 3
+    __mpu_data_list_type = ctypes.c_float * 3
 
     def __init__(self, open_mpu: bool = True, debug: bool = False, fan_control: bool = True):
         self.debug = debug
 
-        self.adc_all = self.__adc_data()
-        self.io_all = []
+        self._adc_all = self._adc_data_list_type()
+        self._io_all = []
 
         if open_mpu:
-            self.accel_all = self.__mpu_float()
-            self.gyro_all = self.__mpu_float()
-            self.atti_all = self.__mpu_float()
+            self.accel_all = self.__mpu_data_list_type()
+            self.gyro_all = self.__mpu_data_list_type()
+            self.atti_all = self.__mpu_data_list_type()
             self.MPU6500_Open()
         if self.debug:
             print('Sensor data buffer loaded')
@@ -78,8 +78,8 @@ class UpTech:
         """
         get all adc channels and return they as a tuple
         """
-        so_up.ADC_GetAll(self.adc_all)
-        return self.adc_all
+        so_up.ADC_GetAll(self._adc_all)
+        return self._adc_all
 
     @staticmethod
     def ADC_IO_SetIOLevel(index, level):
