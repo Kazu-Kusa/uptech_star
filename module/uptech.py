@@ -107,7 +107,7 @@ class UpTech:
         return f'{so_up.adc_io_InputGetAll():08b}'[index]
 
     @property
-    def io_all_channels(self, make_str_list: bool = True):
+    def io_all_channels(self):
         """
         get all io plug input level
 
