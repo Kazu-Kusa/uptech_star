@@ -35,9 +35,9 @@ class UpTech:
         self._adc_all = self._adc_data_list_type()
 
         if open_mpu:
-            self.accel_all = self.__mpu_data_list_type()
-            self.gyro_all = self.__mpu_data_list_type()
-            self.atti_all = self.__mpu_data_list_type()
+            self._accel_all = self.__mpu_data_list_type()
+            self._gyro_all = self.__mpu_data_list_type()
+            self._atti_all = self.__mpu_data_list_type()
             self.MPU6500_Open()
         if self.debug:
             print('Sensor data buffer loaded')
@@ -134,23 +134,23 @@ class UpTech:
         """
         get the acceleration from MPU6500
         """
-        so_up.mpu6500_Get_Accel(self.accel_all)
+        so_up.mpu6500_Get_Accel(self._accel_all)
 
-        return self.accel_all
+        return self._accel_all
 
     def MPU6500_GetGyro(self):
         """
         get gyro from MPU6500
         """
-        so_up.mpu6500_Get_Gyro(self.gyro_all)
+        so_up.mpu6500_Get_Gyro(self._gyro_all)
 
-        return self.gyro_all
+        return self._gyro_all
 
     def MPU6500_GetAttitude(self):
         """
         get attitude from MPU6500
         """
 
-        so_up.mpu6500_Get_Attitude(self.atti_all)
+        so_up.mpu6500_Get_Attitude(self._atti_all)
 
-        return self.atti_all
+        return self._atti_all
