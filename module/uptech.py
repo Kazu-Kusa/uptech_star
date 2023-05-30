@@ -33,7 +33,6 @@ class UpTech:
         self.debug = debug
 
         self._adc_all = self._adc_data_list_type()
-        self._io_all = []
 
         if open_mpu:
             self.accel_all = self.__mpu_data_list_type()
@@ -74,7 +73,8 @@ class UpTech:
         """
         so_up.adc_io_close()
 
-    def ADC_Get_All_Channel(self):
+    @property
+    def adc_all_channels(self):
         """
         get all adc channels and return they as a tuple
         """
@@ -106,17 +106,15 @@ class UpTech:
         """
         return f'{so_up.adc_io_InputGetAll():08b}'[index]
 
-    @staticmethod
-    def ADC_IO_GetAllInputLevel(make_str_list: bool = True, ):
+    @property
+    def io_all_channels(self, make_str_list: bool = True):
         """
         get all io plug input level
 
         unsigned 8int
         """
-        if make_str_list:
-            return f'{so_up.adc_io_InputGetAll():08b}'
-        else:
-            return list([int(x) for x in f'{so_up.adc_io_InputGetAll():08b}'])
+
+        return list([int(x) for x in f'{so_up.adc_io_InputGetAll():08b}'])
 
     @staticmethod
     def MPU6500_Open(debug_info: bool = False):
