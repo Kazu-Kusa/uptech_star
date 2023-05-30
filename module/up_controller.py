@@ -63,6 +63,14 @@ class UpController(UpTech, CloseLoopController):
 
 
 def motor_speed_test(speed_level: int = 11, interval: float = 1, using_id: bool = True, laps: int = 3):
+    """
+    motor speed test function,used to test and check  if the driver configurations are correct
+    :param speed_level:
+    :param interval:
+    :param using_id:
+    :param laps:
+    :return:
+    """
     con = CloseLoopController()
     try:
         for _ in range(laps):
@@ -83,6 +91,16 @@ def motor_speed_test(speed_level: int = 11, interval: float = 1, using_id: bool 
 
 def motor_speed_test_liner(speed_level: int = 11, resolution: int = 10, detailed_info: bool = False,
                            using_id: bool = True, laps: int = 3):
+    """
+    motor speed test,but with fine precision,used to check accuracy
+    :param speed_level:
+    :param resolution:
+    :param detailed_info:
+    :param using_id:
+    :param laps:
+    :return:
+    """
+
     con = UpController()
 
     try:

@@ -3,7 +3,7 @@ from time import perf_counter_ns
 
 def delay_ms(milliseconds: int):
     """
-
+    delay milliseconds
     :param milliseconds:
     :return:
     """
@@ -16,7 +16,7 @@ def delay_ms(milliseconds: int):
 
 def delay_us(microseconds: int):
     """
-
+    delay microseconds
     :param microseconds:
     :return:
     """
