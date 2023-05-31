@@ -93,8 +93,15 @@ class CloseLoopController:
             self.serial.start_read_thread()
 
             def handler(data: bytes):
-                temp = data.decode('ascii')
-                print(f'\n>>out[{ct}]: {temp}')
+                result = ''
+                for i in range(len(data)):
+                    try:
+
+                        result += bytes(data[i]).decode('ascii')
+                    except UnicodeDecodeError:
+                        print('bad char,skip')
+                        continue
+                print(f'\n>>out[{ct}]: {result}')
 
             self.serial.set_on_data_received_handler(handler)
         while True:
