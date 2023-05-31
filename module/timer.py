@@ -1,8 +1,6 @@
-from numba import njit
 from time import perf_counter_ns
 
 
-@njit(fastmath=True)
 def delay_ms(milliseconds: int):
     start = perf_counter_ns()
     while True:
@@ -11,7 +9,6 @@ def delay_ms(milliseconds: int):
             break
 
 
-@njit(fastmath=True)
 def delay_us(microseconds: int):
     start = perf_counter_ns()
     while True:
