@@ -11,7 +11,7 @@ FAN_PWN_range = 100
 
 
 def load_lib(libname: str) -> object:
-    ld_library_path = os.environ.get('LD_LIBRARY_PATH')
+    ld_library_path = os.environ.get('LIB_SO_PATH')
     lib_file_name = f'{ld_library_path}/{libname}'
     print(f'Loading [{lib_file_name}]')
     return cdll.LoadLibrary(lib_file_name)

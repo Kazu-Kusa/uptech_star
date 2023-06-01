@@ -1,5 +1,4 @@
 import ctypes
-
 from .uptech import so_up
 
 

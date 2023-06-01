@@ -4,7 +4,7 @@ import sys
 sys.path.append(os.path.abspath('.'))
 sys.path.append(os.path.abspath('./hotConfigure'))
 libdir = os.path.abspath(os.path.dirname(__file__))
-os.environ['LD_LIBRARY_PATH'] = os.path.join(libdir, 'lib')
+os.environ['LIB_SO_PATH'] = os.path.join(libdir, 'lib')
 
 from .module.uptech import *
 from .module.up_controller import *
