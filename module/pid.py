@@ -70,10 +70,11 @@ def PID_control(controller_func: Callable[[int, int], None],
                 target: float,
                 Kp: float = 80, Kd: float = 16, Ki: float = 2,
                 cs_limit: float = 2000, target_tolerance: float = 15,
-                smooth_window_size: int = 4):
+                smooth_window_size: int = 4, end_pause: bool = True, rip_round: int = 5, ):
     """
     PID controller designed to control the action-T using MPU-6500
 
+    :param end_pause:
     :param delay:
     :param smooth_window_size:
     :param controller_func:
@@ -97,6 +98,7 @@ def PID_control(controller_func: Callable[[int, int], None],
         return
     slide_window = MovingAverage(smooth_window_size)
     i_error = 0
+    ct = 0
     while True:
         current_state_MA = slide_window.next(evaluator_func())
 
@@ -108,11 +110,20 @@ def PID_control(controller_func: Callable[[int, int], None],
         d_target = (current_state_MA - last_state) / delta_time
         i_error += current_error * delta_time
 
-        control_strength = int(Kp * current_error + Kd * d_target + Ki * i_error)
+        kd_term = Kd * d_target
+        ki_term = Ki * i_error
+        Kp_term = Kp * current_error
+        # print(f'Kp:{Kp_term}|Ki:{ki_term}|Kd:{kd_term}')
+        control_strength = int(Kp_term + kd_term + ki_term)
         if abs(current_error) < target_tolerance and control_strength < cs_limit:
-            controller_func(0, 0)
+
+            if end_pause:
+                controller_func(0, 0)
             break
-        controller_func(control_strength, -control_strength)
+        ct += 1
+        if ct % rip_round == 0:
+            ct = 0
+            controller_func(control_strength, -control_strength)
 
         last_state = current_state_MA
         last_time = current_time
