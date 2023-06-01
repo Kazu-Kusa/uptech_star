@@ -11,6 +11,8 @@ from .module.up_controller import *
 from .module.serial_helper import *
 from .module.close_loop_controller import *
 from .module.timer import *
+from .module.pid import *
+from .module.algrithm_tools import *
 
 try:
     from .module.utils import *
