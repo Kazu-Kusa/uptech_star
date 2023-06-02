@@ -53,7 +53,7 @@ class UpController(UpTech, CloseLoopController):
         :return:
         """
         if left_speed + right_speed == 0:
-            self.set_all_motors_speed(left_speed)
+            self.set_all_motors_speed(right_speed)
             return
         self.set_motors_speed([right_speed, right_speed, -left_speed, -left_speed], debug=self.debug)
 
