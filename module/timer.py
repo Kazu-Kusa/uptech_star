@@ -1,17 +1,15 @@
 from time import perf_counter_ns
 
+from time import perf_counter_ns
+
 
 def delay_ms(milliseconds: int):
-    start = perf_counter_ns()
-    while True:
-        elapsed = (perf_counter_ns() - start) // 1000000
-        if elapsed > milliseconds:
-            break
+    end = perf_counter_ns() + milliseconds * 1000000
+    while perf_counter_ns() < end:
+        pass
 
 
 def delay_us(microseconds: int):
-    start = perf_counter_ns()
-    while True:
-        elapsed = (perf_counter_ns() - start) // 1000
-        if elapsed > microseconds:
-            break
+    end = perf_counter_ns() + microseconds * 1000000
+    while perf_counter_ns() > end:
+        pass
