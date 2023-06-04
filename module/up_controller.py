@@ -45,7 +45,7 @@ class UpController(UpTech, CloseLoopController):
             self.adc_all_syncing = self.adc_all_channels
             self.io_all_syncing = self.io_all_channels
 
-    def move_cmd(self, left_speed: int = 0, right_speed: int = 0) -> None:
+    def move_cmd(self, left_speed: int, right_speed: int) -> None:
         """
         control the motor
         :param left_speed:
