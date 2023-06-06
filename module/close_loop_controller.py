@@ -132,9 +132,11 @@ class CloseLoopController:
         if debug:
             print(f'- {cmd_list}')
         self.msg_list.append(self.makeCmd_list(cmd_list))
+        self.motor_speed_list = speed_list
 
-    def set_all_motors_speed(self, speed: int):
+    def set_all_motors_speed(self, speed: int) -> None:
         self.msg_list.append(self.makeCmd(f'v{speed}'))
+        self.motor_speed_list = [speed] * 4
 
     def set_all_motors_acceleration(self, acceleration: int):
         """
