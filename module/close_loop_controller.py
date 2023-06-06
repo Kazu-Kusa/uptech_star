@@ -23,6 +23,10 @@ class CloseLoopController:
         self.start_msg_sending()
 
     @property
+    def motor_id_list(self) -> tuple[int]:
+        return self._motor_id_list
+
+    @property
     def motor_speed_list(self) -> list[int]:
         return self._motor_speed_list
 
@@ -123,14 +127,10 @@ class CloseLoopController:
             else:
                 self.msg_list.append(self.makeCmd(user_input))
 
-    def set_motors_speed(self, speed_list: list[int], id_list: tuple = (1, 2, 3, 4), debug: bool = False):
-        if id_list is None:
-            id_list = self._motor_id_list
+    def set_motors_speed(self, speed_list: list[int]):
         cmd_list = []
-        for i, motor_id in enumerate(id_list):
+        for i, motor_id in enumerate(self.motor_id_list):
             cmd_list.append(f'{motor_id}v{speed_list[i]}')
-        if debug:
-            print(f'- {cmd_list}')
         self.msg_list.append(self.makeCmd_list(cmd_list))
         self.motor_speed_list = speed_list
 

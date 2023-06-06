@@ -1,5 +1,3 @@
-import os
-import sys
 import threading
 import time
 import warnings
@@ -55,7 +53,7 @@ class UpController(UpTech, CloseLoopController):
         if left_speed + right_speed == 0:
             self.set_all_motors_speed(right_speed)
             return
-        self.set_motors_speed([right_speed, right_speed, -left_speed, -left_speed], debug=self.debug)
+        self.set_motors_speed([right_speed, right_speed, -left_speed, -left_speed])
 
 
 def motor_speed_test(speed_level: int = 11, interval: float = 1, using_id: bool = True, laps: int = 3):
@@ -80,34 +78,6 @@ def motor_speed_test(speed_level: int = 11, interval: float = 1, using_id: bool 
                     print(f'doing {i * 1000}')
                     con.set_all_motors_speed(i * 1000)
                     time.sleep(interval)
-    finally:
-        con.set_all_motors_speed(0)
-    print('over')
-
-
-def motor_speed_test_liner(speed_level: int = 11, resolution: int = 10, detailed_info: bool = False,
-                           using_id: bool = True, laps: int = 3):
-    """
-    motor speed test,but with fine precision,used to check accuracy
-    :param speed_level:
-    :param resolution:
-    :param detailed_info:
-    :param using_id:
-    :param laps:
-    :return:
-    """
-
-    con = UpController()
-
-    try:
-        for i in range(0, speed_level * 1000, resolution):
-            con.set_motors_speed([i] * 4)
-            if detailed_info:
-                print(f'rising at {i}')
-        for i in range(speed_level * 1000, 0, -resolution):
-            con.set_motors_speed([i] * 4)
-            if detailed_info:
-                print(f'dropping at {i}')
     finally:
         con.set_all_motors_speed(0)
     print('over')
