@@ -16,14 +16,22 @@ class CloseLoopController:
         self.serial = SerialHelper(con2port_when_created=True, auto_search_port=True)
         self.msg_send_thread = None
         # 发送的数据队列
-
+        self._motor_speed_list: list[int] = [0, 0, 0, 0]
         self._sending_delay = sending_delay
         self._motor_id_list = motor_ids_list
         self.msg_list = []
         self.start_msg_sending()
 
     @property
-    def debug(self):
+    def motor_speed_list(self) -> list[int]:
+        return self._motor_speed_list
+
+    @motor_speed_list.setter
+    def motor_speed_list(self, new_speed_list: list[int]):
+        self._motor_speed_list = new_speed_list
+
+    @property
+    def debug(self) -> bool:
         return self._debug
 
     @debug.setter
@@ -31,7 +39,7 @@ class CloseLoopController:
         self._debug = debug
 
     @property
-    def sending_delay(self):
+    def sending_delay(self) -> int:
         return self._sending_delay
 
     @sending_delay.setter
