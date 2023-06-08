@@ -1,5 +1,6 @@
 import os
 import sys
+from importlib import import_module
 
 sys.path.append(os.path.abspath('.'))
 sys.path.append(os.path.abspath('./hotConfigure'))
@@ -14,10 +15,8 @@ from .module.timer import *
 from .module.pid import *
 from .module.algrithm_tools import *
 
-try:
+if import_module('cv2') and import_module('numpy'):
     from .module.utils import *
-except ImportError:
-    warnings.warn('failed to import utils')
 
 from .module.hotConfigure.valueTest import *
 from .module.hotConfigure.status import *
