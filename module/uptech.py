@@ -33,7 +33,10 @@ class UpTech:
         self.debug = debug
 
         self._adc_all = self._adc_data_list_type()
+        # 如果没有运行，则启动pigpio守护进程
 
+        self.Pi = pigpio.pi()
+        assert self.Pi.connected, 'pi is not connected'
         if open_mpu:
             self._accel_all = self.__mpu_data_list_type()
             self._gyro_all = self.__mpu_data_list_type()
@@ -43,9 +46,7 @@ class UpTech:
             print('Sensor data buffer loaded')
         if fan_control:
             warnings.warn('loading fan control')
-            pigpio.exceptions = True
-            self.Pi = pigpio.pi()
-            assert self.Pi.connected, 'pi is not connected'
+
             self.Pi.hardware_PWM(FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us)
             self.Pi.set_PWM_range(FAN_GPIO_PWM, FAN_PWN_range)
             warnings.warn('fan control loaded')
