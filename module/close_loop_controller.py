@@ -19,7 +19,8 @@ class CloseLoopController:
         self._motor_speed_list: list[int] = [0, 0, 0, 0]
         self._sending_delay = sending_delay
         self._motor_id_list = motor_ids_list
-        self.msg_list = []
+        self.msg_list = [self.makeCmd('RESET')]
+
         self.start_msg_sending()
 
     @property
