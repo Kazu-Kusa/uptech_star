@@ -1,3 +1,4 @@
+import warnings
 from time import perf_counter_ns
 
 from time import perf_counter_ns
@@ -6,7 +7,7 @@ from typing import Callable
 
 def delay_ms(milliseconds: int,
              breaker_func: Callable[[], bool] = None,
-             break_action_func: Callable[[], None] = None):
+             break_action_func: Callable[[], None] = None) -> bool:
     """
     delay_ms 函数具有延迟指定毫秒数的功能，在提供退出条件和退出后执行操作时支持可选参数。
 
@@ -21,31 +22,34 @@ def delay_ms(milliseconds: int,
     :return:
     """
 
+    def delay(millisecond: int) -> bool:
+        end = perf_counter_ns() + millisecond * 1000000
+        while perf_counter_ns() < end:
+            pass
+        return False
+
     def delay_with_breaker(millisecond: int,
                            breaker: Callable[[], bool],
-                           break_action: Callable[[], None]):
+                           break_action: Callable[[], None]) -> bool:
         end = perf_counter_ns() + millisecond * 1000000
         while perf_counter_ns() < end:
             if breaker():
                 break_action()
-                break
+                return True
+        return False
+        # add bool return to check the exit type
 
     if breaker_func and break_action_func:
 
-        delay_with_breaker(millisecond=milliseconds,
-                           breaker=breaker_func,
-                           break_action=break_action_func)
+        return delay_with_breaker(millisecond=milliseconds,
+                                  breaker=breaker_func,
+                                  break_action=break_action_func)
     elif breaker_func:
-        delay_with_breaker(millisecond=milliseconds,
-                           breaker=breaker_func,
-                           break_action=(lambda: None))
+        return delay_with_breaker(millisecond=milliseconds,
+                                  breaker=breaker_func,
+                                  break_action=lambda: None)
     else:
-        def delay(millisecond: int):
-            end = perf_counter_ns() + millisecond * 1000000
-            while perf_counter_ns() < end:
-                pass
-
-        delay(millisecond=milliseconds)
+        return delay(millisecond=milliseconds)
 
 
 def delay_us(microseconds: int):
