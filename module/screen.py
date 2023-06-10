@@ -47,9 +47,10 @@ class Screen(object):
     # endregion
 
     def __init__(self, init_screen: bool = True):
-        self.LCD_Open()
-        self.LCD_FillScreen(self.COLOR_BLACK)
-        self.LCD_Refresh()
+        if init_screen:
+            self.LCD_Open()
+            self.LCD_FillScreen(self.COLOR_BLACK)
+            self.LCD_Refresh()
 
     @staticmethod
     def LCD_Open(direction: int = 2):
