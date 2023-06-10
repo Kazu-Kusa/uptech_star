@@ -139,11 +139,16 @@ class CloseLoopController:
     def set_motors_speed(self, speed_list: list[int]):
         cmd_list = []
         for i, motor_id in enumerate(self.motor_id_list):
+            if speed_list[i] == self.motor_speed_list[i]:
+                # means the desired speed is already reached
+                continue
             cmd_list.append(f'{motor_id}v{speed_list[i]}')
         self.msg_list.append(self.makeCmd_list(cmd_list))
         self._motor_speed_list = speed_list
 
     def set_all_motors_speed(self, speed: int) -> None:
+        if speed == self.motor_speed_list:
+            return
         self.msg_list.append(self.makeCmd(f'v{speed}'))
         self._motor_speed_list = [speed] * 4
 
