@@ -17,7 +17,7 @@ class SerialHelper:
         新增 DummyLock 类作为在单线程场景下实际使用的锁占位符。
         这是因为如果在单线程的环境中使用普通的锁会降低程序效率，
         而使用 DummyLock 可以不影响程序性能并且可以消除后面调用锁时可能会出现的 NoneType Error 问题。
-        另外，在新代码中，我们新增了 start_read_thread 方法和 on_data_received_handler 回调函数，
+        另外，在新代码中，我们新增了 start_read_thread 方法和 _on_data_received_handler 回调函数，
         可以统一应对串口设备发送过来的数据，并且用户也可以使用 set_on_data_received_handler 方法通过传入回调函数的方式来自定义处理接收到的数据。
         :param port:
         :param baudrate:
@@ -40,6 +40,7 @@ class SerialHelper:
 
         self._read_thread_should_stop = None
         self._read_thread = None
+        self._on_data_received_handler = None
         if con2port_when_created:
             if self.connect():
                 warnings.warn(f"Successfully connect to {self.serial_port}[Default]")
@@ -111,7 +112,7 @@ class SerialHelper:
                     return True
                 except serial.serialutil.SerialException as e:
                     # 如果连接失败，则打印错误信息并返回 False 表示连接失败
-                    print(f"Failed to connect with port {self.serial_port}, baudrate {self.baudrate}: {e}")
+                    print(f"Failed to connect with port {self.serial_port}, baud rate {self.baudrate}: {e}")
             # 如果已经连接，直接返回 True 表示已连接
             return False
 
@@ -275,25 +276,21 @@ class SerialHelper:
         while not self._read_thread_should_stop:
             data = self.read(read_buffer_size)
             if len(data) > 0:
-                self.on_data_received_handler(data)
+                self._on_data_received_handler(data)
             time.sleep(interval)
 
     def set_on_data_received_handler(self, func: Callable[[bytes], Any]):
         """set serial data received callback"""
-        self.on_data_received_handler = func
-
-    def on_data_received_handler(self, data: bytes) -> None:
-        """default data received handler if no handler is added"""
-        pass
+        self._on_data_received_handler = func
 
 
 class DummyLock:
-    '''
+    """
     这个 DummyLock 类的作用是提供一种无操作（no-op）的锁定机制。
     在某些业务逻辑中可能需要加锁保证并发安全性，但如果暂时不需要对共享资源进行访问就可以使用这个类来替代真正的锁定机制。
     当使用 with 语句将这个类实例化并运行时，进入该上下文后会直接进入 pass 语句，而退出上下文则也立即进入 pass 语句，
     从而忽略了实际的加锁解锁操作。虽然 DummyLock 不实现真正的锁定功能，但其语法合法，可以用于某些场景下仅需占位符的临时方案。
-    '''
+    """
 
     def __enter__(self):
         """
