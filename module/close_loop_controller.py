@@ -31,10 +31,6 @@ class CloseLoopController:
     def motor_speed_list(self) -> list[int]:
         return self._motor_speed_list
 
-    @motor_speed_list.setter
-    def motor_speed_list(self, new_speed_list: list[int]):
-        self._motor_speed_list = new_speed_list
-
     @property
     def debug(self) -> bool:
         return self._debug
@@ -63,13 +59,25 @@ class CloseLoopController:
         :return:
         """
         print(f"msg_sending_thread_start, the debugger is [{self.debug}]")
-        while True:
-            if self.msg_list:
-                temp = self.msg_list.pop(0)
-                if self.debug:
+
+        def sending_loop():
+            while True:
+                if self.msg_list:
+                    self.serial.write(self.msg_list.pop(0))
+                    delay_us(self.sending_delay)
+
+        def sending_loop_debugging():
+            while True:
+                if self.msg_list:
+                    temp = self.msg_list.pop(0)
                     print(f'\nwriting {temp} to channel,remaining {len(self.msg_list)}')
-                self.serial.write(temp)
-                delay_us(self.sending_delay)
+                    self.serial.write(temp)
+                    delay_us(self.sending_delay)
+
+        if self.debug:
+            sending_loop_debugging()
+        else:
+            sending_loop()
 
     @staticmethod
     def makeCmd(cmd: str) -> bytes:
@@ -133,11 +141,11 @@ class CloseLoopController:
         for i, motor_id in enumerate(self.motor_id_list):
             cmd_list.append(f'{motor_id}v{speed_list[i]}')
         self.msg_list.append(self.makeCmd_list(cmd_list))
-        self.motor_speed_list = speed_list
+        self._motor_speed_list = speed_list
 
     def set_all_motors_speed(self, speed: int) -> None:
         self.msg_list.append(self.makeCmd(f'v{speed}'))
-        self.motor_speed_list = [speed] * 4
+        self._motor_speed_list = [speed] * 4
 
     def set_all_motors_acceleration(self, acceleration: int):
         """
