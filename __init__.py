@@ -15,9 +15,11 @@ from .module.timer import *
 from .module.pid import *
 from .module.algrithm_tools import *
 
-if import_module('cv2') and import_module('numpy'):
-    from .module.utils import *
-
+try:
+    if import_module('cv2') and import_module('numpy'):
+        from .module.utils import *
+except:
+    pass
 from .module.hotConfigure.valueTest import *
 from .module.hotConfigure.status import *
 
