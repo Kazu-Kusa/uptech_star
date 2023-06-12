@@ -64,14 +64,3 @@ def calculate_relative_angle(current_angle: float, offset_angle: float) -> float
     :return: 偏移后的目标角度，单位：度数。取值范围 [-180, 180]
     """
     return (current_angle + offset_angle + 180) % 360 - 180
-
-
-def determine_direction(current_angle: float, target_angle: float) -> int:
-    """
-    判断当前角度移动到目标角度是逆时针更近还是顺时针更近。
-    :param current_angle: 当前角度，单位：度数。取值范围 [-180, 180]
-    :param target_angle: 目标角度，单位：度数。取值范围 [-180, 180]
-    :return: 若逆时针更近，则返回 -1；若顺时针更近，则返回 1；若两者距离相等，会返回-1。
-    """
-    angle_diff = (target_angle - current_angle + 180) % 360 - 180
-    return int(angle_diff / abs(angle_diff))
