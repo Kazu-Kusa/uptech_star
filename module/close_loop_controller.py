@@ -83,6 +83,7 @@ class CloseLoopController:
     @staticmethod
     @lru_cache()
     def makeCmd(cmd: str) -> bytes:
+        # TODO: could baking a search table to boost the string encoding
         """
         encode a cmd to a bstring
         :param cmd:
@@ -139,14 +140,15 @@ class CloseLoopController:
             else:
                 self.msg_list.append(self.makeCmd(user_input))
 
-    def set_motors_speed(self, speed_list: list[int]):
+    def set_motors_speed(self, speed_list: list[int, int, int, int]):
         cmd_list = []
-        for i, motor_id in enumerate(self.motor_id_list):
-            if speed_list[i] == self.motor_speed_list[i]:
-                # means the desired speed is already reached
+        for i, (motor_id, speed) in enumerate(zip(self.motor_id_list, speed_list)):
+            if speed == self._motor_speed_list[i]:
                 continue
-            cmd_list.append(f'{motor_id}v{speed_list[i]}')
-        self.msg_list.append(self.makeCmd_list(cmd_list))
+            cmd_list.append(f'{motor_id}v{speed}')
+
+        if cmd_list:
+            self.msg_list.append(self.makeCmd_list(cmd_list))
         self._motor_speed_list = speed_list
 
     def set_all_motors_speed(self, speed: int) -> None:
