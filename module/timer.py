@@ -7,7 +7,7 @@ from typing import Callable
 
 def delay_ms(milliseconds: int,
              breaker_func: Callable[[], bool] = None,
-             break_action_func: Callable[[], None] = None) -> bool:
+             break_action_func: Callable[[], None] = None) -> int:
     """
     delay_ms 函数具有延迟指定毫秒数的功能，在提供退出条件和退出后执行操作时支持可选参数。
 
@@ -22,21 +22,22 @@ def delay_ms(milliseconds: int,
     :return:
     """
 
-    def delay(millisecond: int) -> bool:
+    def delay(millisecond: int) -> int:
         end = perf_counter_ns() + millisecond * 1000000
         while perf_counter_ns() < end:
             pass
-        return False
+        return 0
 
     def delay_with_breaker(millisecond: int,
                            breaker: Callable[[], bool],
-                           break_action: Callable[[], None]) -> bool:
+                           break_action: Callable[[], None] = None) -> int:
         end = perf_counter_ns() + millisecond * 1000000
         while perf_counter_ns() < end:
             if breaker():
                 break_action()
-                return True
-        return False
+                # TODO: this change is untested
+                return 1 + bool(break_action)
+        return 0
         # add bool return to check the exit type
 
     if breaker_func and break_action_func:
@@ -46,8 +47,7 @@ def delay_ms(milliseconds: int,
                                   break_action=break_action_func)
     elif breaker_func:
         return delay_with_breaker(millisecond=milliseconds,
-                                  breaker=breaker_func,
-                                  break_action=lambda: None)
+                                  breaker=breaker_func)
     else:
         return delay(millisecond=milliseconds)
 
