@@ -140,12 +140,13 @@ class CloseLoopController:
             else:
                 self.msg_list.append(self.makeCmd(user_input))
 
-    def set_motors_speed(self, speed_list: list[int, int, int, int]):
+    def set_motors_speed(self, speed_list: list[int, int, int, int],
+                         direction_list: list[int, int, int, int] = (1, 1, 1, 1)):
         cmd_list = []
-        for i, (motor_id, speed) in enumerate(zip(self.motor_id_list, speed_list)):
+        for i, (motor_id, speed, direction) in enumerate(zip(self.motor_id_list, speed_list, direction_list)):
             if speed == self._motor_speed_list[i]:
                 continue
-            cmd_list.append(f'{motor_id}v{speed}')
+            cmd_list.append(f'{motor_id}v{speed * direction}')
 
         if cmd_list:
             self.msg_list.append(self.makeCmd_list(cmd_list))
