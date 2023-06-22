@@ -23,6 +23,17 @@ class ActionFrame:
                  action_speed_list: list[int, int, int, int] = (0, 0, 0, 0),
                  breaker_func: Callable[[], bool] = None,
                  break_action: object = None):
+        """
+        the minimal action unit that could be customized and glue together to be a chain movement,
+        default stops the robot
+        :param action_speed: the speed of the action
+        :param action_duration: the duration of the action
+        :param action_speed_multiplier: the speed multiplier
+        :param action_duration_multiplier: the duration multiplier
+        :param action_speed_list: the speed list of 4 wheels
+        :param breaker_func: the action break judge,exit the action when the breaker returns True
+        :param break_action: the object type is ActionFrame,the action that will be executed when the breaker is activated,
+        """
         self._action_speed_list = None
         self._action_speed = None
         self._action_duration = None
@@ -71,22 +82,51 @@ class ActionFrame:
 
 @lru_cache(maxsize=512)
 def new_action_frame(**kwargs) -> ActionFrame:
+    """
+    generates a new action frame ,with LRU caching rules
+    :param kwargs: the arguments that will be passed to the ActionFrame constructor
+    :return: the ActionFrame object
+    """
     return ActionFrame(**kwargs)
 
 
-class ActionStack:
+class ActionPlayer:
     def __init__(self):
-        self._action_stack: list[ActionFrame] = []
+        """
+        action player,stores and plays the ActionFrames with stack
+        """
+        self._action_frame_stack: list[ActionFrame] = []
 
     def append(self, action: ActionFrame):
-        self._action_stack.append(action)
+        """
+        append new ActionFrame to the ActionFrame stack
+        :param action: the ActionFrame to append
+        :return: None
+        """
+        self._action_frame_stack.append(action)
 
-    def merge(self, action_list: list[ActionFrame]):
-        self._action_stack += action_list
+    def extend(self, action_list: list[ActionFrame]):
+        """
+        extend ActionFrames stack with given ActionFrames
+        :param action_list: the ActionFrames to extend
+        :return: None
+        """
+        self._action_frame_stack += action_list
 
-    def run_action(self):
-        while self._action_stack:
+    def clear(self):
+        """
+        clean the ActionFrames stack
+        :return: None
+        """
+        self._action_frame_stack.clear()
+
+    def play(self):
+        """
+        Play and remove the ActionFrames in the stack util there is it
+        :return: None
+        """
+        while self._action_frame_stack:
             # if action exit because breaker then it should return the break action or None
-            next_action: ActionFrame or None = self._action_stack.pop(0).action_start()
+            next_action: ActionFrame or None = self._action_frame_stack.pop(0).action_start()
             if next_action:
-                self._action_stack.append(next_action)
+                self._action_frame_stack.append(next_action)
