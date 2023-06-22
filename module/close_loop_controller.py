@@ -1,6 +1,7 @@
 import threading
 from .serial_helper import SerialHelper
 from .timer import delay_us
+from functools import lru_cache
 
 
 class CloseLoopController:
@@ -80,6 +81,7 @@ class CloseLoopController:
             sending_loop()
 
     @staticmethod
+    @lru_cache()
     def makeCmd(cmd: str) -> bytes:
         """
         encode a cmd to a bstring
@@ -89,6 +91,7 @@ class CloseLoopController:
         return cmd.encode('ascii') + b'\r'
 
     @staticmethod
+    @lru_cache()
     def makeCmd_list(cmd_list: list[str]) -> bytes:
         """
         encode a list of cmd strings into a single bstring
@@ -147,8 +150,7 @@ class CloseLoopController:
         self._motor_speed_list = speed_list
 
     def set_all_motors_speed(self, speed: int) -> None:
-        if speed == self.motor_speed_list:
-            return
+        # TODO: should check before setting
         self.msg_list.append(self.makeCmd(f'v{speed}'))
         self._motor_speed_list = [speed] * 4
 
