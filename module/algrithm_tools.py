@@ -1,4 +1,5 @@
 import random
+from functools import lru_cache
 
 import numpy as np
 
@@ -64,3 +65,14 @@ def calculate_relative_angle(current_angle: float, offset_angle: float) -> float
     :return: 偏移后的目标角度，单位：度数。取值范围 [-180, 180]
     """
     return (current_angle + offset_angle + 180) % 360 - 180
+
+
+@lru_cache(maxsize=256)
+def list_multiply(factor_list: tuple[int, int, int, int], multiplier: float):
+    return [int(multiplier * x) for x in factor_list]
+
+
+@lru_cache(maxsize=256)
+def multiply(factor_1: float or int, factor_2: float or int):
+    factor_1 = int(factor_2 * factor_1)
+    return factor_1
