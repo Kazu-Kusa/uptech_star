@@ -8,13 +8,12 @@ from .up_controller import UpController
 
 class ActionFrame:
     controller = UpController(debug=False, fan_control=False)
-    zeros = (0, 0, 0, 0)
     """
-    fl           fr
-        O-----O
-           |
-        O-----O
-    rl           rr
+    [4]fl           fr[2]
+           O-----O
+              |
+           O-----O
+    [3]rl           rr[1]
     """
 
     def __init__(self, action_speed: int = 0, action_duration: int = 0,
@@ -30,7 +29,8 @@ class ActionFrame:
         :param action_duration: the duration of the action
         :param action_speed_multiplier: the speed multiplier
         :param action_duration_multiplier: the duration multiplier
-        :param action_speed_list: the speed list of 4 wheels
+        :param action_speed_list: the speed list of 4 wheels,positive value will drive the car forward,
+                                    negative value is vice versa
         :param breaker_func: the action break judge,exit the action when the breaker returns True
         :param break_action: the object type is ActionFrame,the action that will be executed when the breaker is activated,
         """
@@ -62,14 +62,17 @@ class ActionFrame:
         self._action_duration = action_duration
 
     def action_start(self) -> object or None:
+
+        # TODO: untested direction control
         def action() -> ActionFrame or None:
-            self.controller.set_all_motors_speed(self._action_speed)
+            self.controller.move_cmd(self._action_speed, self._action_speed)
             if delay_ms(milliseconds=self._action_duration,
                         breaker_func=self._breaker_func):
                 return self._break_action
 
         def action_with_speed_list() -> ActionFrame or None:
-            self.controller.set_motors_speed(self._action_speed_list)
+            self.controller.set_motors_speed(speed_list=self._action_speed_list,
+                                             direction_list=[1, 1, -1, -1])
             if delay_ms(milliseconds=self._action_duration,
                         breaker_func=self._breaker_func):
                 return self._break_action
