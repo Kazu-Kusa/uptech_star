@@ -11,7 +11,8 @@ cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
 
 
 class ActionFrame:
-    controller = CloseLoopController(debug=False)
+    controller = CloseLoopController(motor_ids_list=(4, 3, 1, 2)
+                                     , debug=False)
     """
     [4]fl           fr[2]
            O-----O

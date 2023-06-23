@@ -1,7 +1,6 @@
 import os
 import threading
 import time
-from typing import Tuple
 
 from .serial_helper import SerialHelper
 from .timer import delay_us
@@ -206,7 +205,7 @@ def motor_speed_test(speed_level: int = 11, interval: float = 1, using_id: bool 
     :param laps:
     :return:
     """
-    con = CloseLoopController()
+    con = CloseLoopController(motor_ids_list=(4, 3, 1, 2))
     try:
         for _ in range(laps):
             if using_id:
