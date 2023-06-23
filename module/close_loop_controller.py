@@ -1,6 +1,7 @@
 import os
 import threading
 import time
+from typing import Tuple
 
 from .serial_helper import SerialHelper
 from .timer import delay_us
@@ -12,10 +13,10 @@ cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
 
 class CloseLoopController:
 
-    def __init__(self, motor_ids_list: tuple = (1, 2, 3, 4), sending_delay: int = 100, debug: bool = False):
+    def __init__(self, motor_ids_list: tuple[int, int, int, int], sending_delay: int = 100, debug: bool = False):
         """
 
-        :param motor_ids_list:
+        :param motor_ids_list: the id of the motor,represent as follows [fl,rl,rr,fr]
         :param sending_delay:
         """
         self._debug = debug
@@ -31,11 +32,11 @@ class CloseLoopController:
         self.start_msg_sending()
 
     @property
-    def motor_id_list(self) -> tuple[int]:
+    def motor_id_list(self) -> tuple[int, int, int, int]:
         return self._motor_id_list
 
     @property
-    def motor_speed_list(self) -> list[int]:
+    def motor_speed_list(self) -> list[int, int, int, int]:
         return self._motor_speed_list
 
     @property
@@ -96,7 +97,7 @@ class CloseLoopController:
         if left_speed + right_speed == 0:
             self.set_all_motors_speed(right_speed)
             return
-        self.set_motors_speed([right_speed, right_speed, -left_speed, -left_speed])
+        self.set_motors_speed([-left_speed, -left_speed, right_speed, right_speed])
 
     @staticmethod
     @persistent_lru_cache(f'{cache_dir}/makeCmd_cache', maxsize=2048)
@@ -121,6 +122,43 @@ class CloseLoopController:
         for cmd in cmd_list:
             temp += cmd.encode('ascii') + b'\r'
         return temp
+
+    def set_motors_speed(self, speed_list: list[int, int, int, int],
+                         direction_list: list[int, int, int, int] = (1, 1, 1, 1)):
+        cmd_list = []
+        for i, (motor_id, speed, direction) in enumerate(zip(self._motor_id_list, speed_list, direction_list)):
+            if speed == self._motor_speed_list[i]:
+                continue
+            cmd_list.append(f'{motor_id}v{speed * direction}')
+
+        if cmd_list:
+            self.msg_list.append(self.makeCmd_list(cmd_list))
+        self._motor_speed_list = speed_list
+
+    def set_all_motors_speed(self, speed: int) -> None:
+        # TODO: should check before setting
+        self.msg_list.append(self.makeCmd(f'v{speed}'))
+        self._motor_speed_list = [speed] * 4
+
+    def set_all_motors_acceleration(self, acceleration: int):
+        """
+        set the acceleration
+        :param acceleration:
+        :return:
+        """
+        assert 0 < acceleration < 30000, "Invalid acceleration value"
+        # TODO: all sealed cmd should check if the desired value is valid
+        self.msg_list.append(self.makeCmd(f'ac{acceleration}'))
+        self.eepSav()
+
+    def eepSav(self):
+        """
+        save params into to the eeprom,
+        all value-setter should call this method to complete the value-setting process
+        :return:
+        """
+        # TODO: pre-compile the 'eepsav' cmd to binary instead of doing compile each time on called
+        self.msg_list.append(self.makeCmd('eepsav'))
 
     def open_userInput_channel(self, debug: bool = False) -> None:
         """
@@ -157,43 +195,6 @@ class CloseLoopController:
                 break
             else:
                 self.msg_list.append(self.makeCmd(user_input))
-
-    def set_motors_speed(self, speed_list: list[int, int, int, int],
-                         direction_list: list[int, int, int, int] = (1, 1, 1, 1)):
-        cmd_list = []
-        for i, (motor_id, speed, direction) in enumerate(zip(self.motor_id_list, speed_list, direction_list)):
-            if speed == self._motor_speed_list[i]:
-                continue
-            cmd_list.append(f'{motor_id}v{speed * direction}')
-
-        if cmd_list:
-            self.msg_list.append(self.makeCmd_list(cmd_list))
-        self._motor_speed_list = speed_list
-
-    def set_all_motors_speed(self, speed: int) -> None:
-        # TODO: should check before setting
-        self.msg_list.append(self.makeCmd(f'v{speed}'))
-        self._motor_speed_list = [speed] * 4
-
-    def set_all_motors_acceleration(self, acceleration: int):
-        """
-        set the acceleration
-        :param acceleration:
-        :return:
-        """
-        assert 0 < acceleration < 30000, "Invalid acceleration value"
-        # TODO: all sealed cmd should check if the desired value is valid
-        self.msg_list.append(self.makeCmd(f'ac{acceleration}'))
-        self.eepSav()
-
-    def eepSav(self):
-        """
-        save params into to the eeprom,
-        all value-setter should call this method to complete the value-setting process
-        :return:
-        """
-        # TODO: pre-compile the 'eepsav' cmd to binary instead of doing compile each time on called
-        self.msg_list.append(self.makeCmd('eepsav'))
 
 
 def motor_speed_test(speed_level: int = 11, interval: float = 1, using_id: bool = True, laps: int = 3):
