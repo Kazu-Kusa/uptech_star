@@ -73,8 +73,8 @@ def PID_control(controller_func: Callable[[int, int], None],
     """
     PID controller designed to control the action-T using MPU-6500
 
+    :param rip_round:
     :param end_pause:
-    :param delay:
     :param smooth_window_size:
     :param controller_func:
     :param evaluator_func:
