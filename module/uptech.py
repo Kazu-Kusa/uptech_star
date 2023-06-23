@@ -17,14 +17,13 @@ def load_lib(libname: str) -> object:
     return cdll.LoadLibrary(lib_file_name)
 
 
-so_up = load_lib('libuptech.so')
-
-
 class UpTech:
     """
     provides sealed methods accessing to the IOs and builtin sensors
     """
+    # TODO: use argtypes and restype to mark the args type
     # TODO: move this type def out of here
+    so_up = load_lib('libuptech.so')
     _adc_data_list_type = ctypes.c_uint16 * 10
 
     __mpu_data_list_type = ctypes.c_float * 3
@@ -60,43 +59,37 @@ class UpTech:
         """
         self.Pi.set_PWM_dutycycle(FAN_GPIO_PWM, speed)
 
-    @staticmethod
-    def ADC_IO_Open():
+    def ADC_IO_Open(self):
         """
         open the  adc-io plug
         """
-        return so_up.adc_io_open()
+        return self.so_up.adc_io_open()
 
-    @staticmethod
-    def ADC_IO_Close():
+    def ADC_IO_Close(self):
         """
         close the adc-io plug
         """
-        so_up.adc_io_close()
+        self.so_up.adc_io_close()
 
     @property
     def adc_all_channels(self):
         """
         get all adc channels and return they as a tuple
         """
-        so_up.ADC_GetAll(self._adc_all)
+        self.so_up.ADC_GetAll(self._adc_all)
         return self._adc_all
 
-    @staticmethod
-    def ADC_IO_SetIOLevel(index, level):
-        so_up.adc_io_Set(index, level)
+    def ADC_IO_SetIOLevel(self, index, level):
+        self.so_up.adc_io_Set(index, level)
 
-    @staticmethod
-    def ADC_IO_SetAllIOLevel(value):
-        so_up.adc_io_SetAll(value)
+    def ADC_IO_SetAllIOLevel(self, value):
+        self.so_up.adc_io_SetAll(value)
 
-    @staticmethod
-    def ADC_IO_SetAllIOMode(mode):
-        so_up.adc_io_ModeSetAll(mode)
+    def ADC_IO_SetAllIOMode(self, mode):
+        self.so_up.adc_io_ModeSetAll(mode)
 
-    @staticmethod
-    def ADC_IO_SetIOMode(index, mode):
-        so_up.adc_io_ModeSet(index, mode)
+    def ADC_IO_SetIOMode(self, index, mode):
+        self.so_up.adc_io_ModeSet(index, mode)
 
     @property
     def io_all_channels(self):
@@ -106,10 +99,9 @@ class UpTech:
         unsigned 8int
         """
 
-        return list([int(x) for x in f'{so_up.adc_io_InputGetAll():08b}'])
+        return list([int(x) for x in f'{self.so_up.adc_io_InputGetAll():08b}'])
 
-    @staticmethod
-    def MPU6500_Open(debug_info: bool = False):
+    def MPU6500_Open(self, debug_info: bool = False):
         """
         initialize the MPU6500
         default settings:
@@ -117,7 +109,7 @@ class UpTech:
             gyro: -+2000 degree/s
             sampling rate: 1kHz
         """
-        if so_up.mpu6500_dmp_init():
+        if self.so_up.mpu6500_dmp_init():
             warnings.warn('#failed to initialize MPU6500', category=RuntimeWarning)
         elif debug_info:
             warnings.warn('#MPU6500 successfully initialized')
@@ -127,7 +119,7 @@ class UpTech:
         """
         get the acceleration from MPU6500
         """
-        so_up.mpu6500_Get_Accel(self._accel_all)
+        self.so_up.mpu6500_Get_Accel(self._accel_all)
 
         return self._accel_all
 
@@ -136,7 +128,7 @@ class UpTech:
         """
         get gyro from MPU6500
         """
-        so_up.mpu6500_Get_Gyro(self._gyro_all)
+        self.so_up.mpu6500_Get_Gyro(self._gyro_all)
 
         return self._gyro_all
 
@@ -146,6 +138,6 @@ class UpTech:
         get attitude from MPU6500
         """
 
-        so_up.mpu6500_Get_Attitude(self._atti_all)
+        self.so_up.mpu6500_Get_Attitude(self._atti_all)
 
         return self._atti_all
