@@ -87,7 +87,7 @@ class ActionFrame:
 
 
 @persistent_lru_cache(CACHE_FILE=f'{cache_dir}/new_action_frame_cache', maxsize=1024)
-def new_action_frame(**kwargs) -> ActionFrame:
+def new_ActionFrame(**kwargs) -> ActionFrame:
     """
     generates a new action frame ,with LRU caching rules
     :param kwargs: the arguments that will be passed to the ActionFrame constructor
