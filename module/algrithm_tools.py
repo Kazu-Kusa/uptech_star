@@ -1,7 +1,9 @@
-import random
-from functools import lru_cache
-
+from .db_tools import persistent_lru_cache
+from .constant import ENV_CACHE_DIR_PATH
+import os
 import numpy as np
+
+cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
 
 
 class MovingAverage:
@@ -19,7 +21,9 @@ class MovingAverage:
         return self.queue.sum() / self.current_size  # 计算滑动窗口范围内的平均值
 
 
-def compute_relative_error(current_angle: float, target_angle: float) -> list[float]:
+# TODO: angle error function use int ,to better support persistent caching, untested
+@persistent_lru_cache(f'{cache_dir}/compute_relative_error_cache', maxsize=2048)
+def compute_relative_error(current_angle: int, target_angle: int) -> list[int, int]:
     """
         计算当前角度与目标角度之间相对角度误差
         :param current_angle: 当前角度，取值范围[-180, 180]
@@ -33,7 +37,8 @@ def compute_relative_error(current_angle: float, target_angle: float) -> list[fl
         return [ab_dst, ab_dst - 360]
 
 
-def compute_inferior_arc(current_angle: float, target_angle: float) -> float:
+@persistent_lru_cache(f'{cache_dir}/compute_inferior_arc_cache', maxsize=2048)
+def compute_inferior_arc(current_angle: int, target_angle: int) -> int:
     """
     计算当前角度到目标角度的顺时针方向和逆时针方向之间的较小夹角
     顺时针转动是+
@@ -57,7 +62,8 @@ def compute_inferior_arc(current_angle: float, target_angle: float) -> float:
             return ab_dst  # 需要顺时针转动劣弧的距离
 
 
-def calculate_relative_angle(current_angle: float, offset_angle: float) -> float:
+@persistent_lru_cache(f'{cache_dir}/calculate_relative_angle_cache', maxsize=2048)
+def calculate_relative_angle(current_angle: int, offset_angle: int) -> int:
     """
     计算相对偏移特定角度之后的目标角度，返回值范围 [-180, 180]。
     :param current_angle: 当前角度，单位：度数。取值范围 [-180, 180]
@@ -67,12 +73,13 @@ def calculate_relative_angle(current_angle: float, offset_angle: float) -> float
     return (current_angle + offset_angle + 180) % 360 - 180
 
 
-@lru_cache(maxsize=256)
-def list_multiply(factor_list: tuple[int, int, int, int], multiplier: float):
+@persistent_lru_cache(f'{cache_dir}/list_multiply_cache', maxsize=2048)
+def list_multiply(factor_list: tuple[int, int, int, int] or list[int, int, int, int],
+                  multiplier: int) -> list[int, int, int, int]:
     return [int(multiplier * x) for x in factor_list]
 
 
-@lru_cache(maxsize=256)
-def multiply(factor_1: float or int, factor_2: float or int):
+@persistent_lru_cache(f'{cache_dir}/multiply_cache', maxsize=2048)
+def multiply(factor_1: float or int, factor_2: float or int) -> int:
     factor_1 = int(factor_2 * factor_1)
     return factor_1
