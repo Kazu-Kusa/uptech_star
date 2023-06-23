@@ -1,5 +1,5 @@
 import os
-from typing import Callable, final
+from typing import Callable
 from .db_tools import persistent_lru_cache
 from .constant import ENV_CACHE_DIR_PATH
 from .algrithm_tools import list_multiply, multiply
@@ -47,7 +47,6 @@ class ActionFrame:
         self._breaker_func = breaker_func
         self._break_action = break_action
 
-    @final
     def _create_frame(self, action_duration, action_duration_multiplier, action_speed, action_speed_list,
                       action_speed_multiplier):
         if self._action_speed_list:
