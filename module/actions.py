@@ -1,4 +1,5 @@
 import os
+import warnings
 from typing import Callable
 from .db_tools import persistent_lru_cache
 from .constant import ENV_CACHE_DIR_PATH
@@ -39,51 +40,60 @@ class ActionFrame:
         the action that will be executed when the breaker is activated,
         """
         self._action_speed_list = None
-        self._action_speed = None
         self._action_duration = None
 
-        self._create_frame(action_duration, action_duration_multiplier, action_speed, action_speed_list,
-                           action_speed_multiplier)
+        self._create_frame(action_speed=action_speed, action_speed_multiplier=action_speed_multiplier,
+                           action_duration=action_duration, action_duration_multiplier=action_duration_multiplier,
+                           action_speed_list=action_speed_list)
 
         self._breaker_func = breaker_func
         self._break_action = break_action
 
-    def _create_frame(self, action_duration, action_duration_multiplier, action_speed, action_speed_list,
-                      action_speed_multiplier):
-        if self._action_speed_list:
+    def _create_frame(self,
+                      action_speed: int, action_speed_multiplier,
+                      action_duration: int, action_duration_multiplier: float,
+                      action_speed_list):
+        """
+        load the params to attributes
+        :param action_duration:
+        :param action_duration_multiplier:
+        :param action_speed:
+        :param action_speed_list:
+        :param action_speed_multiplier:
+        :return:
+        """
+        if action_speed_list:
             # speed list will override the action_speed
             if action_speed_multiplier:
+                # apply the multiplier
                 action_speed_list = list_multiply(action_speed_list, action_speed_multiplier)
             self._action_speed_list = action_speed_list
-        else:
+        elif action_speed:
             if action_speed_multiplier:
+                # apply the multiplier
                 action_speed = multiply(action_speed, action_speed_multiplier)
-            self._action_speed = action_speed
+            self._action_speed_list = [action_speed] * 4
+        else:
+            warnings.warn('##one of action_speed and action_speed_list must be specified##')
+            self._action_speed_list = [0] * 4
 
         if action_duration_multiplier:
+            # apply the multiplier
+            # TODO: may actualize this multiplier Properties with a new class
             action_duration = multiply(action_duration, action_duration_multiplier)
         self._action_duration = action_duration
 
     def action_start(self) -> object or None:
-
+        """
+        execute the ActionFrame
+        :return: None
+        """
         # TODO: untested direction control
-        def action() -> ActionFrame or None:
-            self.controller.move_cmd(self._action_speed, self._action_speed)
-            if delay_ms(milliseconds=self._action_duration,
-                        breaker_func=self._breaker_func):
-                return self._break_action
-
-        def action_with_speed_list() -> ActionFrame or None:
-            self.controller.set_motors_speed(speed_list=self._action_speed_list,
-                                             direction_list=[1, 1, -1, -1])
-            if delay_ms(milliseconds=self._action_duration,
-                        breaker_func=self._breaker_func):
-                return self._break_action
-
-        if self._action_speed_list:
-            return action_with_speed_list()
-        else:
-            return action()
+        self.controller.set_motors_speed(speed_list=self._action_speed_list,
+                                         direction_list=[1, 1, -1, -1])
+        if delay_ms(milliseconds=self._action_duration,
+                    breaker_func=self._breaker_func):
+            return self._break_action
 
 
 @persistent_lru_cache(CACHE_FILE=f'{cache_dir}/new_action_frame_cache', maxsize=1024)
