@@ -1,4 +1,4 @@
-import threading
+from multiprocessing import Process
 import time
 import warnings
 from time import sleep
@@ -38,13 +38,13 @@ class Camera(object):
         start the tag-detection thread and set it to daemon
         :return:
         """
-        apriltag_detect = threading.Thread(target=self._apriltag_detect_thread,
-                                           name="apriltag_detect_detect", kwargs=kwargs)
+        apriltag_detect = Process(target=self._apriltag_detect_loop,
+                                  name="apriltag_detect_detect", kwargs=kwargs)
         apriltag_detect.daemon = True
         apriltag_detect.start()
 
-    def _apriltag_detect_thread(self, single_tag_mode: bool = True, print_tag_id: bool = False,
-                                check_interval: float = 0.1):
+    def _apriltag_detect_loop(self, single_tag_mode: bool = True, print_tag_id: bool = False,
+                              check_interval: float = 0.1):
         """
         这是一个线程函数，它从摄像头捕获视频帧，处理帧以检测 AprilTags，
         :param check_interval:
