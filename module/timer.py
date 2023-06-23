@@ -1,6 +1,3 @@
-import warnings
-from time import perf_counter_ns
-
 from time import perf_counter_ns
 from typing import Callable
 
@@ -22,8 +19,7 @@ def delay_ms(milliseconds: int,
         return False
 
     def delay_with_breaker(millisecond: int,
-                           breaker: Callable[[], bool],
-                           ) -> bool:
+                           breaker: Callable[[], bool]) -> bool:
         end = perf_counter_ns() + millisecond * 1000000
         while perf_counter_ns() < end:
             if breaker():

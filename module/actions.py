@@ -1,9 +1,12 @@
-from functools import lru_cache
+import os
 from typing import Callable, final
-
+from .db_tools import persistent_lru_cache
+from .constant import ENV_CACHE_DIR_PATH
 from .algrithm_tools import list_multiply, multiply
 from .timer import delay_ms
 from .up_controller import UpController
+
+cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
 
 
 class ActionFrame:
@@ -83,7 +86,7 @@ class ActionFrame:
             return action()
 
 
-@lru_cache(maxsize=512)
+@persistent_lru_cache(CACHE_FILE=f'{cache_dir}/new_action_frame_cache', maxsize=1024)
 def new_action_frame(**kwargs) -> ActionFrame:
     """
     generates a new action frame ,with LRU caching rules

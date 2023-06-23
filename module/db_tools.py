@@ -1,4 +1,4 @@
-import functools
+from functools import lru_cache
 import pickle
 
 
@@ -26,7 +26,7 @@ def persistent_lru_cache(CACHE_FILE: str, maxsize: int or None = 128):
     def decorator(func):
         cache = load_cache()
 
-        @functools.lru_cache(maxsize=maxsize)
+        @lru_cache(maxsize=maxsize)
         def wrapped(*args, **kwargs):
             # 将参数转换为可哈希的形式
             key = (args, frozenset(kwargs.items()))
