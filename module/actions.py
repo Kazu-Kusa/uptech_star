@@ -4,13 +4,13 @@ from .db_tools import persistent_lru_cache
 from .constant import ENV_CACHE_DIR_PATH
 from .algrithm_tools import list_multiply, multiply
 from .timer import delay_ms
-from .up_controller import UpController
+from .close_loop_controller import CloseLoopController
 
 cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
 
 
 class ActionFrame:
-    controller = UpController(debug=False, fan_control=False)
+    controller = CloseLoopController(debug=False)
     """
     [4]fl           fr[2]
            O-----O
@@ -35,7 +35,8 @@ class ActionFrame:
         :param action_speed_list: the speed list of 4 wheels,positive value will drive the car forward,
                                     negative value is vice versa
         :param breaker_func: the action break judge,exit the action when the breaker returns True
-        :param break_action: the object type is ActionFrame,the action that will be executed when the breaker is activated,
+        :param break_action: the object type is ActionFrame,
+        the action that will be executed when the breaker is activated,
         """
         self._action_speed_list = None
         self._action_speed = None
@@ -90,6 +91,14 @@ def new_action_frame(**kwargs) -> ActionFrame:
     """
     generates a new action frame ,with LRU caching rules
     :param kwargs: the arguments that will be passed to the ActionFrame constructor
+
+    :keyword action_speed: int = 0
+    :keyword action_duration: int = 0
+    :keyword action_speed_multiplier: float = 0
+    :keyword action_duration_multiplier: float = 0
+    :keyword action_speed_list: list[int, int, int, int] = (0, 0, 0, 0)
+    :keyword breaker_func: Callable[[], bool] = None
+    :keyword break_action: object = None
     :return: the ActionFrame object
     """
     return ActionFrame(**kwargs)

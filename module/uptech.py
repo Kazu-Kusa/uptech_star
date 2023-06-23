@@ -1,5 +1,6 @@
 import ctypes
 import os
+import threading
 from ctypes import cdll
 import warnings
 import pigpio
@@ -31,7 +32,10 @@ class UpTech:
 
     __mpu_data_list_type = ctypes.c_float * 3
 
-    def __init__(self, open_mpu: bool = True, debug: bool = False, fan_control: bool = True):
+    def __init__(self, open_mpu: bool = True,
+                 debug: bool = False,
+                 fan_control: bool = True,
+                 using_updating_thread: bool = False):
         self.debug = debug
 
         self._adc_all = self._adc_data_list_type()
@@ -54,6 +58,16 @@ class UpTech:
             warnings.warn('fan control loaded')
         elif debug:
             warnings.warn('fan control disabled')
+
+        print(f"Sensor channel Init times: {self.ADC_IO_Open()}")
+
+        if using_updating_thread:
+            warnings.warn('opening sensors update thread')
+            self.io_all_syncing = None
+            self.adc_all_syncing = None
+            self.open_adc_io_update_thread()
+        else:
+            warnings.warn('NOT using sensors update thread')
 
     def FAN_Set_Speed(self, speed: int = 0):
         """
@@ -144,3 +158,22 @@ class UpTech:
         self.so_up.mpu6500_Get_Attitude(self._atti_all)
 
         return self._atti_all
+
+    def adc_io_sync_thread(self):
+        """
+        update data thread
+        """
+        while 1:
+            self.adc_all_syncing = self.adc_all_channels
+            self.io_all_syncing = self.io_all_channels
+
+    def open_adc_io_update_thread(self):
+        """
+        open data update thread
+        """
+        edge_thread = threading.Thread(name="adc_io_sync_thread", target=self.adc_io_sync_thread)
+        edge_thread.daemon = True
+        edge_thread.start()
+
+        if self.debug:
+            print('adc-io update thread started')

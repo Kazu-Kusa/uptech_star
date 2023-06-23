@@ -1,5 +1,7 @@
 import os
 import threading
+import time
+
 from .serial_helper import SerialHelper
 from .timer import delay_us
 from .db_tools import persistent_lru_cache
@@ -83,6 +85,18 @@ class CloseLoopController:
             sending_loop_debugging()
         else:
             sending_loop()
+
+    def move_cmd(self, left_speed: int, right_speed: int) -> None:
+        """
+        control the motor
+        :param left_speed:
+        :param right_speed:
+        :return:
+        """
+        if left_speed + right_speed == 0:
+            self.set_all_motors_speed(right_speed)
+            return
+        self.set_motors_speed([right_speed, right_speed, -left_speed, -left_speed])
 
     @staticmethod
     @persistent_lru_cache(f'{cache_dir}/makeCmd_cache', maxsize=2048)
@@ -178,5 +192,32 @@ class CloseLoopController:
         all value-setter should call this method to complete the value-setting process
         :return:
         """
-        # TODO: pre-complie the 'eepsav' cmd to binary instead of doing complie each time on called
+        # TODO: pre-compile the 'eepsav' cmd to binary instead of doing compile each time on called
         self.msg_list.append(self.makeCmd('eepsav'))
+
+
+def motor_speed_test(speed_level: int = 11, interval: float = 1, using_id: bool = True, laps: int = 3):
+    """
+    motor speed test function,used to test and check  if the driver configurations are correct
+    :param speed_level:
+    :param interval:
+    :param using_id:
+    :param laps:
+    :return:
+    """
+    con = CloseLoopController()
+    try:
+        for _ in range(laps):
+            if using_id:
+                for i in range(speed_level):
+                    print(f'doing {i * 1000}')
+                    con.set_motors_speed([i * 1000] * 4)
+                    time.sleep(interval)
+            else:
+                for i in range(speed_level):
+                    print(f'doing {i * 1000}')
+                    con.set_all_motors_speed(i * 1000)
+                    time.sleep(interval)
+    finally:
+        con.set_all_motors_speed(0)
+    print('over')
