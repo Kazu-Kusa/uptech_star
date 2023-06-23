@@ -141,6 +141,8 @@ class ActionPlayer:
         """
         while self._action_frame_stack:
             # if action exit because breaker then it should return the break action or None
-            next_action: ActionFrame or None = self._action_frame_stack.pop(0).action_start()
-            if next_action:
-                self._action_frame_stack.append(next_action)
+            break_action: ActionFrame or None = self._action_frame_stack.pop(0).action_start()
+            if break_action:
+                # the break action will override those ActionFrames that haven't been executed yet
+                self._action_frame_stack.clear()
+                self._action_frame_stack.append(break_action)
