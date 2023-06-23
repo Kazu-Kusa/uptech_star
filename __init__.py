@@ -1,27 +1,22 @@
 import os
+import warnings
 
 libdir = os.path.abspath(os.path.dirname(__file__))
 os.environ['LIB_SO_PATH'] = os.path.join(libdir, 'lib')
 
-from .module.uptech import *
-from .module.up_controller import *
-from .module.serial_helper import *
-from .module.close_loop_controller import *
-from .module.timer import *
-from .module.pid import *
-from .module.algrithm_tools import *
-from .module.screen import *
+from .module import *
 
 try:
     import cv2, numpy
     from .module.utils import *
 except:
     warnings.warn("utils import failed")
-
-from .module.hotConfigure.valueTest import *
-from .module.hotConfigure.status import *
-
-__version__ = "0.6"
+try:
+    from .module.hotConfigure.valueTest import *
+    from .module.hotConfigure.status import *
+except:
+    pass
+__version__ = "0.7"
 __all__ = {
     'module',
     'extension'
