@@ -4,14 +4,14 @@ from ctypes import cdll
 import warnings
 import pigpio
 
-FAN_GPIO_PWM = 18
-FAN_pulse_frequency = 20000
-FAN_duty_time_us = 1000000
-FAN_PWN_range = 100
+from .constant import FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us, FAN_PWN_range
+from .db_tools import persistent_lru_cache
+
+ld_library_path = os.environ.get('LIB_SO_PATH')
 
 
+@persistent_lru_cache(f'{ld_library_path}/lb_cache')
 def load_lib(libname: str) -> object:
-    ld_library_path = os.environ.get('LIB_SO_PATH')
     lib_file_name = f'{ld_library_path}/{libname}'
     print(f'Loading [{lib_file_name}]')
     return cdll.LoadLibrary(lib_file_name)
@@ -23,7 +23,10 @@ class UpTech:
     """
     # TODO: use argtypes and restype to mark the args type
     # TODO: move this type def out of here
-    so_up = load_lib('libuptech.so')
+    try:
+        so_up = load_lib('libuptech.so')
+    except:
+        pass
     _adc_data_list_type = ctypes.c_uint16 * 10
 
     __mpu_data_list_type = ctypes.c_float * 3

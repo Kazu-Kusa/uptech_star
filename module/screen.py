@@ -1,8 +1,12 @@
 import ctypes
-from .uptech import so_up
+from .uptech import load_lib
 
 
 class Screen(object):
+    try:
+        so_up = load_lib('libuptech.so')
+    except:
+        pass
     # region font size definitions
     FONT_4X6 = 0
     FONT_5X8 = 1
@@ -52,8 +56,7 @@ class Screen(object):
             self.LCD_FillScreen(self.COLOR_BLACK)
             self.LCD_Refresh()
 
-    @staticmethod
-    def LCD_Open(direction: int = 2):
+    def LCD_Open(self, direction: int = 2):
         """
         open with lcd ,and set the LCD displaying direction
 
@@ -61,42 +64,36 @@ class Screen(object):
         """
         assert direction == 1 or direction == 2, "1 for vertical and 2 for horizontal"
 
-        return so_up.lcd_open(direction)
+        return self.so_up.lcd_open(direction)
 
-    @staticmethod
-    def LCD_Refresh():
+    def LCD_Refresh(self):
         """
         clear the displayed contents
         """
-        so_up.LCD_Refresh()
+        self.so_up.LCD_Refresh()
 
-    @staticmethod
-    def LCD_SetFontSize(font_size: int):
-        so_up.LCD_SetFont(font_size)
+    def LCD_SetFontSize(self, font_size: int):
+        self.so_up.LCD_SetFont(font_size)
 
-    @staticmethod
-    def LCD_SetForeColor(color: int):
+    def LCD_SetForeColor(self, color: int):
         """
         set the fore color
         """
-        so_up.UG_SetForecolor(color)
+        self.so_up.UG_SetForecolor(color)
 
-    @staticmethod
-    def LCD_SetBackColor(color: int):
+    def LCD_SetBackColor(self, color: int):
         """
         set the LCD background color
         """
-        so_up.UG_SetBackcolor(color)
+        self.so_up.UG_SetBackcolor(color)
 
-    @staticmethod
-    def LCD_FillScreen(color: int):
+    def LCD_FillScreen(self, color: int):
         """
         fill the screen with the given color
         """
-        so_up.UG_FillScreen(color)
+        self.so_up.UG_FillScreen(color)
 
-    @staticmethod
-    def LCD_PutString(x: int, y: int, display_string: str):
+    def LCD_PutString(self, x: int, y: int, display_string: str):
         """
         x,y(unit:pixel) are the coordinates of where the string that will be displayed
 
@@ -111,54 +108,43 @@ class Screen(object):
         for i, char in enumerate(display_string):
             # dump chars to binary as unicode
             binary[i] = ord(char)
-        so_up.UG_PutString(x, y, binary)
+        self.so_up.UG_PutString(x, y, binary)
 
-    @staticmethod
-    def LCD_FillFrame(x1, y1, x2, y2, color: int):
-        so_up.UG_FillFrame(x1, y1, x2, y2, color)
+    def LCD_FillFrame(self, x1, y1, x2, y2, color: int):
+        self.so_up.UG_FillFrame(x1, y1, x2, y2, color)
 
-    @staticmethod
-    def LCD_FillRoundFrame(x1, y1, x2, y2, r, color: int):
-        so_up.UG_FillRoundFrame(x1, y1, x2, y2, r, color)
+    def LCD_FillRoundFrame(self, x1, y1, x2, y2, r, color: int):
+        self.so_up.UG_FillRoundFrame(x1, y1, x2, y2, r, color)
 
-    @staticmethod
-    def LCD_DrawMesh(x1, y1, x2, y2, color: int):
-        so_up.UG_DrawMesh(x1, y1, x2, y2, color)
+    def LCD_DrawMesh(self, x1, y1, x2, y2, color: int):
+        self.so_up.UG_DrawMesh(x1, y1, x2, y2, color)
 
-    @staticmethod
-    def LCD_DrawFrame(x1, y1, x2, y2, color: int):
-        so_up.UG_DrawFrame(x1, y1, x2, y2, color)
+    def LCD_DrawFrame(self, x1, y1, x2, y2, color: int):
+        self.so_up.UG_DrawFrame(x1, y1, x2, y2, color)
 
-    @staticmethod
-    def LCD_DrawRoundFrame(x1, y1, x2, y2, r, color: int):
-        so_up.UG_DrawRoundFrame(x1, y1, x2, y2, r, color)
+    def LCD_DrawRoundFrame(self, x1, y1, x2, y2, r, color: int):
+        self.so_up.UG_DrawRoundFrame(x1, y1, x2, y2, r, color)
 
-    @staticmethod
-    def LCD_DrawPixel(x0, y0, color: int):
-        so_up.UG_DrawPixel(x0, y0, color)
+    def LCD_DrawPixel(self, x0, y0, color: int):
+        self.so_up.UG_DrawPixel(x0, y0, color)
 
-    @staticmethod
-    def LCD_DrawCircle(x0, y0, r, color: int):
-        so_up.UG_DrawCircle(x0, y0, r, color)
+    def LCD_DrawCircle(self, x0, y0, r, color: int):
+        self.so_up.UG_DrawCircle(x0, y0, r, color)
 
-    @staticmethod
-    def LCD_FillCircle(x0, y0, r, color: int):
-        so_up.UG_FillCircle(x0, y0, r, color)
+    def LCD_FillCircle(self, x0, y0, r, color: int):
+        self.so_up.UG_FillCircle(x0, y0, r, color)
 
-    @staticmethod
-    def LCD_DrawArc(x0, y0, r, s, color: int):
-        so_up.UG_DrawArc(x0, y0, r, s, color)
+    def LCD_DrawArc(self, x0, y0, r, s, color: int):
+        self.so_up.UG_DrawArc(x0, y0, r, s, color)
 
-    @staticmethod
-    def LCD_DrawLine(x1, y1, x2, y2, color: int):
-        so_up.UG_DrawLine(x1, y1, x2, y2, color)
+    def LCD_DrawLine(self, x1, y1, x2, y2, color: int):
+        self.so_up.UG_DrawLine(x1, y1, x2, y2, color)
 
-    @staticmethod
-    def ADC_Led_SetColor(index: int, color: int):
+    def ADC_Led_SetColor(self, index: int, color: int):
         """
         set the color of the LED according to index and color
         """
-        so_up.adc_led_set(index, color)
+        self.so_up.adc_led_set(index, color)
 
 
 if __name__ == '__main__':
