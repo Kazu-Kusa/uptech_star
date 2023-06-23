@@ -2,3 +2,7 @@ FAN_GPIO_PWM = 18
 FAN_pulse_frequency = 20000
 FAN_duty_time_us = 1000000
 FAN_PWN_range = 100
+CACHE_DIR = 'cache'
+LID_SO_DIR = 'lib'
+ENV_LIB_SO_PATH = 'LIB_SO_PATH'
+ENV_CACHE_DIR_PATH = 'CACHE_DIR_PATH'

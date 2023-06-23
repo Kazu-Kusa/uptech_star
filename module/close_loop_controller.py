@@ -1,7 +1,11 @@
+import os
 import threading
 from .serial_helper import SerialHelper
 from .timer import delay_us
-from functools import lru_cache
+from .db_tools import persistent_lru_cache
+from .constant import ENV_CACHE_DIR_PATH
+
+cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
 
 
 class CloseLoopController:
@@ -81,9 +85,9 @@ class CloseLoopController:
             sending_loop()
 
     @staticmethod
-    @lru_cache()
+    @persistent_lru_cache(f'{cache_dir}/makeCmd_cache', maxsize=2048)
     def makeCmd(cmd: str) -> bytes:
-        # TODO: could baking a search table to boost the string encoding
+        # TODO: could baking a search table to boost the string encoding,added but untested
         """
         encode a cmd to a bstring
         :param cmd:
@@ -92,7 +96,7 @@ class CloseLoopController:
         return cmd.encode('ascii') + b'\r'
 
     @staticmethod
-    @lru_cache()
+    @persistent_lru_cache(f'{cache_dir}/makeCmd_list_cache', maxsize=2048)
     def makeCmd_list(cmd_list: list[str]) -> bytes:
         """
         encode a list of cmd strings into a single bstring
