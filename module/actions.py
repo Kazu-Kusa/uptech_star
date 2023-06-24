@@ -22,7 +22,7 @@ class ActionFrame:
     """
 
     def __init__(self, action_speed: int = 0, action_duration: int = 0,
-                 action_speed_multiplier: float = 0,
+                 action_speed_multipliers: list[float, float, float, float] = (1., 1., 1., 1.),
                  action_duration_multiplier: float = 0,
                  action_speed_list: list[int, int, int, int] = (0, 0, 0, 0),
                  breaker_func: Callable[[], bool] = None,
@@ -32,8 +32,8 @@ class ActionFrame:
         default stops the robot
         :param action_speed: the speed of the action
         :param action_duration: the duration of the action
-        :param action_speed_multiplier: the speed multiplier
-        :param action_duration_multiplier: the duration multiplier
+        :param action_speed_multipliers: the speed multiplier_list,can use this to specific the dir and strength
+        :param action_duration_multiplier: the duration multiplier_list
         :param action_speed_list: the speed list of 4 wheels,positive value will drive the car forward,
                                     negative value is vice versa
         :param breaker_func: the action break judge,exit the action when the breaker returns True
@@ -43,7 +43,7 @@ class ActionFrame:
         self._action_speed_list = None
         self._action_duration = None
 
-        self._create_frame(action_speed=action_speed, action_speed_multiplier=action_speed_multiplier,
+        self._create_frame(action_speed=action_speed, action_speed_multipliers=action_speed_multipliers,
                            action_duration=action_duration, action_duration_multiplier=action_duration_multiplier,
                            action_speed_list=action_speed_list)
 
@@ -51,7 +51,7 @@ class ActionFrame:
         self._break_action = break_action
 
     def _create_frame(self,
-                      action_speed: int, action_speed_multiplier,
+                      action_speed: int, action_speed_multipliers: list[float, float, float, float],
                       action_duration: int, action_duration_multiplier: float,
                       action_speed_list):
         """
@@ -60,27 +60,21 @@ class ActionFrame:
         :param action_duration_multiplier:
         :param action_speed:
         :param action_speed_list:
-        :param action_speed_multiplier:
+        :param action_speed_multipliers:
         :return:
         """
         if action_speed_list:
             # speed list will override the action_speed
-            if action_speed_multiplier:
-                # apply the multiplier
-                action_speed_list = list_multiply(action_speed_list, action_speed_multiplier)
-            self._action_speed_list = action_speed_list
+            self._action_speed_list = list_multiply(action_speed_list, action_speed_multipliers)
         elif action_speed:
-            if action_speed_multiplier:
-                # apply the multiplier
-                action_speed = multiply(action_speed, action_speed_multiplier)
-            self._action_speed_list = [action_speed] * 4
+            self._action_speed_list = list_multiply([action_speed] * 4, action_speed_multipliers)
         else:
-            warnings.warn('##one of action_speed and action_speed_list must be specified##')
+            warnings.warn('##one of action_speed and action_speed_list should be specified##')
             self._action_speed_list = [0] * 4
 
         if action_duration_multiplier:
-            # apply the multiplier
-            # TODO: may actualize this multiplier Properties with a new class
+            # apply the multiplier_list
+            # TODO: may actualize this multiplier_list Properties with a new class
             action_duration = multiply(action_duration, action_duration_multiplier)
         self._action_duration = action_duration
 

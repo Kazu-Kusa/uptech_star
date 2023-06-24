@@ -75,8 +75,11 @@ def calculate_relative_angle(current_angle: int, offset_angle: int) -> int:
 
 @persistent_lru_cache(f'{cache_dir}/list_multiply_cache', maxsize=2048)
 def list_multiply(factor_list: tuple[int, int, int, int] or list[int, int, int, int],
-                  multiplier: int) -> list[int, int, int, int]:
-    return [int(multiplier * x) for x in factor_list]
+                  multiplier_list: tuple[float, float, float, float] or list[float, float, float, float]
+                  ) -> list[int, int, int, int]:
+    # 计算每个元素相乘的结果，并将其转换为整数
+    result_list = [int(factor_list[i] * multiplier_list[i]) for i in range(4)]
+    return result_list
 
 
 @persistent_lru_cache(f'{cache_dir}/multiply_cache', maxsize=2048)
