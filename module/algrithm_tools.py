@@ -1,3 +1,5 @@
+from typing import Tuple, List
+
 from .db_tools import persistent_lru_cache
 from .constant import ENV_CACHE_DIR_PATH
 import os
@@ -23,7 +25,7 @@ class MovingAverage:
 
 # TODO: angle error function use int ,to better support persistent caching, untested
 @persistent_lru_cache(f'{cache_dir}/compute_relative_error_cache', maxsize=2048)
-def compute_relative_error(current_angle: int, target_angle: int) -> list[int, int]:
+def compute_relative_error(current_angle: int, target_angle: int) -> List[int]:
     """
         计算当前角度与目标角度之间相对角度误差
         :param current_angle: 当前角度，取值范围[-180, 180]
@@ -74,11 +76,25 @@ def calculate_relative_angle(current_angle: int, offset_angle: int) -> int:
 
 
 @persistent_lru_cache(f'{cache_dir}/list_multiply_cache', maxsize=2048)
-def list_multiply(factor_list: tuple[int, int, int, int],
-                  multiplier_list: tuple[float, float, float, float]
-                  ) -> list[int, int, int, int]:
+def list_multiply(factor_list: Tuple[int, int, int, int],
+                  multiplier_list: Tuple[float, float, float, float]
+                  ) -> List[int]:
     # 计算每个元素相乘的结果，并将其转换为整数
     return [int(factor_list[i] * multiplier_list[i]) for i in range(4)]
+
+
+@persistent_lru_cache(f'{cache_dir}/list_multiply_cache', maxsize=2048)
+def factor_list_multiply(factor: int,
+                         multiplier_list: Tuple[float, float, float, float]
+                         ) -> List[int]:
+    """
+    计算每个元素相乘的结果，并将其转换为整数
+    :param factor:
+    :param multiplier_list:
+    :return:
+    """
+
+    return [int(factor * multiplier) for multiplier in multiplier_list]
 
 
 @persistent_lru_cache(f'{cache_dir}/multiply_cache', maxsize=2048)

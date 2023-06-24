@@ -1,9 +1,9 @@
 import os
 import warnings
-from typing import Callable
+from typing import Callable, Tuple
 from .db_tools import persistent_lru_cache
 from .constant import ENV_CACHE_DIR_PATH
-from .algrithm_tools import list_multiply, multiply
+from .algrithm_tools import factor_list_multiply, multiply, list_multiply
 from .timer import delay_ms
 from .close_loop_controller import CloseLoopController
 
@@ -22,9 +22,9 @@ class ActionFrame:
     """
 
     def __init__(self, action_speed: int = 0, action_duration: int = 0,
-                 action_speed_multipliers: list[float, float, float, float] = (1., 1., 1., 1.),
+                 action_speed_multipliers: Tuple[float, float, float, float] = (1., 1., 1., 1.),
                  action_duration_multiplier: float = 0,
-                 action_speed_list: list[int, int, int, int] = (0, 0, 0, 0),
+                 action_speed_list: Tuple[int, int, int, int] = (0, 0, 0, 0),
                  breaker_func: Callable[[], bool] = None,
                  break_action: object = None):
         """
@@ -51,9 +51,9 @@ class ActionFrame:
         self._break_action = break_action
 
     def _create_frame(self,
-                      action_speed: int, action_speed_multipliers: list[float, float, float, float],
+                      action_speed: int, action_speed_multipliers: Tuple[float, float, float, float],
                       action_duration: int, action_duration_multiplier: float,
-                      action_speed_list):
+                      action_speed_list: Tuple[int, int, int, int]):
         """
         load the params to attributes
         :param action_duration:
@@ -67,7 +67,8 @@ class ActionFrame:
             # speed list will override the action_speed
             self._action_speed_list = list_multiply(action_speed_list, action_speed_multipliers)
         elif action_speed:
-            self._action_speed_list = list_multiply([action_speed] * 4, action_speed_multipliers)
+            # make the speed list using action_speed and action_speed_multipliers
+            self._action_speed_list = factor_list_multiply(action_speed, action_speed_multipliers)
         else:
             warnings.warn('##one of action_speed and action_speed_list should be specified##')
             self._action_speed_list = [0] * 4
