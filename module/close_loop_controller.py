@@ -1,7 +1,7 @@
 import os
 import threading
 import time
-
+from typing import List, Tuple, Optional, Union
 from .serial_helper import SerialHelper
 from .timer import delay_us
 from .db_tools import persistent_lru_cache
@@ -96,12 +96,10 @@ class CloseLoopController:
         if left_speed + right_speed == 0:
             self.set_all_motors_speed(right_speed)
             return
-        self.set_motors_speed([-left_speed, -left_speed, right_speed, right_speed])
+        self.set_motors_speed((-left_speed, -left_speed, right_speed, right_speed))
 
     @staticmethod
-    @persistent_lru_cache(f'{cache_dir}/makeCmd_cache', maxsize=2048)
     def makeCmd(cmd: str) -> bytes:
-        # TODO: could baking a search table to boost the string encoding,added but untested
         """
         encode a cmd to a bstring
         :param cmd:
@@ -110,20 +108,16 @@ class CloseLoopController:
         return cmd.encode('ascii') + b'\r'
 
     @staticmethod
-    @persistent_lru_cache(f'{cache_dir}/makeCmd_list_cache', maxsize=2048)
     def makeCmd_list(cmd_list: list[str]) -> bytes:
         """
         encode a list of cmd strings into a single bstring
         :param cmd_list:
         :return:
         """
-        temp = b''
-        for cmd in cmd_list:
-            temp += cmd.encode('ascii') + b'\r'
-        return temp
+        return b'\r'.join(cmd.encode('ascii') for cmd in cmd_list)
 
-    def set_motors_speed(self, speed_list: list[int, int, int, int],
-                         direction_list: list[int, int, int, int] = (1, 1, 1, 1)):
+    def set_motors_speed(self, speed_list: Tuple[int, int, int, int],
+                         direction_list: Tuple[int, int, int, int] = (1, 1, 1, 1)):
         cmd_list = []
         for i, (motor_id, speed, direction) in enumerate(zip(self._motor_id_list, speed_list, direction_list)):
             if speed == self._motor_speed_list[i]:
