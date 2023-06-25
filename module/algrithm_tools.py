@@ -1,3 +1,5 @@
+from typing import List, Union, Optional, Tuple
+
 from .db_tools import persistent_lru_cache
 from .constant import ENV_CACHE_DIR_PATH
 import os
@@ -73,13 +75,24 @@ def calculate_relative_angle(current_angle: int, offset_angle: int) -> int:
     return (current_angle + offset_angle + 180) % 360 - 180
 
 
-@persistent_lru_cache(f'{cache_dir}/list_multiply_cache', maxsize=2048)
-def list_multiply(factor_list: tuple[int, int, int, int] or list[int, int, int, int],
-                  multiplier: int) -> list[int, int, int, int]:
-    return [int(multiplier * x) for x in factor_list]
+def list_multiply(list1: Union[List, Tuple][Union[float, int]],
+                  list2: Union[List, Tuple][Union[float, int]],
+                  ) -> List[int]:
+    # 计算每个元素相乘的结果，并将其转换为整数
+    return [int(x * y) for x, y in zip(list1, list2)]
 
 
-@persistent_lru_cache(f'{cache_dir}/multiply_cache', maxsize=2048)
-def multiply(factor_1: float or int, factor_2: float or int) -> int:
-    factor_1 = int(factor_2 * factor_1)
-    return factor_1
+def factor_list_multiply(factor: Union[float, int],
+                         factor_list: Union[List, Tuple][Union[float, int]]
+                         ) -> List[int]:
+    """
+    计算每个元素相乘的结果，并将其转换为整数
+    :param factor:
+    :param factor_list:
+    :return:
+    """
+    return [int(factor * x) for x in factor_list]
+
+
+def multiply(factor_1: Union[float, int], factor_2: Union[float, int]) -> int:
+    return int(factor_2 * factor_1)
