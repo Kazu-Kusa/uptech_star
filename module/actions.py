@@ -92,8 +92,7 @@ class ActionFrame:
         """
         # TODO: untested direction control
         self._action_speed_list = tuple(self._action_speed_list)
-        self.controller.set_motors_speed(speed_list=self._action_speed_list,
-                                         direction_list=[1, 1, 1, 1])
+        self.controller.set_motors_speed(speed_list=self._action_speed_list)
         if delay_ms(milliseconds=self._action_duration,
                     breaker_func=self._breaker_func):
             return self._break_action
