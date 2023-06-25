@@ -75,15 +75,15 @@ def calculate_relative_angle(current_angle: int, offset_angle: int) -> int:
     return (current_angle + offset_angle + 180) % 360 - 180
 
 
-def list_multiply(list1: Union[List, Tuple][Union[float, int]],
-                  list2: Union[List, Tuple][Union[float, int]],
+def list_multiply(list1: Union[List[Union[float, int]], Tuple[Union[float, int]]],
+                  list2: Union[List[Union[float, int]], Tuple[Union[float, int]]],
                   ) -> List[int]:
     # 计算每个元素相乘的结果，并将其转换为整数
     return [int(x * y) for x, y in zip(list1, list2)]
 
 
 def factor_list_multiply(factor: Union[float, int],
-                         factor_list: Union[List, Tuple][Union[float, int]]
+                         factor_list: Union[List[Union[float, int]], Tuple[Union[float, int]]]
                          ) -> List[int]:
     """
     计算每个元素相乘的结果，并将其转换为整数
