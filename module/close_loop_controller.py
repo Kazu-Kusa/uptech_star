@@ -93,10 +93,7 @@ class CloseLoopController:
         :param right_speed:
         :return:
         """
-        if left_speed + right_speed == 0:
-            self.set_all_motors_speed(right_speed)
-            return
-        self.set_motors_speed((-left_speed, -left_speed, right_speed, right_speed))
+        self.set_motors_speed((left_speed, left_speed, right_speed, right_speed))
 
     @staticmethod
     def makeCmd(cmd: str) -> bytes:
@@ -116,16 +113,23 @@ class CloseLoopController:
         """
         return b'\r'.join(cmd.encode('ascii') for cmd in cmd_list)
 
+    @staticmethod
+    def is_list_all_zero(lst: Union[List[int], Tuple[int, ...]]) -> bool:
+        return all(element == 0 for element in lst)
+
     def set_motors_speed(self, speed_list: Tuple[int, int, int, int],
                          direction_list: Tuple[int, int, int, int] = (1, 1, 1, 1)):
-        cmd_list = []
-        for i, (motor_id, speed, direction) in enumerate(zip(self._motor_id_list, speed_list, direction_list)):
-            if speed == self._motor_speed_list[i]:
-                continue
-            cmd_list.append(f'{motor_id}v{speed * direction}')
+        if self.is_list_all_zero(speed_list):
+            self.set_all_motors_speed(0)
+        else:
+            cmd_list = []
+            for i, (motor_id, speed, direction) in enumerate(zip(self._motor_id_list, speed_list, direction_list)):
+                if speed == self._motor_speed_list[i]:
+                    continue
+                cmd_list.append(f'{motor_id}v{speed * direction}')
 
-        if cmd_list:
-            self.msg_list.append(self.makeCmd_list(cmd_list))
+            if cmd_list:
+                self.msg_list.append(self.makeCmd_list(cmd_list))
         self._motor_speed_list = speed_list
 
     def set_all_motors_speed(self, speed: int) -> None:
