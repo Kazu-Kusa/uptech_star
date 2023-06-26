@@ -1,9 +1,9 @@
 from time import perf_counter_ns
-from typing import Callable
+from typing import Callable, Optional
 
 
 def delay_ms(milliseconds: int,
-             breaker_func: Callable[[], bool] = None) -> int:
+             breaker_func: Optional[Callable[[], bool]] = None) -> int:
     """
     delay_ms 函数具有延迟指定毫秒数的功能，在提供退出条件和退出后执行操作时支持可选参数。
     如果给出了 breaker_func 参数，则在等待过程中每隔一段时间调用此函数检查是否应该中断等待

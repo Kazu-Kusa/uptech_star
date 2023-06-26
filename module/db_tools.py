@@ -1,8 +1,9 @@
 from functools import lru_cache
 import pickle
+from typing import Optional
 
 
-def persistent_lru_cache(CACHE_FILE: str, maxsize: int or None = 128):
+def persistent_lru_cache(CACHE_FILE: str, maxsize: Optional[int] = 128):
     """
     装饰器函数，用于缓存函数调用结果并持久化缓存
     :param maxsize:
