@@ -12,7 +12,7 @@ cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
 
 class CloseLoopController:
 
-    def __init__(self, motor_ids_list: tuple[int, int, int, int], sending_delay: int = 100, debug: bool = False):
+    def __init__(self, motor_ids_list: Tuple[int, int, int, int], sending_delay: int = 100, debug: bool = False):
         """
 
         :param motor_ids_list: the id of the motor,represent as follows [fl,rl,rr,fr]
@@ -23,19 +23,19 @@ class CloseLoopController:
         self.serial = SerialHelper(con2port_when_created=True, auto_search_port=True)
         self.msg_send_thread = None
         # 发送的数据队列
-        self._motor_speed_list: list[int] = [0, 0, 0, 0]
-        self._sending_delay = sending_delay
-        self._motor_id_list = motor_ids_list
+        self._motor_speed_list: Tuple[int, int, int, int] = (0, 0, 0, 0)
+        self._sending_delay: int = sending_delay
+        self._motor_id_list: Tuple[int, int, int, int] = motor_ids_list
         self.msg_list = [self.makeCmd('RESET')]
 
         self.start_msg_sending()
 
     @property
-    def motor_id_list(self) -> tuple[int, int, int, int]:
+    def motor_id_list(self) -> Tuple[int, int, int, int]:
         return self._motor_id_list
 
     @property
-    def motor_speed_list(self) -> list[int, int, int, int]:
+    def motor_speed_list(self) -> Tuple[int, int, int, int]:
         return self._motor_speed_list
 
     @property
@@ -54,26 +54,26 @@ class CloseLoopController:
     def sending_delay(self, sending_delay: int):
         self._sending_delay = sending_delay
 
-    def start_msg_sending(self):
+    def start_msg_sending(self) -> None:
         # 通信线程创建启动
         self.msg_send_thread = threading.Thread(name="msg_send_thread", target=self.msg_sending_thread)
         self.msg_send_thread.daemon = True
         self.msg_send_thread.start()
 
-    def msg_sending_thread(self):
+    def msg_sending_thread(self) -> None:
         """
         串口通信线程发送函数
         :return:
         """
         print(f"msg_sending_thread_start, the debugger is [{self.debug}]")
 
-        def sending_loop():
+        def sending_loop() -> None:
             while True:
                 if self.msg_list:
                     self.serial.write(self.msg_list.pop(0))
                     delay_us(self.sending_delay)
 
-        def sending_loop_debugging():
+        def sending_loop_debugging() -> None:
             while True:
                 if self.msg_list:
                     temp = self.msg_list.pop(0)
@@ -105,7 +105,7 @@ class CloseLoopController:
         return cmd.encode('ascii') + b'\r'
 
     @staticmethod
-    def makeCmd_list(cmd_list: list[str]) -> bytes:
+    def makeCmd_list(cmd_list: List[str]) -> bytes:
         """
         encode a list of cmd strings into a single bstring
         :param cmd_list:
@@ -118,7 +118,7 @@ class CloseLoopController:
         return all(element == 0 for element in lst)
 
     def set_motors_speed(self, speed_list: Tuple[int, int, int, int],
-                         direction_list: Tuple[int, int, int, int] = (1, 1, 1, 1)):
+                         direction_list: Tuple[int, int, int, int] = (1, 1, 1, 1)) -> None:
         if self.is_list_all_zero(speed_list):
             self.set_all_motors_speed(0)
         else:
@@ -137,7 +137,7 @@ class CloseLoopController:
         self.msg_list.append(self.makeCmd(f'v{speed}'))
         self._motor_speed_list = [speed] * 4
 
-    def set_all_motors_acceleration(self, acceleration: int):
+    def set_all_motors_acceleration(self, acceleration: int) -> None:
         """
         set the acceleration
         :param acceleration:
@@ -148,7 +148,7 @@ class CloseLoopController:
         self.msg_list.append(self.makeCmd(f'ac{acceleration}'))
         self.eepSav()
 
-    def eepSav(self):
+    def eepSav(self) -> None:
         """
         save params into to the eeprom,
         all value-setter should call this method to complete the value-setting process
@@ -194,7 +194,7 @@ class CloseLoopController:
                 self.msg_list.append(self.makeCmd(user_input))
 
 
-def motor_speed_test(speed_level: int = 11, interval: float = 1, using_id: bool = True, laps: int = 3):
+def motor_speed_test(speed_level: int = 11, interval: float = 1, using_id: bool = True, laps: int = 3) -> None:
     """
     motor speed test function,used to test and check  if the driver configurations are correct
     :param speed_level:
