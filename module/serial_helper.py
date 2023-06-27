@@ -191,6 +191,10 @@ class SerialHelper:
         return b''
 
     @staticmethod
+    def find_serial_ports() -> List[str]:
+        return [port.device for port in serial.tools.list_ports.comports()]
+
+    @staticmethod
     def find_usb_tty(id_product: int = 0, id_vendor: int = 0) -> List[str]:
         """
         该函数实现在 Linux 系统下查找指定厂商和产品 ID 的 USB 串口设备，并返回设备名列表。
