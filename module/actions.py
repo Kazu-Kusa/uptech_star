@@ -119,21 +119,27 @@ class ActionPlayer:
         """
         self._action_frame_stack: List[ActionFrame] = []
 
-    def append(self, action: ActionFrame):
+    def append(self, action: ActionFrame, play_now: bool = True):
         """
         append new ActionFrame to the ActionFrame stack
+        :param play_now: play on the ActionFrame added
         :param action: the ActionFrame to append
         :return: None
         """
         self._action_frame_stack.append(action)
+        if play_now:
+            self.play()
 
-    def extend(self, action_list: List[ActionFrame]):
+    def extend(self, action_list: List[ActionFrame], play_now: bool = True):
         """
         extend ActionFrames stack with given ActionFrames
+        :param play_now: play on the ActionFrames added
         :param action_list: the ActionFrames to extend
         :return: None
         """
         self._action_frame_stack.extend(action_list)
+        if play_now:
+            self.play()
 
     def clear(self):
         """
