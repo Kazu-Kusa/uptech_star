@@ -1,7 +1,7 @@
 import os
 import threading
 import time
-from typing import List, Tuple, Optional, Union
+from typing import List, Tuple, Optional, Union, Sequence
 from .serial_helper import SerialHelper
 from .timer import delay_us
 from .constant import ENV_CACHE_DIR_PATH
@@ -114,7 +114,7 @@ class CloseLoopController:
         return b'\r'.join(cmd.encode('ascii') for cmd in cmd_list)
 
     @staticmethod
-    def is_list_all_zero(lst: Union[List[int], Tuple[int, ...]]) -> bool:
+    def is_list_all_zero(lst: Sequence[int]) -> bool:
         return all(element == 0 for element in lst)
 
     def set_motors_speed(self, speed_list: Tuple[int, int, int, int],

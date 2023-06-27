@@ -9,11 +9,11 @@ cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
 
 
 class MovingAverage:
-    def __init__(self, size):
+    def __init__(self, size: int):
         self.queue = np.zeros(size)  # 定义队列
-        self.current_size = 0  # 记录有效元素个数
+        self.current_size: int = 0  # 记录有效元素个数
 
-    def next(self, val):
+    def next(self, val: float) -> float:
         if self.current_size < len(self.queue):
             self.current_size += 1
 
@@ -25,7 +25,7 @@ class MovingAverage:
 
 # TODO: angle error function use int ,to better support persistent caching, untested
 @persistent_lru_cache(f'{cache_dir}/compute_relative_error_cache', maxsize=2048)
-def compute_relative_error(current_angle: int, target_angle: int) -> list[int, int]:
+def compute_relative_error(current_angle: int, target_angle: int) -> List[int]:
     """
         计算当前角度与目标角度之间相对角度误差
         :param current_angle: 当前角度，取值范围[-180, 180]
