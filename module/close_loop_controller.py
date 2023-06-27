@@ -171,19 +171,12 @@ class CloseLoopController:
             self.serial.start_read_thread()
 
             def handler(data: bytes):
-                result = ''
-                for i in range(len(data)):
-                    try:
-
-                        result += bytes(data[i]).decode('ascii')
-                    except UnicodeDecodeError:
-                        print('bad char,skip')
-                        continue
-                print(f'\n>>out[{ct}]: {result}')
+                string = data.decode('ascii')
+                print(f'\nout[{ct}]: {string}')
 
             self.serial.set_on_data_received_handler(handler)
         while True:
-            user_input = input(f'in[{ct}]: ')
+            user_input = input(f'\rin[{ct}]: ')
             ct += 1
             # 对输入的内容进行处理
             if user_input == 'exit':
