@@ -1,5 +1,5 @@
 import time
-from typing import List, Callable, Any
+from typing import List, Callable, Any, Optional
 import serial
 from serial.tools.list_ports import comports
 import warnings
@@ -8,8 +8,9 @@ import threading
 
 class SerialHelper:
 
-    def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 115200, bytesize: int = 8, parity: str = 'N',
-                 stopbits: int = 1, con2port_when_created: bool = False, auto_search_port: bool = False) -> None:
+    def __init__(self, port: Optional[str] = None,
+                 baudrate: int = 115200, bytesize: int = 8, parity: str = 'N', stopbits: int = 1,
+                 con2port_when_created: bool = True, auto_search_port: bool = True):
         """
         所有共享状态变量（如 _serial 和 _is_connected）的访问都添加了对应的锁获取和释放操作。
         移除了 _on_connected_changed 和 _on_data_received 两个线程方法，
@@ -27,8 +28,9 @@ class SerialHelper:
         :param con2port_when_created:
         :param auto_search_port:
         """
+        assert self.find_serial_ports(), "No serial ports FOUND!"
         self._serial = None
-        self._serial_port: str = port
+        self._serial_port: str = port if port else self.find_serial_ports()[0]
         self._baudrate: int = baudrate
         self._bytesize: int = bytesize
         self._parity: str = parity
@@ -42,20 +44,17 @@ class SerialHelper:
         self._read_thread = None
         self._on_data_received_handler = None
         if con2port_when_created:
-            if self.connect():
-                warnings.warn(f"Successfully connect to {self.serial_port}[Default]")
-            elif auto_search_port:
+            if self._serial_port:
+                self.connect(logging=True)
+            if not self.is_connected and auto_search_port:
                 # connection to the default has failed
                 # try to search for a new port
-                warnings.warn(f'failed to connect to {self.serial_port}, try to search')
-                for i in self.find_usb_tty():
+                warnings.warn('Searching available Ports')
+                for i in self.find_serial_ports():
                     self.serial_port = i
-                    warnings.warn(f'try to connect to {self.serial_port}')
+                    warnings.warn(f'try to connect to {self._serial_port}')
                     if self.connect():
-                        warnings.warn(f'Successfully connect to {self.serial_port}')
                         break
-            else:
-                warnings.warn(f'failed to connect to {self.serial_port},please change the port or check the connection')
 
     @property
     def is_connected(self) -> bool:
@@ -86,11 +85,12 @@ class SerialHelper:
     def stopbits(self) -> int:
         return self._stopbits
 
-    def connect(self) -> bool:
+    def connect(self, logging: bool = True) -> bool:
         """
         Connect to the serial port with the settings specified in the instance attributes using a thread-safe mechanism.
         Return True if the connection is successful, else False.
         """
+
         # 使用串口锁 `_serial_lock` 确保线程安全
         with self._serial_lock:
             # 如果当前尚未连接
@@ -109,11 +109,15 @@ class SerialHelper:
                     with self._is_connected_lock:
                         self._is_connected = True
                     # 返回 True 表示连接成功
+                    if logging:
+                        print(f"Successfully connect to [{self._serial_port}]")
                     return True
-                except serial.serialutil.SerialException as e:
+                except serial.serialutil.SerialException:
                     # 如果连接失败，则打印错误信息并返回 False 表示连接失败
-                    print(f"Failed to connect with port {self.serial_port}, baud rate {self.baudrate}: {e}")
+                    pass
             # 如果已经连接，直接返回 True 表示已连接
+            if logging:
+                print(f'##Failed to connect to [{self._serial_port}]##')
             return False
 
     def disconnect(self):
