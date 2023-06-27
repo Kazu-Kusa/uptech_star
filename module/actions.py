@@ -60,18 +60,18 @@ class ActionFrame:
         :param action_speed_multiplier:
         :return:
         """
-        if len(action_speed) == 2:
+        if isinstance(action_speed, Tuple) and len(action_speed) == 2:
             if action_speed_multiplier:
                 # apply the multiplier
                 action_speed = factor_list_multiply(action_speed_multiplier, action_speed)
             self._action_speed_list = (action_speed[0], action_speed[0], action_speed[1], action_speed[1])
-        elif type(action_speed) == int:
+        elif isinstance(action_speed, int):
             # speed list will override the action_speed
             if action_speed_multiplier:
                 # apply the multiplier
                 action_speed = multiply(action_speed, action_speed_multiplier)
             self._action_speed_list = tuple([action_speed] * 4)
-        elif len(action_speed) == 4:
+        elif isinstance(action_speed, Tuple) and len(action_speed) == 4:
             if action_speed_multiplier:
                 action_speed = factor_list_multiply(action_speed_multiplier, action_speed)
             self._action_speed_list = action_speed
@@ -120,7 +120,7 @@ class ActionPlayer:
         """
         action player,stores and plays the ActionFrames with stack
         """
-        self._action_frame_stack: list[ActionFrame] = []
+        self._action_frame_stack: List[ActionFrame] = []
 
     def append(self, action: ActionFrame):
         """
@@ -130,13 +130,13 @@ class ActionPlayer:
         """
         self._action_frame_stack.append(action)
 
-    def extend(self, action_list: list[ActionFrame]):
+    def extend(self, action_list: List[ActionFrame]):
         """
         extend ActionFrames stack with given ActionFrames
         :param action_list: the ActionFrames to extend
         :return: None
         """
-        self._action_frame_stack += action_list
+        self._action_frame_stack.extend(action_list)
 
     def clear(self):
         """
@@ -152,7 +152,7 @@ class ActionPlayer:
         """
         while self._action_frame_stack:
             # if action exit because breaker then it should return the break action or None
-            break_action: ActionFrame or None = self._action_frame_stack.pop(0).action_start()
+            break_action: Optional[ActionFrame] = self._action_frame_stack.pop(0).action_start()
             if break_action:
                 # the break action will override those ActionFrames that haven't been executed yet
                 self._action_frame_stack.clear()
