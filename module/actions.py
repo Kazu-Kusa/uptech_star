@@ -40,12 +40,10 @@ class ActionFrame:
         """
         self._action_speed_list: Union[Tuple[int, int, int, int], List[int]] = []
         self._action_duration: int = 0
-
-        self._create_frame(action_speed=action_speed, action_speed_multiplier=action_speed_multiplier,
-                           action_duration=action_duration, action_duration_multiplier=action_duration_multiplier)
-
         self._breaker_func: Callable[[], bool] = breaker_func
         self._break_action: object = break_action
+        self._create_frame(action_speed=action_speed, action_speed_multiplier=action_speed_multiplier,
+                           action_duration=action_duration, action_duration_multiplier=action_duration_multiplier)
 
     def _create_frame(self,
                       action_speed: Union[int, Tuple[int, int], Tuple[int, int, int, int]],
@@ -74,15 +72,15 @@ class ActionFrame:
         elif isinstance(action_speed, Tuple) and len(action_speed) == 4:
             if action_speed_multiplier:
                 action_speed = factor_list_multiply(action_speed_multiplier, action_speed)
-            self._action_speed_list = action_speed
+            self._action_speed_list = tuple(action_speed)
         else:
             warnings.warn('##UNKNOWN INPUT##')
             self._action_speed_list = self.zeros
-
         if action_duration_multiplier:
             # apply the multiplier
             # TODO: may actualize this multiplier Properties with a new class
             action_duration = multiply(action_duration, action_duration_multiplier)
+
         self._action_duration = action_duration
 
     def action_start(self) -> Optional[object]:
@@ -91,10 +89,9 @@ class ActionFrame:
         :return: None
         """
         # TODO: untested direction control
-        self._action_speed_list = tuple(self._action_speed_list)
+
         self.controller.set_motors_speed(speed_list=self._action_speed_list)
-        if delay_ms(milliseconds=self._action_duration,
-                    breaker_func=self._breaker_func):
+        if self._action_duration and delay_ms(milliseconds=self._action_duration, breaker_func=self._breaker_func):
             return self._break_action
 
 
