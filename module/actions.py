@@ -83,7 +83,7 @@ class ActionFrame:
 
         self._action_duration = action_duration
 
-    def action_start(self) -> Optional[object]:
+    def action_start(self) -> Optional[Union[object, List[object]]]:
         """
         execute the ActionFrame
         :return: None
@@ -119,6 +119,10 @@ class ActionPlayer:
         """
         self._action_frame_stack: List[ActionFrame] = []
 
+    @property
+    def action_frame_stack(self):
+        return self._action_frame_stack
+
     def append(self, action: ActionFrame, play_now: bool = True):
         """
         append new ActionFrame to the ActionFrame stack
@@ -141,6 +145,12 @@ class ActionPlayer:
         if play_now:
             self.play()
 
+    def add(self, actions: Union[ActionFrame, List[ActionFrame]]):
+        if isinstance(actions, List):
+            self._action_frame_stack.extend(actions)
+        else:
+            self._action_frame_stack.append(actions)
+
     def clear(self):
         """
         clean the ActionFrames stack
@@ -155,8 +165,9 @@ class ActionPlayer:
         """
         while self._action_frame_stack:
             # if action exit because breaker then it should return the break action or None
-            break_action: Optional[ActionFrame] = self._action_frame_stack.pop(0).action_start()
+            break_action: Optional[Union[ActionFrame, List[ActionFrame]]] = self._action_frame_stack.pop(
+                0).action_start()
             if break_action:
                 # the break action will override those ActionFrames that haven't been executed yet
                 self._action_frame_stack.clear()
-                self._action_frame_stack.append(break_action)
+                self.add(break_action)
