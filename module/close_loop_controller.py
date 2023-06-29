@@ -122,11 +122,11 @@ class CloseLoopController:
         if self.is_list_all_zero(speed_list):
             self.set_all_motors_speed(0)
         else:
-            cmd_list = []
-            for i, (motor_id, speed, direction) in enumerate(zip(self._motor_id_list, speed_list, direction_list)):
-                if speed == self._motor_speed_list[i]:
-                    continue
-                cmd_list.append(f'{motor_id}v{speed * direction}')
+            # will check the if target speed and current speed are the same and can customize the direction
+            cmd_list = [f'{motor_id}v{speed * direction}'
+                        for motor_id, speed, cur_speed, direction in
+                        zip(self._motor_id_list, speed_list, self._motor_speed_list, direction_list)
+                        if speed != cur_speed]
 
             if cmd_list:
                 self._msg_list.append(self.makeCmd_list(cmd_list))
