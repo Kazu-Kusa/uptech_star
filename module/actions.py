@@ -1,4 +1,5 @@
 import os
+import time
 import warnings
 from typing import Callable, Tuple, Union, Optional, List
 from .db_tools import persistent_lru_cache
@@ -95,7 +96,7 @@ class ActionFrame:
             return self._break_action
 
 
-@persistent_lru_cache(CACHE_FILE=f'{cache_dir}/new_action_frame_cache', maxsize=1024)
+@persistent_lru_cache(CACHE_FILE=f'{cache_dir}/new_action_frame_cache', maxsize=None)
 def new_ActionFrame(**kwargs) -> ActionFrame:
     """
     generates a new action frame ,with LRU caching rules
@@ -110,6 +111,17 @@ def new_ActionFrame(**kwargs) -> ActionFrame:
     :return: the ActionFrame object
     """
     return ActionFrame(**kwargs)
+
+
+def pre_build_action_frame(speed_range: Tuple[int, int, int], duration_range: Tuple[int, int, int]):
+    print('building')
+    start = time.time()
+    for speed in range(*speed_range):
+        for duration in range(*duration_range):
+            print(f'building speed: {speed}|duration: {duration}')
+            new_ActionFrame(action_speed=speed,
+                            action_duration=duration)
+    print(f'time cost: {time.time() - start:.2f}s')
 
 
 class ActionPlayer:
