@@ -1,4 +1,5 @@
 import os
+import pickle
 import time
 import warnings
 from typing import Callable, Tuple, Union, Optional, List
@@ -9,11 +10,14 @@ from .timer import delay_ms
 from .close_loop_controller import CloseLoopController
 
 cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
+zeros = (0, 0, 0, 0)
 
 
 class ActionFrame:
-    controller = CloseLoopController(motor_ids_list=(4, 3, 1, 2), debug=False)
-    zeros = (0, 0, 0, 0)
+    _controller = CloseLoopController(motor_ids_list=(4, 3, 1, 2), debug=False)
+    _instance_cache = {}
+    CACHE_FILE = f"{cache_dir}\\ActionFrame_cache"
+    print(f'Action Frame caches at [{CACHE_FILE}]')
     """
     [4]fl           fr[2]
            O-----O
@@ -22,10 +26,33 @@ class ActionFrame:
     [3]rl           rr[1]
     """
 
-    def __init__(self, action_speed: Union[int, Tuple[int, int], Tuple[int, int, int, int]] = 0,
-                 action_speed_multiplier: float = 0,
+    @classmethod
+    def load_cache(cls):
+        try:
+            with open(cls.CACHE_FILE, "rb") as file:
+                cls._instance_cache = pickle.load(file)
+        except FileNotFoundError:
+            pass
+
+    @classmethod
+    def save_cache(cls):
+        with open(cls.CACHE_FILE, "wb+") as file:
+            pickle.dump(cls._instance_cache, file)
+
+    def __new__(cls, *args, **kwargs):
+        # Check if the instance exists in the cache
+        key = (args, tuple(kwargs.items()))
+        if key in cls._instance_cache:
+            return cls._instance_cache[key]
+
+        # Create a new instance and add it to the cache
+        instance = super().__new__(cls)
+        cls._instance_cache[key] = instance
+        return instance
+
+    def __init__(self,
+                 action_speed: Tuple[int, int, int, int] = zeros,
                  action_duration: int = 0,
-                 action_duration_multiplier: float = 0,
                  breaker_func: Optional[Callable[[], bool]] = None,
                  break_action: Optional[object] = None):
         """
@@ -33,56 +60,14 @@ class ActionFrame:
         default stops the robot
         :param action_speed: the speed of the action
         :param action_duration: the duration of the action
-        :param action_speed_multiplier: the speed multiplier
-        :param action_duration_multiplier: the duration multiplier
         :param breaker_func: the action break judge,exit the action when the breaker returns True
         :param break_action: the object type is ActionFrame,
         the action that will be executed when the breaker is activated,
         """
-        self._action_speed_list: Union[Tuple[int, int, int, int], List[int]] = []
-        self._action_duration: int = 0
+        self._action_speed_list: Tuple[int, int, int, int] = action_speed
+        self._action_duration: int = action_duration
         self._breaker_func: Callable[[], bool] = breaker_func
         self._break_action: object = break_action
-        self._create_frame(action_speed=action_speed, action_speed_multiplier=action_speed_multiplier,
-                           action_duration=action_duration, action_duration_multiplier=action_duration_multiplier)
-
-    def _create_frame(self,
-                      action_speed: Union[int, Tuple[int, int], Tuple[int, int, int, int]],
-                      action_speed_multiplier: float,
-                      action_duration: int,
-                      action_duration_multiplier: float):
-        """
-        load the params to attributes
-        :param action_duration:
-        :param action_duration_multiplier:
-        :param action_speed:
-        :param action_speed_multiplier:
-        :return:
-        """
-        if isinstance(action_speed, Tuple) and len(action_speed) == 2:
-            if action_speed_multiplier:
-                # apply the multiplier
-                action_speed = factor_list_multiply(action_speed_multiplier, action_speed)
-            self._action_speed_list = (action_speed[0], action_speed[0], action_speed[1], action_speed[1])
-        elif isinstance(action_speed, int):
-            # speed list will override the action_speed
-            if action_speed_multiplier:
-                # apply the multiplier
-                action_speed = multiply(action_speed, action_speed_multiplier)
-            self._action_speed_list = tuple([action_speed] * 4)
-        elif isinstance(action_speed, Tuple) and len(action_speed) == 4:
-            if action_speed_multiplier:
-                action_speed = factor_list_multiply(action_speed_multiplier, action_speed)
-            self._action_speed_list = tuple(action_speed)
-        else:
-            warnings.warn('##UNKNOWN INPUT##')
-            self._action_speed_list = self.zeros
-        if action_duration_multiplier:
-            # apply the multiplier
-            # TODO: may actualize this multiplier Properties with a new class
-            action_duration = multiply(action_duration, action_duration_multiplier)
-
-        self._action_duration = action_duration
 
     def action_start(self) -> Optional[Union[object, List[object]]]:
         """
@@ -91,16 +76,20 @@ class ActionFrame:
         """
         # TODO: untested direction control
 
-        self.controller.set_motors_speed(speed_list=self._action_speed_list)
+        self._controller.set_motors_speed(speed_list=self._action_speed_list)
         if self._action_duration and delay_ms(milliseconds=self._action_duration, breaker_func=self._breaker_func):
             return self._break_action
 
 
-@persistent_lru_cache(CACHE_FILE=f'{cache_dir}/new_action_frame_cache', maxsize=None)
-def new_ActionFrame(**kwargs) -> ActionFrame:
+@persistent_lru_cache(f'{cache_dir}/new_action_frame_cache', maxsize=None)
+def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, int, int]] = 0,
+                    action_speed_multiplier: float = 0,
+                    action_duration: int = 0,
+                    action_duration_multiplier: float = 0,
+                    breaker_func: Optional[Callable[[], bool]] = None,
+                    break_action: Optional[Union[object, List[object]]] = None) -> ActionFrame:
     """
     generates a new action frame ,with LRU caching rules
-    :param kwargs: the arguments that will be passed to the ActionFrame constructor
 
     :keyword action_speed: int = 0
     :keyword action_duration: int = 0
@@ -110,7 +99,30 @@ def new_ActionFrame(**kwargs) -> ActionFrame:
     :keyword break_action: object = None
     :return: the ActionFrame object
     """
-    return ActionFrame(**kwargs)
+    if isinstance(action_speed, Tuple) and len(action_speed) == 2:
+        if action_speed_multiplier:
+            # apply the multiplier
+            action_speed = factor_list_multiply(action_speed_multiplier, action_speed)
+        action_speed_list = (action_speed[0], action_speed[0], action_speed[1], action_speed[1])
+    elif isinstance(action_speed, int):
+        # speed list will override the action_speed
+        if action_speed_multiplier:
+            # apply the multiplier
+            action_speed = multiply(action_speed, action_speed_multiplier)
+        action_speed_list = tuple([action_speed] * 4)
+    elif isinstance(action_speed, Tuple) and len(action_speed) == 4:
+        if action_speed_multiplier:
+            action_speed = factor_list_multiply(action_speed_multiplier, action_speed)
+        action_speed_list = tuple(action_speed)
+    else:
+        warnings.warn('##UNKNOWN INPUT##')
+        action_speed_list = zeros
+    if action_duration_multiplier:
+        # apply the multiplier
+        # TODO: may actualize this multiplier Properties with a new class
+        action_duration = multiply(action_duration, action_duration_multiplier)
+    return ActionFrame(action_speed=action_speed_list, action_duration=action_duration,
+                       breaker_func=breaker_func, break_action=break_action)
 
 
 def pre_build_action_frame(speed_range: Tuple[int, int, int], duration_range: Tuple[int, int, int]):
@@ -118,7 +130,7 @@ def pre_build_action_frame(speed_range: Tuple[int, int, int], duration_range: Tu
     start = time.time()
     for speed in range(*speed_range):
         for duration in range(*duration_range):
-            print(f'building speed: {speed}|duration: {duration}')
+            # print(f'building speed: {speed}|duration: {duration}')
             new_ActionFrame(action_speed=speed,
                             action_duration=duration)
     print(f'time cost: {time.time() - start:.2f}s')
