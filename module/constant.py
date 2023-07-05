@@ -23,3 +23,5 @@ CONFIG_MOTOR_ID_LIST: str = 'MOTOR_ID_LIST'
 
 PRE_COMPILE_CMD: bool = config.get(CONFIG_PRE_COMPILE_CMD)
 MOTOR_ID_LIST: Tuple[int, int, int, int] = tuple(config.get(CONFIG_MOTOR_ID_LIST))
+
+HALT_CMD = b'v0\r'
