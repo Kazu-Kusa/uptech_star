@@ -37,7 +37,10 @@ class ActionFrame:
 
     @classmethod
     def save_cache(cls):
-        with open(cls._CACHE_FILE_PATH, "wb+") as file:
+        print(f'##Saving Action Frame instance cache: \n'
+              f'\tCache Size: {len(cls._instance_cache.items())}')
+
+        with open(cls._CACHE_FILE_PATH, "wb") as file:
             pickle.dump(cls._instance_cache, file)
 
     def __new__(cls, *args, **kwargs):
@@ -142,13 +145,18 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
 
 def pre_build_action_frame(speed_range: Tuple[int, int, int], duration_range: Tuple[int, int, int]):
     print('building')
+    ActionFrame.load_cache()
     start = time.time()
     for speed in range(*speed_range):
         for duration in range(*duration_range):
             # print(f'building speed: {speed}|duration: {duration}')
             new_ActionFrame(action_speed=speed,
                             action_duration=duration)
-    print(f'time cost: {time.time() - start:.2f}s')
+
+    print(f'time cost: {time.time() - start:.6f}s')
+    from .db_tools import CacheFILE
+    CacheFILE.save_all_cache()
+    ActionFrame.save_cache()
 
 
 class ActionPlayer:
