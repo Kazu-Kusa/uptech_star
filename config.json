@@ -1,3 +1,9 @@
 {
-  "PRE_COMPILE_CMD": true
+  "PRE_COMPILE_CMD": true,
+  "MOTOR_ID_LIST": [
+    4,
+    3,
+    1,
+    2
+  ]
 }
