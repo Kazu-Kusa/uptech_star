@@ -5,10 +5,10 @@ from ctypes import cdll
 import warnings
 import pigpio
 
-from ..constant import FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us, FAN_PWN_range
+from ..constant import FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us, FAN_PWN_range, ENV_LIB_SO_PATH
 from .db_tools import persistent_lru_cache
 
-ld_library_path = os.environ.get('ENV_LIB_SO_PATH')
+ld_library_path = os.environ.get(ENV_LIB_SO_PATH)
 
 
 @persistent_lru_cache(f'{ld_library_path}/lb_cache')
