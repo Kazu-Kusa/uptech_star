@@ -2,19 +2,18 @@ import os
 import pickle
 import time
 import warnings
-from typing import Callable, Tuple, Union, Optional, List, Dict
+from typing import Callable, Tuple, Union, Optional, List, Dict, ByteString
 from .db_tools import persistent_lru_cache
-from .constant import ENV_CACHE_DIR_PATH, ENV_PRE_COMPILE_CMD, ZEROS
+from .constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_ID_LIST
 from .algrithm_tools import multiply, factor_list_multiply
 from .timer import delay_ms
 from .close_loop_controller import CloseLoopController
 
 CACHE_DIR = os.environ.get(ENV_CACHE_DIR_PATH)
-PRE_COMPILE_CMD = os.environ.get(ENV_PRE_COMPILE_CMD)
 
 
 class ActionFrame:
-    _controller: CloseLoopController = CloseLoopController(motor_ids_list=(4, 3, 1, 2), debug=False)
+    _controller: CloseLoopController = CloseLoopController(motor_ids_list=MOTOR_ID_LIST, debug=False)
     _instance_cache: Dict = {}
     PRE_COMPILE_CMD: bool = PRE_COMPILE_CMD
     CACHE_FILE_NAME: str = 'ActionFrame_cache'
@@ -67,6 +66,8 @@ class ActionFrame:
         the action that will be executed when the breaker is activated,
         """
         self._action_speed_list: Tuple[int, int, int, int] = action_speed
+        if self.PRE_COMPILE_CMD:
+            self._action_cmd: ByteString = self._controller.makeCmd_list(self._action_speed_list)
         self._action_duration: int = action_duration
         self._breaker_func: Callable[[], bool] = breaker_func
         self._break_action: object = break_action
@@ -77,8 +78,11 @@ class ActionFrame:
         :return: None
         """
         # TODO: untested direction control
-
-        self._controller.set_motors_speed(speed_list=self._action_speed_list)
+        # TODO: untested precompile option
+        if self.PRE_COMPILE_CMD:
+            self._controller.write_to_serial(byte_string=self._action_cmd)
+        else:
+            self._controller.set_motors_speed(speed_list=self._action_speed_list)
         if self._action_duration and delay_ms(milliseconds=self._action_duration, breaker_func=self._breaker_func):
             return self._break_action
 
