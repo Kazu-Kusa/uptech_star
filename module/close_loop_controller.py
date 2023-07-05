@@ -122,12 +122,12 @@ class CloseLoopController:
         return b'\r'.join(cmd.encode('ascii') for cmd in cmd_list)
 
     @staticmethod
-    def is_list_all_zero(lst: Sequence[int]) -> bool:
+    def _is_list_all_zero(lst: Sequence[int]) -> bool:
         return all(element == 0 for element in lst)
 
     def set_motors_speed(self, speed_list: Tuple[int, int, int, int],
                          direction_list: Tuple[int, int, int, int] = (1, 1, 1, 1)) -> None:
-        if self.is_list_all_zero(speed_list):
+        if self._is_list_all_zero(speed_list):
             self.set_all_motors_speed(0)
         else:
             # will check the if target speed and current speed are the same and can customize the direction
