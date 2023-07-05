@@ -1,5 +1,5 @@
 import time
-from typing import List, Callable, Any, Optional
+from typing import List, Callable, Any, Optional, ByteString
 import serial
 from serial.tools.list_ports import comports
 import warnings
@@ -129,7 +129,7 @@ class SerialHelper:
             if self.is_connected and self._serial.isOpen():
                 self._serial.close()
 
-    def write(self, data: bytes) -> bool:
+    def write(self, data: ByteString) -> bool:
         """
         向串口设备中写入二进制数据。
 
@@ -164,7 +164,7 @@ class SerialHelper:
                 warnings.warn(f"Serial write error: {e}", category=RuntimeWarning)
         return False
 
-    def read(self, length: int) -> bytes:
+    def read(self, length: int) -> ByteString:
         """
                 从串口设备中读取指定长度的字节数据。
 
@@ -287,7 +287,7 @@ class SerialHelper:
                 self._on_data_received_handler(data)
             time.sleep(interval)
 
-    def set_on_data_received_handler(self, func: Callable[[bytes], Any]):
+    def set_on_data_received_handler(self, func: Callable[[ByteString], Any]):
         """set serial data received callback"""
         self._on_data_received_handler = func
 

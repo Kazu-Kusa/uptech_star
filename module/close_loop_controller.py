@@ -1,7 +1,7 @@
 import os
 import threading
 import time
-from typing import List, Tuple, Optional, Union, Sequence
+from typing import List, Tuple, Optional, Union, Sequence, ByteString
 from .serial_helper import SerialHelper
 from .timer import delay_us
 from .constant import ENV_CACHE_DIR_PATH
@@ -96,7 +96,7 @@ class CloseLoopController:
         self.set_motors_speed((left_speed, left_speed, right_speed, right_speed))
 
     @staticmethod
-    def makeCmd(cmd: str) -> bytes:
+    def makeCmd(cmd: str) -> ByteString:
         """
         encode a cmd to a bstring
         :param cmd:
@@ -105,7 +105,7 @@ class CloseLoopController:
         return cmd.encode('ascii') + b'\r'
 
     @staticmethod
-    def makeCmd_list(cmd_list: List[str]) -> bytes:
+    def makeCmd_list(cmd_list: List[str]) -> ByteString:
         """
         encode a list of cmd strings into a single bstring
         :param cmd_list:
