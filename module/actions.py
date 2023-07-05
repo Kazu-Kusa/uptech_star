@@ -4,10 +4,10 @@ import time
 import warnings
 from typing import Callable, Tuple, Union, Optional, List, Dict, ByteString
 from .db_tools import persistent_lru_cache
-from .constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_ID_LIST
+from .constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_ID_LIST, HALT_CMD
 from .algrithm_tools import multiply, factor_list_multiply
 from .timer import delay_ms
-from .close_loop_controller import CloseLoopController
+from .close_loop_controller import CloseLoopController, is_list_all_zero, makeCmd_list
 
 CACHE_DIR = os.environ.get(ENV_CACHE_DIR_PATH)
 
@@ -15,10 +15,10 @@ CACHE_DIR = os.environ.get(ENV_CACHE_DIR_PATH)
 class ActionFrame:
     _controller: CloseLoopController = CloseLoopController(motor_ids_list=MOTOR_ID_LIST, debug=False)
     _instance_cache: Dict = {}
-    PRE_COMPILE_CMD: bool = PRE_COMPILE_CMD
+    _PRE_COMPILE_CMD: bool = PRE_COMPILE_CMD
     CACHE_FILE_NAME: str = 'ActionFrame_cache'
-    CACHE_FILE_PATH = f"{CACHE_DIR}\\{CACHE_FILE_NAME}"
-    print(f'Action Frame caches at [{CACHE_FILE_PATH}]')
+    _CACHE_FILE_PATH = f"{CACHE_DIR}\\{CACHE_FILE_NAME}"
+    print(f'Action Frame caches at [{_CACHE_FILE_PATH}]')
     """
     [4]fl           fr[2]
            O-----O
@@ -30,14 +30,14 @@ class ActionFrame:
     @classmethod
     def load_cache(cls):
         try:
-            with open(cls.CACHE_FILE_PATH, "rb") as file:
+            with open(cls._CACHE_FILE_PATH, "rb") as file:
                 cls._instance_cache = pickle.load(file)
         except FileNotFoundError:
             pass
 
     @classmethod
     def save_cache(cls):
-        with open(cls.CACHE_FILE_PATH, "wb+") as file:
+        with open(cls._CACHE_FILE_PATH, "wb+") as file:
             pickle.dump(cls._instance_cache, file)
 
     def __new__(cls, *args, **kwargs):
@@ -65,9 +65,18 @@ class ActionFrame:
         :param break_action: the object type is ActionFrame,
         the action that will be executed when the breaker is activated,
         """
-        self._action_speed_list: Tuple[int, int, int, int] = action_speed
-        if self.PRE_COMPILE_CMD:
-            self._action_cmd: ByteString = self._controller.makeCmd_list(self._action_speed_list)
+
+        if self._PRE_COMPILE_CMD:
+            # pre-compile the command
+            if is_list_all_zero(action_speed):
+                # stop cmd can be represented by a short broadcast cmd
+                self._action_cmd: ByteString = HALT_CMD
+            else:
+                cmd_list_temp = [f'{motor_id}v{motor_speed}'
+                                 for motor_id, motor_speed in zip(MOTOR_ID_LIST, action_speed)]
+                self._action_cmd: ByteString = makeCmd_list(cmd_list_temp)
+        else:
+            self._action_speed_list: Tuple[int, int, int, int] = action_speed
         self._action_duration: int = action_duration
         self._breaker_func: Callable[[], bool] = breaker_func
         self._break_action: object = break_action
@@ -79,13 +88,13 @@ class ActionFrame:
         """
         # TODO: untested direction control
         # TODO: untested precompile option
-        if self.PRE_COMPILE_CMD:
+        if self._PRE_COMPILE_CMD:
             self._controller.write_to_serial(byte_string=self._action_cmd)
         else:
             self._controller.set_motors_speed(speed_list=self._action_speed_list)
         if self._action_duration and delay_ms(milliseconds=self._action_duration, breaker_func=self._breaker_func):
             return self._break_action
-
+    
 
 @persistent_lru_cache(f'{CACHE_DIR}/new_action_frame_cache', maxsize=None)
 def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, int, int]] = 0,
