@@ -86,6 +86,14 @@ class CloseLoopController:
         else:
             sending_loop()
 
+    def write_to_serial(self, byte_string: ByteString) -> bool:
+        """
+        direct write to serial
+        :param byte_string:
+        :return:
+        """
+        return self._serial.write(data=byte_string)
+
     def move_cmd(self, left_speed: int, right_speed: int) -> None:
         """
         control the motor
