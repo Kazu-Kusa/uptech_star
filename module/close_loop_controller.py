@@ -26,7 +26,7 @@ class CloseLoopController:
         self._motor_speed_list: Tuple[int, int, int, int] = (0, 0, 0, 0)
         self._sending_delay: int = sending_delay
         self._motor_id_list: Tuple[int, int, int, int] = motor_ids_list
-        self._msg_list = [self.makeCmd('RESET')]
+        self._msg_list = [makeCmd('RESET')]
 
         self._start_msg_sending()
 
@@ -103,31 +103,9 @@ class CloseLoopController:
         """
         self.set_motors_speed((left_speed, left_speed, right_speed, right_speed))
 
-    @staticmethod
-    def makeCmd(cmd: str) -> ByteString:
-        """
-        encode a cmd to a bstring
-        :param cmd:
-        :return:
-        """
-        return cmd.encode('ascii') + b'\r'
-
-    @staticmethod
-    def makeCmd_list(cmd_list: List[str]) -> ByteString:
-        """
-        encode a list of cmd strings into a single bstring
-        :param cmd_list:
-        :return:
-        """
-        return b'\r'.join(cmd.encode('ascii') for cmd in cmd_list)
-
-    @staticmethod
-    def _is_list_all_zero(lst: Sequence[int]) -> bool:
-        return all(element == 0 for element in lst)
-
     def set_motors_speed(self, speed_list: Tuple[int, int, int, int],
                          direction_list: Tuple[int, int, int, int] = (1, 1, 1, 1)) -> None:
-        if self._is_list_all_zero(speed_list):
+        if is_list_all_zero(speed_list):
             self.set_all_motors_speed(0)
         else:
             # will check the if target speed and current speed are the same and can customize the direction
@@ -137,12 +115,12 @@ class CloseLoopController:
                         if speed != cur_speed]
 
             if cmd_list:
-                self._msg_list.append(self.makeCmd_list(cmd_list))
+                self._msg_list.append(makeCmd_list(cmd_list))
         self._motor_speed_list = speed_list
 
     def set_all_motors_speed(self, speed: int) -> None:
         # TODO: should check before setting
-        self._msg_list.append(self.makeCmd(f'v{speed}'))
+        self._msg_list.append(makeCmd(f'v{speed}'))
         self._motor_speed_list = [speed] * 4
 
     def set_all_motors_acceleration(self, acceleration: int) -> None:
@@ -153,7 +131,7 @@ class CloseLoopController:
         """
         assert 0 < acceleration < 30000, "Invalid acceleration value"
         # TODO: all sealed cmd should check if the desired value is valid
-        self._msg_list.append(self.makeCmd(f'ac{acceleration}'))
+        self._msg_list.append(makeCmd(f'ac{acceleration}'))
         self.eepSav()
 
     def eepSav(self) -> None:
@@ -163,7 +141,7 @@ class CloseLoopController:
         :return:
         """
         # TODO: pre-compile the 'eepsav' cmd to binary instead of doing compile each time on called
-        self._msg_list.append(self.makeCmd('eepsav'))
+        self._msg_list.append(makeCmd('eepsav'))
 
     def open_userInput_channel(self, debug: bool = False) -> None:
         """
@@ -192,7 +170,29 @@ class CloseLoopController:
                 self.debug = debug_temp
                 break
             else:
-                self._msg_list.append(self.makeCmd(user_input))
+                self._msg_list.append(makeCmd(user_input))
+
+
+def is_list_all_zero(lst: Sequence[int]) -> bool:
+    return all(element == 0 for element in lst)
+
+
+def makeCmd_list(cmd_list: List[str]) -> ByteString:
+    """
+    encode a list of cmd strings into a single bstring
+    :param cmd_list:
+    :return:
+    """
+    return b'\r'.join(cmd.encode('ascii') for cmd in cmd_list)
+
+
+def makeCmd(cmd: str) -> ByteString:
+    """
+    encode a cmd to a bstring
+    :param cmd:
+    :return:
+    """
+    return cmd.encode('ascii') + b'\r'
 
 
 def motor_speed_test(speed_level: int = 11, interval: float = 1, using_id: bool = True, laps: int = 3) -> None:
