@@ -1,7 +1,12 @@
+import json
 import os
 import warnings
 
-from .module.constant import CACHE_DIR, LID_SO_DIR, ENV_LIB_SO_PATH, ENV_CACHE_DIR_PATH
+from .module.constant import CONFIG_PATH, CACHE_DIR, LID_SO_DIR, ENV_LIB_SO_PATH, ENV_CACHE_DIR_PATH, \
+    ENV_PRE_COMPILE_CMD
+
+with open(CONFIG_PATH, mode='r') as config_file:
+    config = json.load(config_file)
 
 
 def makedirs(path: str):
@@ -11,12 +16,14 @@ def makedirs(path: str):
 
 base_dir = os.path.abspath(os.path.dirname(__file__))
 ld_path = os.path.join(base_dir, LID_SO_DIR)
-os.environ[ENV_LIB_SO_PATH] = ld_path
+os.environ[ENV_LIB_SO_PATH]: str = ld_path
 makedirs(ld_path)
 
 cache_path = os.path.join(base_dir, CACHE_DIR)
-os.environ[ENV_CACHE_DIR_PATH] = cache_path
+os.environ[ENV_CACHE_DIR_PATH]: str = cache_path
 makedirs(cache_path)
+
+os.environ[ENV_PRE_COMPILE_CMD]: bool = config.get(ENV_PRE_COMPILE_CMD)
 
 from .module import *
 
