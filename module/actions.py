@@ -2,22 +2,24 @@ import os
 import pickle
 import time
 import warnings
-from typing import Callable, Tuple, Union, Optional, List
+from typing import Callable, Tuple, Union, Optional, List, Dict
 from .db_tools import persistent_lru_cache
-from .constant import ENV_CACHE_DIR_PATH
+from .constant import ENV_CACHE_DIR_PATH, ENV_PRE_COMPILE_CMD, ZEROS
 from .algrithm_tools import multiply, factor_list_multiply
 from .timer import delay_ms
 from .close_loop_controller import CloseLoopController
 
-cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
-zeros = (0, 0, 0, 0)
+CACHE_DIR = os.environ.get(ENV_CACHE_DIR_PATH)
+PRE_COMPILE_CMD = os.environ.get(ENV_PRE_COMPILE_CMD)
 
 
 class ActionFrame:
-    _controller = CloseLoopController(motor_ids_list=(4, 3, 1, 2), debug=False)
-    _instance_cache = {}
-    CACHE_FILE = f"{cache_dir}\\ActionFrame_cache"
-    print(f'Action Frame caches at [{CACHE_FILE}]')
+    _controller: CloseLoopController = CloseLoopController(motor_ids_list=(4, 3, 1, 2), debug=False)
+    _instance_cache: Dict = {}
+    PRE_COMPILE_CMD: bool = PRE_COMPILE_CMD
+    CACHE_FILE_NAME: str = 'ActionFrame_cache'
+    CACHE_FILE_PATH = f"{CACHE_DIR}\\{CACHE_FILE_NAME}"
+    print(f'Action Frame caches at [{CACHE_FILE_PATH}]')
     """
     [4]fl           fr[2]
            O-----O
@@ -29,14 +31,14 @@ class ActionFrame:
     @classmethod
     def load_cache(cls):
         try:
-            with open(cls.CACHE_FILE, "rb") as file:
+            with open(cls.CACHE_FILE_PATH, "rb") as file:
                 cls._instance_cache = pickle.load(file)
         except FileNotFoundError:
             pass
 
     @classmethod
     def save_cache(cls):
-        with open(cls.CACHE_FILE, "wb+") as file:
+        with open(cls.CACHE_FILE_PATH, "wb+") as file:
             pickle.dump(cls._instance_cache, file)
 
     def __new__(cls, *args, **kwargs):
@@ -51,7 +53,7 @@ class ActionFrame:
         return instance
 
     def __init__(self,
-                 action_speed: Tuple[int, int, int, int] = zeros,
+                 action_speed: Tuple[int, int, int, int] = ZEROS,
                  action_duration: int = 0,
                  breaker_func: Optional[Callable[[], bool]] = None,
                  break_action: Optional[object] = None):
@@ -81,7 +83,7 @@ class ActionFrame:
             return self._break_action
 
 
-@persistent_lru_cache(f'{cache_dir}/new_action_frame_cache', maxsize=None)
+@persistent_lru_cache(f'{CACHE_DIR}/new_action_frame_cache', maxsize=None)
 def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, int, int]] = 0,
                     action_speed_multiplier: float = 0,
                     action_duration: int = 0,
@@ -116,7 +118,7 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
         action_speed_list = tuple(action_speed)
     else:
         warnings.warn('##UNKNOWN INPUT##')
-        action_speed_list = zeros
+        action_speed_list = ZEROS
     if action_duration_multiplier:
         # apply the multiplier
         # TODO: may actualize this multiplier Properties with a new class
