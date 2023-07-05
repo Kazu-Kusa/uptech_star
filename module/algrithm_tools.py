@@ -1,7 +1,7 @@
-from typing import List, Union, Optional, Tuple, Sequence
+from typing import List, Union, Sequence
 
 from .db_tools import persistent_lru_cache
-from .constant import ENV_CACHE_DIR_PATH
+from ..constant import ENV_CACHE_DIR_PATH
 import os
 import numpy as np
 

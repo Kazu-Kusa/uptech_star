@@ -1,10 +1,10 @@
 import os
 import threading
 import time
-from typing import List, Tuple, Optional, Union, Sequence, ByteString
+from typing import List, Tuple, Optional, Sequence, ByteString
 from .serial_helper import SerialHelper
 from .timer import delay_us
-from .constant import ENV_CACHE_DIR_PATH
+from ..constant import ENV_CACHE_DIR_PATH
 
 cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
 

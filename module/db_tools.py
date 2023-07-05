@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 import pickle
 from typing import Optional
@@ -48,3 +49,8 @@ def persistent_lru_cache(CACHE_FILE: str, maxsize: Optional[int] = 128):
         return wrapped
 
     return decorator
+
+
+def makedirs(path: str):
+    if not os.path.exists(path):
+        os.makedirs(path)

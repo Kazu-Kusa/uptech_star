@@ -4,7 +4,7 @@ import time
 import warnings
 from typing import Callable, Tuple, Union, Optional, List, Dict, ByteString
 from .db_tools import persistent_lru_cache
-from .constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_ID_LIST, HALT_CMD
+from ..constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_ID_LIST, HALT_CMD
 from .algrithm_tools import multiply, factor_list_multiply
 from .timer import delay_ms
 from .close_loop_controller import CloseLoopController, is_list_all_zero, makeCmd_list
@@ -94,7 +94,7 @@ class ActionFrame:
             self._controller.set_motors_speed(speed_list=self._action_speed_list)
         if self._action_duration and delay_ms(milliseconds=self._action_duration, breaker_func=self._breaker_func):
             return self._break_action
-    
+
 
 @persistent_lru_cache(f'{CACHE_DIR}/new_action_frame_cache', maxsize=None)
 def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, int, int]] = 0,
