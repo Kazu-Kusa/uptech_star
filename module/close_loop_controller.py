@@ -184,7 +184,7 @@ def makeCmd_list(cmd_list: List[str]) -> ByteString:
     :param cmd_list:
     :return:
     """
-    return b'\r'.join(cmd.encode('ascii') for cmd in cmd_list)
+    return b''.join(cmd.encode('ascii') + b'\r' for cmd in cmd_list)
 
 
 def makeCmd(cmd: str) -> ByteString:
