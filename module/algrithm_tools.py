@@ -1,6 +1,9 @@
+import time
+import timeit
+import warnings
 from typing import List, Union, Sequence
 
-from .db_tools import persistent_lru_cache
+from .db_tools import persistent_lru_cache, CacheFILE
 from ..constant import ENV_CACHE_DIR_PATH
 import os
 import numpy as np
@@ -73,6 +76,31 @@ def calculate_relative_angle(current_angle: int, offset_angle: int) -> int:
     :return: 偏移后的目标角度，单位：度数。取值范围 [-180, 180]
     """
     return (current_angle + offset_angle + 180) % 360 - 180
+
+
+def bake_to_cache():
+    start_time = time.time()
+    for current_angle in range(-180, 180):
+        print(f'baking {current_angle}')
+        for target_angle in range(-180, 180):
+            compute_inferior_arc(current_angle, target_angle)
+            calculate_relative_angle(current_angle, target_angle)
+            compute_relative_error(current_angle, target_angle)
+    print(f'Build complete, cost {time.time() - start_time:.6f} s')
+    warnings.warn('Saving to cache')
+    CacheFILE.save_all_cache()
+
+
+def performance_evaluate():
+    def test():
+
+        for current_angle in range(-180, 180):
+            for target_angle in range(-180, 180):
+                compute_inferior_arc(current_angle, target_angle)
+                calculate_relative_angle(current_angle, target_angle)
+                compute_relative_error(current_angle, target_angle)
+
+    print(timeit.timeit(stmt=test, number=1))
 
 
 def list_multiply(list1: Sequence[Union[float, int]],
