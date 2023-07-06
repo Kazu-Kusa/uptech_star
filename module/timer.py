@@ -46,3 +46,12 @@ def current_ms():
 
 def get_end_time_ms(milliseconds: int) -> int:
     return perf_counter_ns() + milliseconds * 1000000
+
+
+def calc_hang_time(milliseconds: int, hang_time_max_error: int) -> float:
+    temp = milliseconds - hang_time_max_error
+    if temp > 0:
+        temp /= 1000
+    else:
+        temp = 0
+    return temp

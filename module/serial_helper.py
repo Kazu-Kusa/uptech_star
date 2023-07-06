@@ -289,7 +289,7 @@ class SerialHelper:
                 self._on_data_received_handler(data)
             time.sleep(interval)
 
-    def set_on_data_received_handler(self, func: Callable[[ByteString], Any]):
+    def set_on_data_received_handler(self, func: Callable[[ByteString], Optional[Any]]):
         """set serial data received callback"""
         self._on_data_received_handler = func
 

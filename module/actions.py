@@ -5,8 +5,9 @@ import warnings
 from typing import Callable, Tuple, Union, Optional, List, Dict, ByteString
 from .db_tools import persistent_lru_cache
 from ..constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_IDS, HALT_CMD, MOTOR_DIRS, DRIVER_DEBUG_MODE
+from ..constant import HANG_TIME_MAX_ERROR
 from .algrithm_tools import multiply, factor_list_multiply
-from .timer import delay_ms
+from .timer import delay_ms, calc_hang_time
 from .close_loop_controller import CloseLoopController, is_list_all_zero, makeCmd_list
 
 CACHE_DIR = os.environ.get(ENV_CACHE_DIR_PATH)
@@ -17,6 +18,7 @@ class ActionFrame:
                                                            debug=DRIVER_DEBUG_MODE)
     _instance_cache: Dict = {}
     _PRE_COMPILE_CMD: bool = PRE_COMPILE_CMD
+    # TODO: since the PRE_COMPILE_CMD is not stored inside of the instance so we should clean the cache on it changed
     CACHE_FILE_NAME: str = 'ActionFrame_cache'
     _CACHE_FILE_PATH = f"{CACHE_DIR}\\{CACHE_FILE_NAME}"
     print(f'Action Frame caches at [{_CACHE_FILE_PATH}]')
@@ -59,7 +61,8 @@ class ActionFrame:
                  action_speed: Tuple[int, int, int, int] = ZEROS,
                  action_duration: int = 0,
                  breaker_func: Optional[Callable[[], bool]] = None,
-                 break_action: Optional[object] = None):
+                 break_action: Optional[object] = None,
+                 hang_time: float = 0.):
         """
         the minimal action unit that could be customized and glue together to be a chain movement,
         default stops the robot
@@ -84,6 +87,9 @@ class ActionFrame:
         self._breaker_func: Callable[[], bool] = breaker_func
         self._break_action: object = break_action
 
+        self._hang_time: float = hang_time
+        # TODO:actually ,hang_time may have some conflicts with breaker_func
+
     def action_start(self) -> Optional[Union[object, List[object]]]:
         """
         execute the ActionFrame
@@ -91,8 +97,9 @@ class ActionFrame:
         """
         # TODO: untested direction control
         # TODO: untested precompile option
+
         if self._PRE_COMPILE_CMD:
-            self._controller.write_to_serial(byte_string=self._action_cmd)
+            self._controller.append_to_stack(byte_string=self._action_cmd, hang_time=self._hang_time)
         else:
             self._controller.set_motors_speed(speed_list=self._action_speed_list)
         if self._action_duration and delay_ms(milliseconds=self._action_duration, breaker_func=self._breaker_func):
@@ -105,7 +112,8 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
                     action_duration: int = 0,
                     action_duration_multiplier: float = 0,
                     breaker_func: Optional[Callable[[], bool]] = None,
-                    break_action: Optional[Union[object, List[object]]] = None) -> ActionFrame:
+                    break_action: Optional[Union[object, List[object]]] = None,
+                    hang_during_action: bool = False) -> ActionFrame:
     """
     generates a new action frame ,with LRU caching rules
 
@@ -140,7 +148,8 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
         # TODO: may actualize this multiplier Properties with a new class
         action_duration = multiply(action_duration, action_duration_multiplier)
     return ActionFrame(action_speed=action_speed_list, action_duration=action_duration,
-                       breaker_func=breaker_func, break_action=break_action)
+                       breaker_func=breaker_func, break_action=break_action,
+                       hang_time=calc_hang_time(action_duration, HANG_TIME_MAX_ERROR) if hang_during_action else 0)
 
 
 def pre_build_action_frame(speed_range: Tuple[int, int, int], duration_range: Tuple[int, int, int]):

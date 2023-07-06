@@ -76,7 +76,8 @@ class CloseLoopController:
             while True:
                 if self._cmd_list:
                     self._serial.write(self._cmd_list.pop(0))
-                    sleep(self._hang_time_list.pop(0))
+                    if self._hang_time_list:
+                        sleep(self._hang_time_list.pop(0))
 
         def sending_loop_debugging() -> None:
             while True:
@@ -84,7 +85,8 @@ class CloseLoopController:
                     temp = self._cmd_list.pop(0)
                     print(f'\nwriting {temp} to channel,remaining {len(self._cmd_list)}')
                     self._serial.write(temp)
-                    sleep(self._hang_time_list.pop(0))
+                    if self._hang_time_list:
+                        sleep(self._hang_time_list.pop(0))
 
         if self._debug:
             sending_loop_debugging()
@@ -99,7 +101,8 @@ class CloseLoopController:
         :return:
         """
         self._cmd_list.append(byte_string)
-        self._hang_time_list.append(hang_time)
+        if hang_time:
+            self._hang_time_list.append(hang_time)
 
     def move_cmd(self, left_speed: int, right_speed: int) -> None:
         """

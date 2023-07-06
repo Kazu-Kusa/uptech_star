@@ -12,5 +12,6 @@
     -1,
     1,
     1
-  ]
+  ],
+  "HANG_TIME_MAX_ERROR": 50
 }
