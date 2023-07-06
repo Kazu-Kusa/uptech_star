@@ -79,7 +79,7 @@ class CloseLoopController:
         串口通信线程发送函数
         :return:
         """
-        print(f"msg_sending_thread_start, the debugger is [{self.debug}]")
+        print(f"msg_sending_thread_start, the debugger is [{self._debug}]")
 
         def sending_loop() -> None:
             while True:
@@ -95,7 +95,7 @@ class CloseLoopController:
                     self._serial.write(temp)
                     delay_us(self.sending_delay)
 
-        if self.debug:
+        if self._debug:
             sending_loop_debugging()
         else:
             sending_loop()
@@ -169,9 +169,9 @@ class CloseLoopController:
 
         ct = 0
         print('\n\nuser input channel opened\nplease enter cmd below,enter [exit] to end the channel')
-        debug_temp = self.debug
-        self.debug = debug
-        if self.debug:
+        debug_temp = self._debug
+        self._debug = debug
+        if self._debug:
             self._serial.start_read_thread()
 
             def handler(data: bytes):
@@ -185,7 +185,7 @@ class CloseLoopController:
             # 对输入的内容进行处理
             if user_input == 'exit':
                 print('\nuser input channel closed')
-                self.debug = debug_temp
+                self._debug = debug_temp
                 break
             else:
                 self._msg_list.append(makeCmd(user_input))
