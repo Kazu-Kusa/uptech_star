@@ -4,7 +4,7 @@ import time
 import warnings
 from typing import Callable, Tuple, Union, Optional, List, Dict, ByteString
 from .db_tools import persistent_lru_cache
-from ..constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_ID_LIST, HALT_CMD
+from ..constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_IDS, HALT_CMD, MOTOR_DIRS
 from .algrithm_tools import multiply, factor_list_multiply
 from .timer import delay_ms
 from .close_loop_controller import CloseLoopController, is_list_all_zero, makeCmd_list
@@ -13,7 +13,8 @@ CACHE_DIR = os.environ.get(ENV_CACHE_DIR_PATH)
 
 
 class ActionFrame:
-    _controller: CloseLoopController = CloseLoopController(motor_ids_list=MOTOR_ID_LIST, debug=False)
+    _controller: CloseLoopController = CloseLoopController(motor_ids=MOTOR_IDS, motor_dirs=MOTOR_DIRS,
+                                                           debug=True)
     _instance_cache: Dict = {}
     _PRE_COMPILE_CMD: bool = PRE_COMPILE_CMD
     CACHE_FILE_NAME: str = 'ActionFrame_cache'
@@ -75,9 +76,8 @@ class ActionFrame:
                 # stop cmd can be represented by a short broadcast cmd
                 self._action_cmd: ByteString = HALT_CMD
             else:
-                cmd_list_temp = [f'{motor_id}v{motor_speed}'
-                                 for motor_id, motor_speed in zip(MOTOR_ID_LIST, action_speed)]
-                self._action_cmd: ByteString = makeCmd_list(cmd_list_temp)
+
+                self._action_cmd: ByteString = self._controller.makeCmds_dirs(action_speed)
         else:
             self._action_speed_list: Tuple[int, int, int, int] = action_speed
         self._action_duration: int = action_duration

@@ -12,11 +12,13 @@ cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
 
 class CloseLoopController:
 
-    def __init__(self, motor_ids_list: Tuple[int, int, int, int], port: Optional[str] = 'tty/USB0',
+    def __init__(self, motor_ids: Tuple[int, int, int, int], motor_dirs: Tuple[int, int, int, int],
+                 port: Optional[str] = 'tty/USB0',
                  sending_delay: int = 100, debug: bool = False):
         """
 
-        :param motor_ids_list: the id of the motor,represent as follows [fl,rl,rr,fr]
+        :param motor_dirs:
+        :param motor_ids: the id of the motor,represent as follows [fl,rl,rr,fr]
         :param sending_delay:
         """
         self._debug: bool = debug
@@ -29,21 +31,26 @@ class CloseLoopController:
             self._serial.set_on_data_received_handler(serial_handler)
             self._serial.start_read_thread()
         # 发送的数据队列
-        self._motor_speed_list: Tuple[int, int, int, int] = (0, 0, 0, 0)
         self._sending_delay: int = sending_delay
-        self._motor_id_list: Tuple[int, int, int, int] = motor_ids_list
+        self._motor_speeds: Tuple[int, int, int, int] = (0, 0, 0, 0)
+        self._motor_ids: Tuple[int, int, int, int] = motor_ids
+        self._motor_dirs: Tuple[int, int, int, int] = motor_dirs
         self._msg_list: List[ByteString] = [makeCmd('RESET')]
 
         self._msg_send_thread: Optional[Thread] = None
         self._start_msg_sending()
 
     @property
-    def motor_id_list(self) -> Tuple[int, int, int, int]:
-        return self._motor_id_list
+    def motor_ids(self) -> Tuple[int, int, int, int]:
+        return self._motor_ids
 
     @property
-    def motor_speed_list(self) -> Tuple[int, int, int, int]:
-        return self._motor_speed_list
+    def motor_speeds(self) -> Tuple[int, int, int, int]:
+        return self._motor_speeds
+
+    @property
+    def motor_dirs(self) -> Tuple[int, int, int, int]:
+        return self._motor_dirs
 
     @property
     def debug(self) -> bool:
@@ -110,25 +117,29 @@ class CloseLoopController:
         """
         self.set_motors_speed((left_speed, left_speed, right_speed, right_speed))
 
-    def set_motors_speed(self, speed_list: Tuple[int, int, int, int],
-                         direction_list: Tuple[int, int, int, int] = (1, 1, 1, 1)) -> None:
+    def set_motors_speed(self, speed_list: Tuple[int, int, int, int]) -> None:
         if is_list_all_zero(speed_list):
             self.set_all_motors_speed(0)
         else:
             # will check the if target speed and current speed are the same and can customize the direction
             cmd_list = [f'{motor_id}v{speed * direction}'
                         for motor_id, speed, cur_speed, direction in
-                        zip(self._motor_id_list, speed_list, self._motor_speed_list, direction_list)
+                        zip(self._motor_ids, speed_list, self._motor_speeds, self._motor_dirs)
                         if speed != cur_speed]
 
             if cmd_list:
                 self._msg_list.append(makeCmd_list(cmd_list))
-        self._motor_speed_list = speed_list
+        self._motor_speeds = speed_list
+
+    def makeCmds_dirs(self, speed_list: Tuple[int, int, int, int]) -> ByteString:
+        return makeCmd_list([f'{motor_id}v{speed * direction}'
+                             for motor_id, speed, direction in
+                             zip(self._motor_ids, speed_list, self._motor_dirs)])
 
     def set_all_motors_speed(self, speed: int) -> None:
         # TODO: should check before setting
         self._msg_list.append(makeCmd(f'v{speed}'))
-        self._motor_speed_list = [speed] * 4
+        self._motor_speeds = [speed] * 4
 
     def set_all_motors_acceleration(self, acceleration: int) -> None:
         """
@@ -211,13 +222,13 @@ def motor_speed_test(speed_level: int = 11, interval: float = 1, using_id: bool 
     :param laps:
     :return:
     """
-    con = CloseLoopController(motor_ids_list=(4, 3, 1, 2))
+    con = CloseLoopController(motor_ids=(4, 3, 1, 2), motor_dirs=(-1, -1, 1, 1))
     try:
         for _ in range(laps):
             if using_id:
                 for i in range(speed_level):
                     print(f'doing {i * 1000}')
-                    con.set_motors_speed([i * 1000] * 4)
+                    con.set_motors_speed((1000 * i, 1000 * i, 1000 * i, 1000 * i))
                     time.sleep(interval)
             else:
                 for i in range(speed_level):

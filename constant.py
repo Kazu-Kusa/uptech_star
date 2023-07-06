@@ -22,10 +22,12 @@ ENV_LIB_SO_PATH: str = 'LIB_SO_PATH'
 ENV_CACHE_DIR_PATH: str = 'CACHE_DIR_PATH'
 
 CONFIG_PRE_COMPILE_CMD: str = 'PRE_COMPILE_CMD'
-CONFIG_MOTOR_ID_LIST: str = 'MOTOR_ID_LIST'
+CONFIG_MOTOR_IDS: str = 'MOTOR_IDS'
+CONFIG_MOTOR_DIRS: str = 'MOTOR_DIRS'
 
 PRE_COMPILE_CMD: bool = config.get(CONFIG_PRE_COMPILE_CMD)
-MOTOR_ID_LIST: Tuple[int, int, int, int] = tuple(config.get(CONFIG_MOTOR_ID_LIST))
+MOTOR_IDS: Tuple[int, int, int, int] = tuple(config.get(CONFIG_MOTOR_IDS))
+MOTOR_DIRS: Tuple[int, int, int, int] = tuple(config.get(CONFIG_MOTOR_DIRS))
 
 PATH_CACHE = os.path.join(PACKAGE_ROOT, DIR_CACHE)
 PATH_LD = os.path.join(PACKAGE_ROOT, DIR_LID_SO)

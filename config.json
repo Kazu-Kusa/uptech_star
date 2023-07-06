@@ -1,9 +1,15 @@
 {
   "PRE_COMPILE_CMD": true,
-  "MOTOR_ID_LIST": [
+  "MOTOR_IDS": [
     4,
     3,
     1,
     2
+  ],
+  "MOTOR_DIRS": [
+    -1,
+    -1,
+    1,
+    1
   ]
 }
