@@ -1,29 +1,24 @@
-import os
 import warnings
 
-from repo.uptechStar.constant import CONFIG_FILE, DIR_CACHE, DIR_LID_SO, ENV_LIB_SO_PATH, ENV_CACHE_DIR_PATH, \
-    PACKAGE_ROOT, PATH_CACHE, PATH_LD
-from .constant import PATH_CACHE, PATH_LD
-from .module.db_tools import makedirs
+from .constant import ENV_LIB_SO_PATH, ENV_CACHE_DIR_PATH, PATH_CACHE, PATH_LD
+from .module.db_tools import set_env_var
 
-os.environ[ENV_LIB_SO_PATH]: str = PATH_LD
-makedirs(PATH_LD)
-
-os.environ[ENV_CACHE_DIR_PATH]: str = PATH_CACHE
-makedirs(PATH_CACHE)
+set_env_var(ENV_CACHE_DIR_PATH, PATH_CACHE)
+set_env_var(ENV_LIB_SO_PATH, PATH_LD)
 
 from .module import *
 
 try:
     import cv2, numpy
     from .module.utils import *
-except:
+except ImportError:
     warnings.warn("utils import failed")
 try:
     from .module.hotConfigure.valueTest import *
     from .module.hotConfigure.status import *
-except:
-    pass
+    from .module.hotConfigure.sync_test import *
+except ImportError:
+    warnings.warn("hotConfigure import failed")
 __version__ = "0.7"
 __all__ = {
     'module',

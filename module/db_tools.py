@@ -71,3 +71,8 @@ def persistent_lru_cache(cache_file_path: str, maxsize: Optional[int] = 128):
 def makedirs(path: str):
     if not os.path.exists(path):
         os.makedirs(path)
+
+
+def set_env_var(env_var: str, value: str):
+    os.environ[env_var]: str = value
+    makedirs(value)
