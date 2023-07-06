@@ -2,6 +2,7 @@ import os
 import threading
 from threading import Thread
 import time
+from time import sleep
 from typing import List, Tuple, Optional, Sequence, ByteString
 from .serial_helper import SerialHelper
 from .timer import delay_us
@@ -13,13 +14,11 @@ cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
 class CloseLoopController:
 
     def __init__(self, motor_ids: Tuple[int, int, int, int], motor_dirs: Tuple[int, int, int, int],
-                 port: Optional[str] = 'tty/USB0',
-                 sending_delay: int = 100, debug: bool = False):
+                 port: Optional[str] = 'tty/USB0', debug: bool = False):
         """
 
         :param motor_dirs:
         :param motor_ids: the id of the motor,represent as follows [fl,rl,rr,fr]
-        :param sending_delay:
         """
         self._debug: bool = debug
         # 创建串口对象
@@ -31,11 +30,11 @@ class CloseLoopController:
             self._serial.set_on_data_received_handler(serial_handler)
             self._serial.start_read_thread()
         # 发送的数据队列
-        self._sending_delay: int = sending_delay
         self._motor_speeds: Tuple[int, int, int, int] = (0, 0, 0, 0)
         self._motor_ids: Tuple[int, int, int, int] = motor_ids
         self._motor_dirs: Tuple[int, int, int, int] = motor_dirs
-        self._msg_list: List[ByteString] = [makeCmd('RESET')]
+        self._cmd_list: List[ByteString] = [makeCmd('RESET')]
+        self._hang_time_list: List[float] = [0.]
 
         self._msg_send_thread: Optional[Thread] = None
         self._start_msg_sending()
@@ -60,14 +59,6 @@ class CloseLoopController:
     def debug(self, debug: bool):
         self._debug = debug
 
-    @property
-    def sending_delay(self) -> int:
-        return self._sending_delay
-
-    @sending_delay.setter
-    def sending_delay(self, sending_delay: int):
-        self._sending_delay = sending_delay
-
     def _start_msg_sending(self) -> None:
         # 通信线程创建启动
         self._msg_send_thread = threading.Thread(name="msg_send_thread", target=self._msg_sending_loop)
@@ -83,30 +74,32 @@ class CloseLoopController:
 
         def sending_loop() -> None:
             while True:
-                if self._msg_list:
-                    self._serial.write(self._msg_list.pop(0))
-                    delay_us(self.sending_delay)
+                if self._cmd_list:
+                    self._serial.write(self._cmd_list.pop(0))
+                    sleep(self._hang_time_list.pop(0))
 
         def sending_loop_debugging() -> None:
             while True:
-                if self._msg_list:
-                    temp = self._msg_list.pop(0)
-                    print(f'\nwriting {temp} to channel,remaining {len(self._msg_list)}')
+                if self._cmd_list:
+                    temp = self._cmd_list.pop(0)
+                    print(f'\nwriting {temp} to channel,remaining {len(self._cmd_list)}')
                     self._serial.write(temp)
-                    delay_us(self.sending_delay)
+                    sleep(self._hang_time_list.pop(0))
 
         if self._debug:
             sending_loop_debugging()
         else:
             sending_loop()
 
-    def write_to_serial(self, byte_string: ByteString) -> bool:
+    def append_to_stack(self, byte_string: ByteString, hang_time: float = 0.):
         """
         direct write to serial
+        :param hang_time:
         :param byte_string:
         :return:
         """
-        return self._serial.write(data=byte_string)
+        self._cmd_list.append(byte_string)
+        self._hang_time_list.append(hang_time)
 
     def move_cmd(self, left_speed: int, right_speed: int) -> None:
         """
@@ -117,9 +110,9 @@ class CloseLoopController:
         """
         self.set_motors_speed((left_speed, left_speed, right_speed, right_speed))
 
-    def set_motors_speed(self, speed_list: Tuple[int, int, int, int]) -> None:
+    def set_motors_speed(self, speed_list: Tuple[int, int, int, int], hang_time: float = 0.) -> None:
         if is_list_all_zero(speed_list):
-            self.set_all_motors_speed(0)
+            self.set_all_motors_speed(0, hang_time=hang_time)
         else:
             # will check the if target speed and current speed are the same and can customize the direction
             cmd_list = [f'{motor_id}v{speed * direction}'
@@ -128,7 +121,7 @@ class CloseLoopController:
                         if speed != cur_speed]
 
             if cmd_list:
-                self._msg_list.append(makeCmd_list(cmd_list))
+                self.append_to_stack(byte_string=makeCmd_list(cmd_list), hang_time=hang_time)
         self._motor_speeds = speed_list
 
     def makeCmds_dirs(self, speed_list: Tuple[int, int, int, int]) -> ByteString:
@@ -136,30 +129,10 @@ class CloseLoopController:
                              for motor_id, speed, direction in
                              zip(self._motor_ids, speed_list, self._motor_dirs)])
 
-    def set_all_motors_speed(self, speed: int) -> None:
+    def set_all_motors_speed(self, speed: int, hang_time: float) -> None:
         # TODO: should check before setting
-        self._msg_list.append(makeCmd(f'v{speed}'))
-        self._motor_speeds = [speed] * 4
-
-    def set_all_motors_acceleration(self, acceleration: int) -> None:
-        """
-        set the acceleration
-        :param acceleration:
-        :return:
-        """
-        assert 0 < acceleration < 30000, "Invalid acceleration value"
-        # TODO: all sealed cmd should check if the desired value is valid
-        self._msg_list.append(makeCmd(f'ac{acceleration}'))
-        self.eepSav()
-
-    def eepSav(self) -> None:
-        """
-        save params into to the eeprom,
-        all value-setter should call this method to complete the value-setting process
-        :return:
-        """
-        # TODO: pre-compile the 'eepsav' cmd to binary instead of doing compile each time on called
-        self._msg_list.append(makeCmd('eepsav'))
+        self.append_to_stack(byte_string=makeCmd(f'v{speed}'), hang_time=hang_time)
+        self._motor_speeds = (speed, speed, speed, speed)
 
     def open_userInput_channel(self, debug: bool = False) -> None:
         """
@@ -174,9 +147,8 @@ class CloseLoopController:
         if self._debug:
             self._serial.start_read_thread()
 
-            def handler(data: bytes):
-                string = data.decode('ascii')
-                print(f'\nout[{ct}]: {string}')
+            def handler(data: ByteString):
+                print(f'\nout[{ct}]: {data}')
 
             self._serial.set_on_data_received_handler(handler)
         while True:
@@ -188,7 +160,7 @@ class CloseLoopController:
                 self._debug = debug_temp
                 break
             else:
-                self._msg_list.append(makeCmd(user_input))
+                self.append_to_stack(byte_string=makeCmd(user_input))
 
 
 def is_list_all_zero(lst: Sequence[int]) -> bool:
