@@ -1,5 +1,6 @@
 import os
 import threading
+from threading import Thread
 import time
 from typing import List, Tuple, Optional, Sequence, ByteString
 from .serial_helper import SerialHelper
@@ -18,16 +19,16 @@ class CloseLoopController:
         :param motor_ids_list: the id of the motor,represent as follows [fl,rl,rr,fr]
         :param sending_delay:
         """
-        self._debug = debug
+        self._debug: bool = debug
         # 创建串口对象
-        self._serial = SerialHelper(port=port, con2port_when_created=True, auto_search_port=True)
-        self._msg_send_thread = None
+        self._serial: SerialHelper = SerialHelper(port=port, con2port_when_created=True, auto_search_port=True)
         # 发送的数据队列
         self._motor_speed_list: Tuple[int, int, int, int] = (0, 0, 0, 0)
         self._sending_delay: int = sending_delay
         self._motor_id_list: Tuple[int, int, int, int] = motor_ids_list
-        self._msg_list = [makeCmd('RESET')]
+        self._msg_list: List[ByteString] = [makeCmd('RESET')]
 
+        self._msg_send_thread: Optional[Thread] = None
         self._start_msg_sending()
 
     @property

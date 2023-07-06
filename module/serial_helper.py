@@ -1,8 +1,10 @@
 import time
 from typing import List, Callable, Any, Optional, ByteString
 import serial
+from serial import Serial
 from serial.tools.list_ports import comports
 import warnings
+from threading import Thread
 import threading
 
 
@@ -29,20 +31,20 @@ class SerialHelper:
         :param auto_search_port:
         """
         assert self.find_serial_ports(), "No serial ports FOUND!"
-        self._serial = None
+        self._serial: Optional[Serial] = None
         self._serial_port: str = port if port else self.find_serial_ports()[0]
         self._baudrate: int = baudrate
         self._bytesize: int = bytesize
         self._parity: str = parity
         self._stopbits: int = stopbits
 
-        self._serial_lock = DummyLock()
-        self._is_connected_lock = DummyLock()
+        self._serial_lock: DummyLock = DummyLock()
+        self._is_connected_lock: DummyLock = DummyLock()
         self._is_connected: bool = False
 
-        self._read_thread_should_stop = None
-        self._read_thread = None
-        self._on_data_received_handler = None
+        self._read_thread_should_stop: Optional[bool] = None
+        self._read_thread: Optional[Thread] = None
+        self._on_data_received_handler: Optional[Callable[[ByteString], Any]] = None
         if con2port_when_created:
             if self._serial_port:
                 self.connect(logging=True)
