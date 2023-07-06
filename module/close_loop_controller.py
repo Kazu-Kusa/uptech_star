@@ -22,6 +22,12 @@ class CloseLoopController:
         self._debug: bool = debug
         # 创建串口对象
         self._serial: SerialHelper = SerialHelper(port=port, con2port_when_created=True, auto_search_port=True)
+        if self._debug:
+            def serial_handler(data: ByteString):
+                print(data)
+
+            self._serial.set_on_data_received_handler(serial_handler)
+            self._serial.start_read_thread()
         # 发送的数据队列
         self._motor_speed_list: Tuple[int, int, int, int] = (0, 0, 0, 0)
         self._sending_delay: int = sending_delay
