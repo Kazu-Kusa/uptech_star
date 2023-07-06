@@ -258,6 +258,7 @@ class SerialHelper:
 
     def start_read_thread(self, interval: float = 0.1, read_buffer_size: int = 512) -> None:
         """Start the thread reading loop."""
+        warnings.warn('##Start Read Thread##')
         self._read_thread_should_stop = False
         self._read_thread = threading.Thread(target=self._read_loop, args=(interval, read_buffer_size),
                                              name="read_thread")
