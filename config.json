@@ -1,5 +1,6 @@
 {
   "PRE_COMPILE_CMD": true,
+  "DRIVER_DEBUG_MODE": true,
   "MOTOR_IDS": [
     4,
     3,
