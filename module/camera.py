@@ -3,18 +3,36 @@ import time
 import warnings
 from time import sleep
 
+from ..constant import TAG_GROUP
+
+try:
+    import cv2
+    from apriltag import Detector, DetectorOptions
+except ImportError:
+    warnings.warn('failed to import vision deps')
+
 
 class Camera(object):
-    def __init__(self, team_color: str = '', open_camera: bool = True):
+    __tag_detector = Detector(DetectorOptions(families=TAG_GROUP)).detect
+
+    # 使用 cv2.VideoCapture(0) 创建视频捕获对象，从默认摄像头捕获视频。
+    __cap = cv2.VideoCapture(0)
+    if __cap is None:
+        warnings.warn('########CAN\'T GET VIDEO########\n')
+    else:
+        width = __cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        height = __cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        print(f"CAMERA RESOLUTION：{int(width)}x{int(height)}")
+
+    def __init__(self, team_color: str = '', start_detect_tag: bool = True):
         self._tag_id: int = -1
         self._tag_monitor_switch: bool = True
         self._enemy_tag: int = -999
         self._ally_tag: int = -999
 
-        self._camera_is_on: bool = False
         if team_color:
             self.set_tags(team_color)
-        if open_camera:
+        if start_detect_tag:
             self.apriltag_detect_start()
 
     def set_tags(self, team_color: str = 'blue'):
@@ -52,49 +70,24 @@ class Camera(object):
         :param print_tag_id: if print tag id on check
         :return:
         """
+        print_interval: float = 1.2
         try:
-            import cv2
-            from apriltag import Detector, DetectorOptions
-        except ImportError:
-            warnings.warn('failed to import vision deps,exit')
-            return
-        tag_detector = Detector(DetectorOptions(families='tag36h11')).detect
-        warnings.warn("detect start")
-        try:
-            # 使用 cv2.VideoCapture(0) 创建视频捕获对象，从默认摄像头（通常是笔记本电脑的内置摄像头）捕获视频。
-            cap = cv2.VideoCapture(0)
-            if cap is None:
-                warnings.warn('########CAN\'T GET VIDEO########\n')
 
-                return
-            self._camera_is_on = True
-            # 使用 cap.set(3, w) 和 cap.set(4, h) 设置帧的宽度和高度为 640x480，帧的 weight 为 320。
-            w = 640
-            h = 480
-            weight = 320
-            cap.set(3, w)
-            cap.set(4, h)
-
-            cup_w = int((w - weight) / 2)
-            cup_h = int((h - weight) / 2) + 50
-
-            print_interval: float = 1.2
             start_time = time.time()
             while True:
 
                 if self.tag_monitor_switch:  # 台上开启 台下关闭 节约性能
                     # 在循环内，从视频捕获对象中捕获帧并将其存储在 frame 变量中。然后将帧裁剪为中心区域的 weight x weight 大小。
-                    ret, frame = cap.read()
+                    ret, frame = self.__cap.read()
+                    # TODO: open the crop and resize options to users
                     if not ret:
                         warnings.warn('\n##########CAMERA LOST###########\n'
                                       '###ENTERING NO CAMERA MODE###')
-                        self._camera_is_on = False
                         self._tag_id = -1
                         break
-                    frame = frame[cup_h:cup_h + weight, cup_w:cup_w + weight]
                     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)  # 将帧转换为灰度并存储在 gray 变量中。
                     # 使用 AprilTag 检测器对象（self.tag_detector）在灰度帧中检测 AprilTags。检测到的标记存储在 tags 变量中。
-                    tags = tag_detector(gray)
+                    tags = self.__tag_detector(gray)
                     if tags:
                         if single_tag_mode:
                             self._tag_id = tags[0].tag_id
@@ -133,7 +126,7 @@ class Camera(object):
 
     @property
     def camera_is_on(self):
-        return self._camera_is_on
+        return bool(self.__cap)
 
     @property
     def tag_id(self):
