@@ -26,7 +26,6 @@ class MovingAverage:
         return self.queue.sum() / self.current_size  # 计算滑动窗口范围内的平均值
 
 
-# TODO: angle error function use int ,to better support persistent caching, untested
 @persistent_lru_cache(f'{cache_dir}/compute_relative_error_cache', maxsize=2048)
 def compute_relative_error(current_angle: int, target_angle: int) -> List[int]:
     """
@@ -79,6 +78,10 @@ def calculate_relative_angle(current_angle: int, offset_angle: int) -> int:
 
 
 def bake_to_cache():
+    """
+    used to bake the cache
+    :return:
+    """
     start_time = time.time()
     for current_angle in range(-180, 180):
         print(f'baking {current_angle}')

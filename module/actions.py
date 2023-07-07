@@ -8,7 +8,7 @@ from ..constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_IDS, HA
 from ..constant import HANG_TIME_MAX_ERROR
 from .algrithm_tools import multiply, factor_list_multiply
 from .timer import delay_ms, calc_hang_time
-from .close_loop_controller import CloseLoopController, is_list_all_zero, makeCmd_list
+from .close_loop_controller import CloseLoopController, is_list_all_zero
 
 CACHE_DIR = os.environ.get(ENV_CACHE_DIR_PATH)
 
