@@ -11,7 +11,7 @@ import threading
 class SerialHelper:
 
     def __init__(self, port: Optional[str] = None,
-                 baudrate: int = 115200, bytesize: int = 8, parity: str = 'N', stopbits: int = 1,
+                 baud_rate: int = 115200, bytesize: int = 8, parity: str = 'N', stop_bits: int = 1,
                  con2port_when_created: bool = True, auto_search_port: bool = True):
         """
         所有共享状态变量（如 _serial 和 _is_connected）的访问都添加了对应的锁获取和释放操作。
@@ -23,20 +23,20 @@ class SerialHelper:
         另外，在新代码中，我们新增了 start_read_thread 方法和 _on_data_received_handler 回调函数，
         可以统一应对串口设备发送过来的数据，并且用户也可以使用 set_on_data_received_handler 方法通过传入回调函数的方式来自定义处理接收到的数据。
         :param port:
-        :param baudrate:
+        :param baud_rate:
         :param bytesize:
         :param parity:
-        :param stopbits:
+        :param stop_bits:
         :param con2port_when_created:
         :param auto_search_port:
         """
         assert self.find_serial_ports(), "No serial ports FOUND!"
         self._serial: Optional[Serial] = None
         self._serial_port: str = port if port else self.find_serial_ports()[0]
-        self._baudrate: int = baudrate
+        self._baud_rate: int = baud_rate
         self._bytesize: int = bytesize
         self._parity: str = parity
-        self._stopbits: int = stopbits
+        self._stop_bits: int = stop_bits
 
         self._serial_lock: DummyLock = DummyLock()
         self._is_connected_lock: DummyLock = DummyLock()
@@ -44,7 +44,7 @@ class SerialHelper:
 
         self._read_thread_should_stop: Optional[bool] = None
         self._read_thread: Optional[Thread] = None
-        self._on_data_received_handler: Optional[Callable[[ByteString], Any]] = None
+        self._on_data_received_handler: Optional[Callable[[ByteString], Optional[Any]]] = None
         if con2port_when_created:
             if self._serial_port:
                 self.connect(logging=True)
@@ -54,7 +54,7 @@ class SerialHelper:
                 warnings.warn('Searching available Ports')
                 for i in self.find_serial_ports():
                     self.serial_port = i
-                    warnings.warn(f'try to connect to {self._serial_port}')
+                    print(f'try to connect to {self._serial_port}')
                     if self.connect():
                         break
 
@@ -72,11 +72,11 @@ class SerialHelper:
         self._serial_port = value
 
     @property
-    def baudrate(self) -> int:
-        return self._baudrate
+    def baud_rate(self) -> int:
+        return self._baud_rate
 
     @property
-    def bytesize(self) -> int:
+    def byte_size(self) -> int:
         return self._bytesize
 
     @property
@@ -84,8 +84,8 @@ class SerialHelper:
         return self._parity
 
     @property
-    def stopbits(self) -> int:
-        return self._stopbits
+    def stop_bits(self) -> int:
+        return self._stop_bits
 
     def connect(self, logging: bool = True) -> bool:
         """
@@ -101,10 +101,10 @@ class SerialHelper:
                     # 创建一个 `Serial` 实例连接到对应的串口，并根据实例属性设置相关参数
                     self._serial = serial.Serial(
                         port=self.serial_port,
-                        baudrate=self.baudrate,
-                        bytesize=self.bytesize,
+                        baudrate=self.baud_rate,
+                        bytesize=self.byte_size,
                         parity=self.parity,
-                        stopbits=self.stopbits,
+                        stopbits=self.stop_bits,
                         timeout=1
                     )
                     # 设置成功连接标志为 True，使用连接标志锁 `_is_connected_lock` 确保线程安全
@@ -260,7 +260,7 @@ class SerialHelper:
         """Start the thread reading loop."""
         warnings.warn('##Start Read Thread##')
         self._read_thread_should_stop = False
-        self._read_thread = threading.Thread(target=self._read_loop, args=(interval, read_buffer_size),
+        self._read_thread = threading.Thread(target=self.__read_loop, args=(interval, read_buffer_size),
                                              name="read_thread")
         self._read_thread.daemon = True
         self._read_thread.start()
@@ -275,7 +275,7 @@ class SerialHelper:
             self._read_thread.join()
         self._read_thread = None
 
-    def _read_loop(self, interval: float, read_buffer_size: int) -> None:
+    def __read_loop(self, interval: float, read_buffer_size: int) -> None:
         """
         Thread loop that reads data from the serial port.
 
