@@ -1,11 +1,9 @@
 import os
-import threading
 from threading import Thread
 import time
 from time import sleep
 from typing import List, Tuple, Optional, Sequence, ByteString
 from .serial_helper import SerialHelper
-from .timer import delay_us
 from ..constant import ENV_CACHE_DIR_PATH
 
 cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
@@ -16,7 +14,6 @@ class CloseLoopController:
     def __init__(self, motor_ids: Tuple[int, int, int, int], motor_dirs: Tuple[int, int, int, int],
                  port: Optional[str] = 'tty/USB0', debug: bool = False):
         """
-
         :param motor_dirs:
         :param motor_ids: the id of the motor,represent as follows [fl,rl,rr,fr]
         """
@@ -61,7 +58,7 @@ class CloseLoopController:
 
     def _start_msg_sending(self) -> None:
         # 通信线程创建启动
-        self._msg_send_thread = threading.Thread(name="msg_send_thread", target=self._msg_sending_loop)
+        self._msg_send_thread = Thread(name="msg_send_thread", target=self._msg_sending_loop)
         self._msg_send_thread.daemon = True
         self._msg_send_thread.start()
 
@@ -93,11 +90,21 @@ class CloseLoopController:
         else:
             sending_loop()
 
+    def makeCmds_dirs(self, speed_list: Tuple[int, int, int, int]) -> ByteString:
+        """
+        make the cmd according to speed_list and direction list
+        :param speed_list:
+        :return:
+        """
+        return makeCmd_list([f'{motor_id}v{speed * direction}'
+                             for motor_id, speed, direction in
+                             zip(self._motor_ids, speed_list, self._motor_dirs)])
+
     def append_to_stack(self, byte_string: ByteString, hang_time: float = 0.):
         """
-        direct write to serial
-        :param hang_time:
-        :param byte_string:
+        push the given byte string onto the stack
+        :param hang_time:the time during which the cmd sender will hang up , to release the cpu
+        :param byte_string:the string to write to the cmd_list
         :return:
         """
         self._cmd_list.append(byte_string)
@@ -111,29 +118,39 @@ class CloseLoopController:
         :param right_speed:
         :return:
         """
-        self.set_motors_speed((left_speed, left_speed, right_speed, right_speed))
+        self._motor_speeds = (left_speed, left_speed, right_speed, right_speed)
+        self.set_motors_speed(self._motor_speeds)
 
     def set_motors_speed(self, speed_list: Tuple[int, int, int, int], hang_time: float = 0.) -> None:
-        if is_list_all_zero(speed_list):
+        """
+        set the speed of the motor to the given speed, and hang up the cmd sender to release the cpu
+        will check if the desired speed is already requested
+        will make sure the direction is same with direction list
+        :param speed_list: the motor speed
+        :param hang_time:
+        :return:
+        """
+        self._motor_speeds = speed_list
+        if is_list_all_zero(self._motor_speeds):
             self.set_all_motors_speed(0, hang_time=hang_time)
         else:
             # will check the if target speed and current speed are the same and can customize the direction
             cmd_list = [f'{motor_id}v{speed * direction}'
                         for motor_id, speed, cur_speed, direction in
-                        zip(self._motor_ids, speed_list, self._motor_speeds, self._motor_dirs)
+                        zip(self._motor_ids, self._motor_speeds, self._motor_speeds, self._motor_dirs)
                         if speed != cur_speed]
 
             if cmd_list:
                 self.append_to_stack(byte_string=makeCmd_list(cmd_list), hang_time=hang_time)
-        self._motor_speeds = speed_list
 
-    def makeCmds_dirs(self, speed_list: Tuple[int, int, int, int]) -> ByteString:
-        return makeCmd_list([f'{motor_id}v{speed * direction}'
-                             for motor_id, speed, direction in
-                             zip(self._motor_ids, speed_list, self._motor_dirs)])
-
-    def set_all_motors_speed(self, speed: int, hang_time: float) -> None:
-        # TODO: should check before setting
+    def set_all_motors_speed(self, speed: int, hang_time: float = 0.) -> None:
+        """
+        set all motors speed ,and hang up the cmd sender
+        :attention: this function has no direction check, since it will be a broadcast cmd
+        :param speed:
+        :param hang_time:
+        :return:
+        """
         self.append_to_stack(byte_string=makeCmd(f'v{speed}'), hang_time=hang_time)
         self._motor_speeds = (speed, speed, speed, speed)
 
