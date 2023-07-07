@@ -4,15 +4,7 @@ from time import perf_counter_ns
 from .algrithm_tools import MovingAverage
 
 
-def delay_ms(milliseconds: int):
-    start = perf_counter_ns()
-    while True:
-        elapsed = (perf_counter_ns() - start) // 1000000
-        if elapsed > milliseconds:
-            break
-
-
-# TODO: both PD and PID  are haven't react properly on direction change
+# TODO:  use c/c++ instead if possible
 def PD_control(controller_func: Callable[[int, int], None],
                evaluator_func: Callable[[], float],
                error_func: Callable[[float, float], float],
