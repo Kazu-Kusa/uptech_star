@@ -26,7 +26,7 @@ class UpTech:
     try:
         __lib = load_lib('libuptech.so')
     except OSError:
-        warnings.warn('##Faild to load libuptech.so##')
+        warnings.warn('##Uptech: Failed to load libuptech.so##')
 
     __adc_data_list_type = ctypes.c_uint16 * 10
 

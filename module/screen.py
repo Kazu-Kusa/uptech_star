@@ -1,12 +1,13 @@
-import ctypes
+import warnings
+
 from .uptech import load_lib
 
 
 class Screen(object):
     try:
         so_up = load_lib('libuptech.so')
-    except:
-        pass
+    except OSError:
+        warnings.warn('##Screen: Failed to load libuptech.so##')
     # region font size definitions
     FONT_4X6 = 0
     FONT_5X8 = 1
@@ -100,15 +101,7 @@ class Screen(object):
         display_string is  string that will be displayed in the LCD
 
         """
-
-        # create a c_byte list whose length is the length of the string
-
-        byte = ctypes.c_byte * len(display_string)
-        binary = byte()
-        for i, char in enumerate(display_string):
-            # dump chars to binary as unicode
-            binary[i] = ord(char)
-        self.so_up.UG_PutString(x, y, binary)
+        self.so_up.UG_PutString(x, y, display_string.encode())
 
     def LCD_FillFrame(self, x1, y1, x2, y2, color: int):
         self.so_up.UG_FillFrame(x1, y1, x2, y2, color)
