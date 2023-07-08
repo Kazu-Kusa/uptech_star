@@ -26,7 +26,7 @@ class MovingAverage:
         return self.queue.sum() / self.current_size  # 计算滑动窗口范围内的平均值
 
 
-@persistent_lru_cache(f'{cache_dir}/compute_relative_error_cache', maxsize=2048)
+@persistent_lru_cache(f'{cache_dir}/compute_relative_error_cache')
 def compute_relative_error(current_angle: int, target_angle: int) -> List[int]:
     """
         计算当前角度与目标角度之间相对角度误差
@@ -41,7 +41,7 @@ def compute_relative_error(current_angle: int, target_angle: int) -> List[int]:
         return [ab_dst, ab_dst - 360]
 
 
-@persistent_lru_cache(f'{cache_dir}/compute_inferior_arc_cache', maxsize=2048)
+@persistent_lru_cache(f'{cache_dir}/compute_inferior_arc_cache')
 def compute_inferior_arc(current_angle: int, target_angle: int) -> int:
     """
     计算当前角度到目标角度的顺时针方向和逆时针方向之间的较小夹角
@@ -66,7 +66,7 @@ def compute_inferior_arc(current_angle: int, target_angle: int) -> int:
             return ab_dst  # 需要顺时针转动劣弧的距离
 
 
-@persistent_lru_cache(f'{cache_dir}/calculate_relative_angle_cache', maxsize=2048)
+@persistent_lru_cache(f'{cache_dir}/calculate_relative_angle_cache')
 def calculate_relative_angle(current_angle: int, offset_angle: int) -> int:
     """
     计算相对偏移特定角度之后的目标角度，返回值范围 [-180, 180]。

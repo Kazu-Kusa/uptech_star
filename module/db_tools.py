@@ -1,5 +1,5 @@
 import os
-from functools import lru_cache
+from functools import lru_cache, wraps, update_wrapper
 import pickle
 from typing import Optional, List, Dict
 
@@ -38,17 +38,16 @@ class CacheFILE:
             cache_file.save_cache()
 
 
-def persistent_lru_cache(cache_file_path: str, maxsize: Optional[int] = 128):
+def persistent_lru_cache(cache_file_path: str):
     """
     装饰器函数，用于缓存函数调用结果并持久化缓存
-    :param maxsize:
     :param cache_file_path:
     :return:
     """
     cache = CacheFILE(cache_file_path)
 
     def decorator(func):
-        @lru_cache(maxsize=maxsize)
+        @wraps(func)
         def wrapped(*args, **kwargs):
             # 将参数转换为可哈希的形式
             key = (args, frozenset(kwargs.items()))
@@ -63,7 +62,7 @@ def persistent_lru_cache(cache_file_path: str, maxsize: Optional[int] = 128):
 
             return result
 
-        return wrapped
+        return wrapped  # 更新装饰函数的元信息
 
     return decorator
 

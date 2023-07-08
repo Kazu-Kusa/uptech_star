@@ -106,14 +106,14 @@ class ActionFrame:
             return self._break_action
 
 
-@persistent_lru_cache(f'{CACHE_DIR}/new_action_frame_cache', maxsize=None)
+@persistent_lru_cache(f'{CACHE_DIR}/new_action_frame_cache')
 def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, int, int]] = 0,
                     action_speed_multiplier: float = 0,
                     action_duration: int = 0,
                     action_duration_multiplier: float = 0,
                     breaker_func: Optional[Callable[[], bool]] = None,
                     break_action: Optional[Union[object, List[object]]] = None,
-                    hang_during_action: bool = False) -> ActionFrame:
+                    hang_during_action: Optional[bool] = None) -> ActionFrame:
     """
     generates a new action frame ,with LRU caching rules
 
@@ -149,7 +149,8 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
         action_duration = multiply(action_duration, action_duration_multiplier)
     return ActionFrame(action_speed=action_speed_list, action_duration=action_duration,
                        breaker_func=breaker_func, break_action=break_action,
-                       hang_time=calc_hang_time(action_duration, HANG_TIME_MAX_ERROR) if hang_during_action else 0)
+                       hang_time=calc_hang_time(action_duration, HANG_TIME_MAX_ERROR)
+                       if hang_during_action or (hang_during_action is None and not bool(breaker_func)) else 0)
 
 
 def pre_build_action_frame(speed_range: Tuple[int, int, int], duration_range: Tuple[int, int, int]):
