@@ -16,7 +16,7 @@ ld_library_path = os.environ.get(ENV_LIB_SO_PATH)
 
 def build_watcher(sensor_update: Callable[..., Sequence[Any]],
                   sensor_id: Tuple[int, ...],
-                  min_line: Optional[int],
+                  min_line: Optional[int] = None,
                   max_line: Optional[int] = None,
                   args: Tuple = (),
                   kwargs: Dict[str, Any] = {}) -> Callable[[], bool]:
