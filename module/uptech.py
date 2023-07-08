@@ -4,6 +4,8 @@ import threading
 from ctypes import cdll
 from ctypes import CDLL
 import warnings
+from typing import Tuple, Callable, Optional, Any, Sequence, Dict
+
 import pigpio
 
 from ..constant import FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us, FAN_PWN_range, ENV_LIB_SO_PATH
@@ -17,6 +19,29 @@ def load_lib(libname: str) -> CDLL:
     lib_file_name = f'{ld_library_path}/{libname}'
     print(f'Loading [{lib_file_name}]')
     return cdll.LoadLibrary(lib_file_name)
+
+
+def build_watcher(sensor_update: Callable[..., Sequence[Any]],
+                  sensor_id: Tuple[int, ...],
+                  min_line: int,
+                  max_line: int,
+                  args: Tuple = (),
+                  kwargs: Dict[str, Any] = {}) -> Callable[[], bool]:
+    """
+    构建传感器监视器
+    :param sensor_update: 一个可调用对象，接受一个可选参数并返回一个序列
+    :param sensor_id: 传感器的ID，为整数元组
+    :param min_line: 最小阈值，为整数
+    :param max_line: 最大阈值，为整数
+    :param args: 可选参数元组
+    :param kwargs: 可选关键字参数字典
+    :return: 返回一个没有参数且返回布尔值的可调用对象
+    """
+
+    def watcher() -> bool:
+        return all((max_line > sensor_update(*args, **kwargs)[x] > min_line) for x in sensor_id)
+
+    return watcher
 
 
 class UpTech:
