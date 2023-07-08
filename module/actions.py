@@ -173,11 +173,11 @@ class ActionPlayer:
         """
         action player,stores and plays the ActionFrames with stack
         """
-        self._action_frame_stack: List[ActionFrame] = []
+        self._action_frame_queue: List[ActionFrame] = []
 
     @property
     def action_frame_stack(self):
-        return self._action_frame_stack
+        return self._action_frame_queue
 
     def append(self, action: ActionFrame, play_now: bool = True):
         """
@@ -186,7 +186,7 @@ class ActionPlayer:
         :param action: the ActionFrame to append
         :return: None
         """
-        self._action_frame_stack.append(action)
+        self._action_frame_queue.append(action)
         if play_now:
             self.play()
 
@@ -197,33 +197,33 @@ class ActionPlayer:
         :param action_list: the ActionFrames to extend
         :return: None
         """
-        self._action_frame_stack.extend(action_list)
+        self._action_frame_queue.extend(action_list)
         if play_now:
             self.play()
 
     def add(self, actions: Union[ActionFrame, List[ActionFrame]]):
         if isinstance(actions, List):
-            self._action_frame_stack.extend(actions)
+            self._action_frame_queue.extend(actions)
         else:
-            self._action_frame_stack.append(actions)
+            self._action_frame_queue.append(actions)
 
     def clear(self):
         """
         clean the ActionFrames stack
         :return: None
         """
-        self._action_frame_stack.clear()
+        self._action_frame_queue.clear()
 
     def play(self):
         """
         Play and remove the ActionFrames in the stack util there is it
         :return: None
         """
-        while self._action_frame_stack:
+        while self._action_frame_queue:
             # if action exit because breaker then it should return the break action or None
-            break_action: Optional[Union[ActionFrame, List[ActionFrame]]] = self._action_frame_stack.pop(
+            break_action: Optional[Union[ActionFrame, List[ActionFrame]]] = self._action_frame_queue.pop(
                 0).action_start()
             if break_action:
                 # the break action will override those ActionFrames that haven't been executed yet
-                self._action_frame_stack.clear()
+                self._action_frame_queue.clear()
                 self.add(break_action)
