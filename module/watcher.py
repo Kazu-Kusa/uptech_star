@@ -1,7 +1,8 @@
 from typing import Callable, Sequence, Any, Tuple, Optional, Dict
 from .uptech import UpTech
 from ..constant import REAR_SENSOR_ID, FRONT_SENSOR_ID, SIDES_SENSOR_ID, DEFAULT_BASELINE, START_MAX_LINE, \
-    REAR_WATCHER_NAME, FRONT_WATCHER_NAME, SIDES_WATCHER_NAME
+    REAR_WATCHER_NAME, FRONT_WATCHER_NAME, SIDES_WATCHER_NAME, GRAYS_WATCHER_NAME, DEFAULT_GRAYS_BASELINE, \
+    GRAYS_SENSOR_ID
 
 Watcher = Callable[[], bool]
 
@@ -55,18 +56,21 @@ def build_watcher(sensor_update: Callable[..., Sequence[Any]],
     return watcher
 
 
-default_rear_watcher = build_watcher(sensor_update=UpTech.adc_all_channels,
-                                     sensor_id=REAR_SENSOR_ID,
-                                     max_line=DEFAULT_BASELINE)
+default_rear_watcher: Watcher = build_watcher(sensor_update=UpTech.adc_all_channels,
+                                              sensor_id=REAR_SENSOR_ID,
+                                              max_line=DEFAULT_BASELINE)
 
-default_front_watcher = build_watcher(sensor_update=UpTech.adc_all_channels,
-                                      sensor_id=FRONT_SENSOR_ID,
-                                      max_line=DEFAULT_BASELINE)
+default_front_watcher: Watcher = build_watcher(sensor_update=UpTech.adc_all_channels,
+                                               sensor_id=FRONT_SENSOR_ID,
+                                               max_line=DEFAULT_BASELINE)
 
-default_sides_watcher = build_watcher(sensor_update=UpTech.adc_all_channels,
-                                      sensor_id=SIDES_SENSOR_ID,
-                                      max_line=START_MAX_LINE)
-
+default_sides_watcher: Watcher = build_watcher(sensor_update=UpTech.adc_all_channels,
+                                               sensor_id=SIDES_SENSOR_ID,
+                                               max_line=START_MAX_LINE)
+default_grays_watcher: Watcher = build_watcher(sensor_update=UpTech.io_all_channels,
+                                               sensor_id=GRAYS_SENSOR_ID,
+                                               max_line=DEFAULT_GRAYS_BASELINE)
 watchers = {REAR_WATCHER_NAME: default_rear_watcher,
             FRONT_WATCHER_NAME: default_front_watcher,
-            SIDES_WATCHER_NAME: default_sides_watcher}
+            SIDES_WATCHER_NAME: default_sides_watcher,
+            GRAYS_WATCHER_NAME: default_grays_watcher}
