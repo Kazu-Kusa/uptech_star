@@ -72,7 +72,7 @@ class ActionFrame:
         default stops the robot
         :param action_speed: the speed of the action
         :param action_duration: the duration of the action
-        :param breaker_func: the action break judge,exit the action when the breaker returns True
+        :param breaker_func: used to break the action during move,exit the action when the breaker returns True
         :param break_action: the object type is ActionFrame,
         the action that will be executed when the breaker is activated,
         """
@@ -116,9 +116,10 @@ def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[s
 
        Args:
            file_path (str): JSON 文件路径
-
+           logging (bool):是否打印细节
        Returns:
            List[ActionFrame]: 创建的链式动作列表
+
    """
 
     # TODO: to prevent spelling errors , we should create a spell checker
@@ -135,7 +136,8 @@ def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[s
           Note:
               这个函数使用了@singledispatch构造了一个泛型递归加载函数，用作加载动作帧的配置文件
       """
-
+        if data is None:
+            return None
         raise NotImplementedError('Unsupported data type')
 
     @load_action_frame.register(dict)
