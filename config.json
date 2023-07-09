@@ -14,5 +14,6 @@
     1
   ],
   "HANG_TIME_MAX_ERROR": 50,
-  "TAG_GROUP": "tag36h11"
+  "TAG_GROUP": "tag36h11",
+  "DEFAULT_BASELINE": 1750
 }

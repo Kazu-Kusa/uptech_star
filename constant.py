@@ -27,6 +27,7 @@ CONFIG_MOTOR_IDS: str = 'MOTOR_IDS'
 CONFIG_MOTOR_DIRS: str = 'MOTOR_DIRS'
 CONFIG_HANG_TIME_MAX_ERROR: str = 'HANG_TIME_MAX_ERROR'
 CONFIG_TAG_GROUP: str = 'TAG_GROUP'
+CONFIG_DEFAULT_BASELINE: str = 'DEFAULT_BASELINE'
 
 PRE_COMPILE_CMD: bool = config.get(CONFIG_PRE_COMPILE_CMD)
 DRIVER_DEBUG_MODE: bool = config.get(CONFIG_DRIVER_DEBUG_MODE)
@@ -34,6 +35,7 @@ MOTOR_IDS: Tuple[int, int, int, int] = tuple(config.get(CONFIG_MOTOR_IDS))
 MOTOR_DIRS: Tuple[int, int, int, int] = tuple(config.get(CONFIG_MOTOR_DIRS))
 HANG_TIME_MAX_ERROR: int = config.get(CONFIG_HANG_TIME_MAX_ERROR)
 TAG_GROUP: str = config.get(CONFIG_TAG_GROUP)
+DEFAULT_BASELINE: int = config.get(CONFIG_DEFAULT_BASELINE)
 
 PATH_CACHE = os.path.join(PACKAGE_ROOT, DIR_CACHE)
 PATH_LD = os.path.join(PACKAGE_ROOT, DIR_LID_SO)
@@ -43,8 +45,13 @@ BREAKER_FUNC_KEY = 'breaker_func'
 ACTION_DURATION = 'action_duration'
 ACTION_SPEED_KEY = 'action_speed'
 HANG_DURING_ACTION_KEY = 'hang_during_action'
+
 FRONT_SENSOR_ID = (1, 2)
 REAR_SENSOR_ID = (0, 3)
 SIDES_SENSOR_ID = (7, 8)
 START_MAX_LINE = 1800
 EDGE_MAX_LINE = 1750
+
+REAR_WATCHER_NAME = 'rear_watcher'
+FRONT_WATCHER_NAME = 'front_watcher'
+SIDES_WATCHER_NAME = 'sides_watcher'
