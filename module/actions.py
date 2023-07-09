@@ -20,6 +20,7 @@ ACTION_DURATION = 'action_duration'
 
 ACTION_SPEED_KEY = 'action_speed'
 
+HANG_DURING_ACTION_KEY = 'hang_during_action'
 CACHE_DIR = os.environ.get(ENV_CACHE_DIR_PATH)
 
 
@@ -164,7 +165,7 @@ def new_chain_action_from_json(file_path: str) -> List[ActionFrame]:
             # TODO: the breaker func loader is not implemented
             breaker_func = data.get(BREAKER_FUNC_KEY, None)
             break_action_data = data.get(BREAK_ACTION_KEY, None)
-
+            hang_during_action = data.get(HANG_DURING_ACTION_KEY, None)
             if isinstance(break_action_data, List):
                 break_action = [load_action_frame(action_data) for action_data in break_action_data]
             elif isinstance(break_action_data, Dict):
@@ -176,7 +177,8 @@ def new_chain_action_from_json(file_path: str) -> List[ActionFrame]:
                 action_speed=action_speed,
                 action_duration=action_duration,
                 breaker_func=breaker_func,
-                break_action=break_action
+                break_action=break_action,
+                hang_during_action=hang_during_action
             )
 
         @load_action_frame.register(List[Dict])
