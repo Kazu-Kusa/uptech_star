@@ -19,7 +19,7 @@ try:
     from .module.hotConfigure.sync_test import *
 except ImportError:
     warnings.warn("hotConfigure import failed")
-__version__ = "0.7"
+__version__ = "0.8"
 __all__ = {
     'module',
     'extension'
