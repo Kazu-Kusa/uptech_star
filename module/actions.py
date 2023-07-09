@@ -6,21 +6,13 @@ import warnings
 from functools import singledispatch
 from typing import Callable, Tuple, Union, Optional, List, Dict, ByteString
 from .db_tools import persistent_lru_cache
-from ..constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_IDS, HALT_CMD, MOTOR_DIRS, DRIVER_DEBUG_MODE
+from ..constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_IDS, HALT_CMD, MOTOR_DIRS, DRIVER_DEBUG_MODE, \
+    BREAK_ACTION_KEY, BREAKER_FUNC_KEY, ACTION_DURATION, ACTION_SPEED_KEY, HANG_DURING_ACTION_KEY
 from ..constant import HANG_TIME_MAX_ERROR
 from .algrithm_tools import multiply, factor_list_multiply
 from .timer import delay_ms, calc_hang_time
 from .close_loop_controller import CloseLoopController, is_list_all_zero
 
-BREAK_ACTION_KEY = 'break_action'
-
-BREAKER_FUNC_KEY = 'breaker_func'
-
-ACTION_DURATION = 'action_duration'
-
-ACTION_SPEED_KEY = 'action_speed'
-
-HANG_DURING_ACTION_KEY = 'hang_during_action'
 CACHE_DIR = os.environ.get(ENV_CACHE_DIR_PATH)
 
 
@@ -72,7 +64,7 @@ class ActionFrame:
                  action_speed: Tuple[int, int, int, int] = ZEROS,
                  action_duration: int = 0,
                  breaker_func: Optional[Callable[[], bool]] = None,
-                 break_action: Optional[object] = None,
+                 break_action: Optional[Tuple[object, ...]] = None,
                  hang_time: float = 0.):
         """
         the minimal action unit that could be customized and glue together to be a chain movement,
@@ -96,12 +88,12 @@ class ActionFrame:
             self._action_speed_list: Tuple[int, int, int, int] = action_speed
         self._action_duration: int = action_duration
         self._breaker_func: Callable[[], bool] = breaker_func
-        self._break_action: object = break_action
+        self._break_action: Tuple[object, ...] = break_action
 
         self._hang_time: float = hang_time
         # TODO:actually ,hang_time may have some conflicts with breaker_func
 
-    def action_start(self) -> Optional[Union[object, List[object]]]:
+    def action_start(self) -> Optional[Tuple[object, ...]]:
         """
         execute the ActionFrame
         :return: None
@@ -117,7 +109,7 @@ class ActionFrame:
             return self._break_action
 
 
-def new_chain_action_from_json(file_path: str) -> List[ActionFrame]:
+def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[str, List]:
     """
        从 JSON 文件中递归加载创建链式动作
 
@@ -129,7 +121,7 @@ def new_chain_action_from_json(file_path: str) -> List[ActionFrame]:
    """
 
     @singledispatch
-    def load_action_frame(data: Union[Dict, List[Dict]]):
+    def load_action_frame(data: Union[List, Dict]) -> Optional[Union[ActionFrame, Tuple[ActionFrame, ...]]]:
         """
           加载动作帧数据
 
@@ -142,75 +134,76 @@ def new_chain_action_from_json(file_path: str) -> List[ActionFrame]:
               这个函数使用了@singledispatch构造了一个泛型递归加载函数，用作加载动作帧的配置文件
       """
 
-        @load_action_frame.register(Dict)
-        def _(data: Dict):
-            """
-              从字典中加载 ActionFrame 对象。
-
-            参数：
-                data (Dict)：包含 ActionFrame 数据的字典。
-
-            返回值：
-                ActionFrame：加载的 ActionFrame 对象。
-
-            异常：
-                TypeError：如果提供的数据不是字典类型或缺少必要的属性。
-
-            注意：
-                此函数被注册在 `load_action_frame` 装饰器下，用于将字典表示的 ActionFrame 反序列化为实际的 ActionFrame 对象。
-
-            """
-            action_speed = tuple(data.get(ACTION_SPEED_KEY, ZEROS))
-            action_duration = data.get(ACTION_DURATION, 0)
-            # TODO: the breaker func loader is not implemented
-            breaker_func = data.get(BREAKER_FUNC_KEY, None)
-            break_action_data = data.get(BREAK_ACTION_KEY, None)
-            hang_during_action = data.get(HANG_DURING_ACTION_KEY, None)
-            if isinstance(break_action_data, List):
-                break_action = [load_action_frame(action_data) for action_data in break_action_data]
-            elif isinstance(break_action_data, Dict):
-                break_action = load_action_frame(break_action_data)
-            else:
-                break_action = None
-
-            return new_ActionFrame(
-                action_speed=action_speed,
-                action_duration=action_duration,
-                breaker_func=breaker_func,
-                break_action=break_action,
-                hang_during_action=hang_during_action
-            )
-
-        @load_action_frame.register(List[Dict])
-        def _(data: List[Dict]):
-            """
-            Loads a list of ActionFrame objects from a list.
-
-            Args:
-                data (List): The list containing the action frame data.
-
-            Returns:
-                List[ActionFrame]: The loaded list of ActionFrame objects.
-
-            Raises:
-                TypeError: If the provided data is not of type list or is missing required attributes.
-
-            Note:
-                This function is registered under the `load_action_frame` decorator and is used to deserialize
-                a list representation of ActionFrames into a list of ActionFrame objects.
-            """
-            return [load_action_frame(item) for item in data]
-
         raise NotImplementedError('Unsupported data type')
 
-    action_frames = []
+    @load_action_frame.register(dict)
+    def _(data: Dict) -> ActionFrame:
+        """
+          从字典中加载 ActionFrame 对象。
+
+        参数：
+            data (Dict)：包含 ActionFrame 数据的字典。
+
+        返回值：
+            ActionFrame：加载的 ActionFrame 对象。
+
+        异常：
+            TypeError：如果提供的数据不是字典类型或缺少必要的属性。
+
+        注意：
+            此函数被注册在 `load_action_frame` 装饰器下，用于将字典表示的 ActionFrame 反序列化为实际的 ActionFrame 对象。
+
+        """
+        if logging:
+            print(f'Loading ActionFrame: \n'
+                  f'\t{data}')
+        action_speed: Union[Tuple, int] = tuple(data.get(ACTION_SPEED_KEY, ZEROS))
+        action_duration: int = data.get(ACTION_DURATION, 0)
+        # TODO: the breaker func loader is not implemented
+        breaker_func = data.get(BREAKER_FUNC_KEY, None)
+        break_action_data: List[Dict] = data.get(BREAK_ACTION_KEY, None)
+        hang_during_action: Optional[bool] = data.get(HANG_DURING_ACTION_KEY, None)
+
+        break_action = load_action_frame(break_action_data) if break_action_data else None
+
+        return new_ActionFrame(
+            action_speed=action_speed,
+            action_duration=action_duration,
+            breaker_func=breaker_func,
+            break_action=break_action,
+            hang_during_action=hang_during_action
+        )
+
+    @load_action_frame.register(list)
+    def _(data: List[Dict]) -> Tuple[ActionFrame, ...]:
+        """
+        Loads a list of ActionFrame objects from a list.
+
+        Args:
+            data (List): The list containing the action frame data.
+
+        Returns:
+            List[ActionFrame]: The loaded list of ActionFrame objects.
+
+        Raises:
+            TypeError: If the provided data is not of type list or is missing required attributes.
+
+        Note:
+            This function is registered under the `load_action_frame` decorator and is used to deserialize
+            a list representation of ActionFrames into a list of ActionFrame objects.
+        """
+        if logging:
+            print(f'Loading ActionFrame Chain: \n'
+                  f'\t{data}')
+        return tuple(load_action_frame(item) for item in data)
+
     with open(file_path, 'r') as file:
-        data = json.load(file)
-        actions = data.get('actions', [])
-        for action_data in actions:
-            action_frame = load_action_frame(action_data)
-            action_frames.append(action_frame)
-    return action_frames
+        data: Dict[str, List] = json.load(file)  # load the Action config file into a dict
+        for action_name in data.keys():
+            # build List of ActionFrames to replace with the origin value in the loaded dict
+            data[action_name] = [load_action_frame(action_data) for action_data in data.get(action_name, [])]
+
+    return data
 
 
 @persistent_lru_cache(f'{CACHE_DIR}/new_action_frame_cache')
@@ -219,7 +212,7 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
                     action_duration: int = 0,
                     action_duration_multiplier: float = 0,
                     breaker_func: Optional[Callable[[], bool]] = None,
-                    break_action: Optional[Union[ActionFrame, List[ActionFrame]]] = None,
+                    break_action: Optional[Union[ActionFrame, Tuple[ActionFrame]]] = None,
                     hang_during_action: Optional[bool] = None) -> ActionFrame:
     """
     generates a new action frame ,with LRU caching rules
