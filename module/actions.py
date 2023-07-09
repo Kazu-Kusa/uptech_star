@@ -12,6 +12,7 @@ from ..constant import HANG_TIME_MAX_ERROR
 from .algrithm_tools import multiply, factor_list_multiply
 from .timer import delay_ms, calc_hang_time
 from .close_loop_controller import CloseLoopController, is_list_all_zero
+from .watcher import watchers, Watcher
 
 CACHE_DIR = os.environ.get(ENV_CACHE_DIR_PATH)
 
@@ -120,6 +121,7 @@ def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[s
            List[ActionFrame]: 创建的链式动作列表
    """
 
+    # TODO: to prevent spelling errors , we should create a spell checker
     @singledispatch
     def load_action_frame(data: Union[List, Dict]) -> Optional[Union[ActionFrame, Tuple[ActionFrame, ...]]]:
         """
@@ -157,10 +159,10 @@ def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[s
         if logging:
             print(f'Loading ActionFrame: \n'
                   f'\t{data}')
-        action_speed: Union[Tuple, int] = tuple(data.get(ACTION_SPEED_KEY, ZEROS))
+        temp = data.get(ACTION_SPEED_KEY, ZEROS)
+        action_speed: Union[Tuple, int] = tuple(temp) if isinstance(temp, list) else temp
         action_duration: int = data.get(ACTION_DURATION, 0)
-        # TODO: the breaker func loader is not implemented
-        breaker_func = data.get(BREAKER_FUNC_KEY, None)
+        breaker_func: Watcher = watchers.get(data.get(BREAKER_FUNC_KEY, None), None)
         break_action_data: List[Dict] = data.get(BREAK_ACTION_KEY, None)
         hang_during_action: Optional[bool] = data.get(HANG_DURING_ACTION_KEY, None)
 
