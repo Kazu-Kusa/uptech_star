@@ -6,6 +6,7 @@ from ..constant import REAR_SENSOR_ID, FRONT_SENSOR_ID, SIDES_SENSOR_ID, DEFAULT
 Watcher = Callable[[], bool]
 
 
+# TODO: to manage all sort of breakers ,shall we create a registry system?
 def build_watcher(sensor_update: Callable[..., Sequence[Any]],
                   sensor_id: Tuple[int, ...],
                   min_line: Optional[int] = None,
