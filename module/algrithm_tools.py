@@ -1,7 +1,7 @@
 import time
 import timeit
 import warnings
-from typing import List, Union, Sequence
+from typing import List, Union, Sequence, Tuple
 
 from .db_tools import persistent_lru_cache, CacheFILE
 from ..constant import ENV_CACHE_DIR_PATH
@@ -108,21 +108,21 @@ def performance_evaluate():
 
 def list_multiply(list1: Sequence[Union[float, int]],
                   list2: Sequence[Union[float, int]],
-                  ) -> List[int]:
+                  ) -> Tuple[int, ...]:
     # 计算每个元素相乘的结果，并将其转换为整数
-    return [int(x * y) for x, y in zip(list1, list2)]
+    return tuple(int(x * y) for x, y in zip(list1, list2))
 
 
 def factor_list_multiply(factor: Union[float, int],
                          factor_list: Sequence[Union[float, int]]
-                         ) -> List[int]:
+                         ) -> Tuple[int, ...]:
     """
     计算每个元素相乘的结果，并将其转换为整数
     :param factor:
     :param factor_list:
     :return:
     """
-    return [int(factor * x) for x in factor_list]
+    return tuple(int(factor * x) for x in factor_list)
 
 
 def multiply(factor_1: Union[float, int], factor_2: Union[float, int]) -> int:
