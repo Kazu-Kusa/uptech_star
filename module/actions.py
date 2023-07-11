@@ -229,27 +229,23 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
     :keyword break_action: object = None
     :return: the ActionFrame object
     """
-    if isinstance(action_speed, Tuple) and len(action_speed) == 2:
-        if action_speed_multiplier:
-            # apply the multiplier
-            action_speed = factor_list_multiply(action_speed_multiplier, action_speed)
-        action_speed_list = (action_speed[0], action_speed[0], action_speed[1], action_speed[1])
+    action_speed_list = ZEROS
+    if isinstance(action_speed, Tuple):
+        if len(action_speed) == 2:
+            action_speed_list = (action_speed[0],) * 2 + (action_speed[1],) * 2
+        elif len(action_speed) == 4:
+            action_speed_list = action_speed
     elif isinstance(action_speed, int):
-        # speed list will override the action_speed
-        if action_speed_multiplier:
-            # apply the multiplier
-            action_speed = multiply(action_speed, action_speed_multiplier)
-        action_speed_list = tuple([action_speed] * 4)
-    elif isinstance(action_speed, Tuple) and len(action_speed) == 4:
-        if action_speed_multiplier:
-            action_speed = factor_list_multiply(action_speed_multiplier, action_speed)
-        action_speed_list = tuple(action_speed)
+        action_speed_list = (action_speed,) * 4
     else:
         warnings.warn('##UNKNOWN INPUT##')
-        action_speed_list = ZEROS
+
+    if action_speed_multiplier:
+        # apply the multiplier
+        action_speed_list = factor_list_multiply(action_speed_multiplier, action_speed_list)
+
     if action_duration_multiplier:
         # apply the multiplier
-        # TODO: may actualize this multiplier Properties with a new class
         action_duration = multiply(action_duration, action_duration_multiplier)
     return ActionFrame(action_speed=action_speed_list, action_duration=action_duration,
                        breaker_func=breaker_func, break_action=break_action,
