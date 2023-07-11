@@ -52,7 +52,9 @@ class SerialHelper:
                 # connection to the default has failed
                 # try to search for a new port
                 warnings.warn('Searching available Ports')
-                for i in self.find_serial_ports():
+                ports = self.find_serial_ports()
+                print(f'Available ports: {ports}')
+                for i in ports:
                     self.serial_port = i
                     print(f'try to connect to {self._serial_port}')
                     if self.connect():

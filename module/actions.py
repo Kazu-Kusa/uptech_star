@@ -7,7 +7,7 @@ from functools import singledispatch
 from typing import Callable, Tuple, Union, Optional, List, Dict, ByteString
 from .db_tools import persistent_lru_cache
 from ..constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_IDS, HALT_CMD, MOTOR_DIRS, DRIVER_DEBUG_MODE, \
-    BREAK_ACTION_KEY, BREAKER_FUNC_KEY, ACTION_DURATION, ACTION_SPEED_KEY, HANG_DURING_ACTION_KEY
+    BREAK_ACTION_KEY, BREAKER_FUNC_KEY, ACTION_DURATION, ACTION_SPEED_KEY, HANG_DURING_ACTION_KEY, DRIVER_SERIAL_PORT
 from ..constant import HANG_TIME_MAX_ERROR
 from .algrithm_tools import multiply, factor_list_multiply
 from .timer import delay_ms, calc_hang_time
@@ -19,7 +19,7 @@ CACHE_DIR = os.environ.get(ENV_CACHE_DIR_PATH)
 
 class ActionFrame:
     _controller: CloseLoopController = CloseLoopController(motor_ids=MOTOR_IDS, motor_dirs=MOTOR_DIRS,
-                                                           debug=DRIVER_DEBUG_MODE)
+                                                           debug=DRIVER_DEBUG_MODE, port=DRIVER_SERIAL_PORT)
     _instance_cache: Dict = {}
     _PRE_COMPILE_CMD: bool = PRE_COMPILE_CMD
     # TODO: since the PRE_COMPILE_CMD is not stored inside of the instance so we should clean the cache on it changed
