@@ -187,6 +187,10 @@ def is_list_all_zero(lst: Sequence[int]) -> bool:
     return all(element == 0 for element in lst)
 
 
+def is_rotate_cmd(lst: Tuple[int, int, int, int]) -> bool:
+    return lst[0] == lst[1] and lst[2] == lst[3] and lst[0] + lst[2] == 0
+
+
 def makeCmd_list(cmd_list: List[str]) -> ByteString:
     """
     encode a list of cmd strings into a single bstring
