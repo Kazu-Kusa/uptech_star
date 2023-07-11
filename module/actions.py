@@ -74,7 +74,8 @@ class ActionFrame:
         :param action_duration: the duration of the action
         :param breaker_func: used to break the action during move,exit the action when the breaker returns True
         :param break_action: the object type is ActionFrame,
-        the action that will be executed when the breaker is activated,
+        the action that will be executed when the breaker is activated
+        :param hang_time: the time during which the serial channel will be hang up,to save the cpu time
         """
 
         if self._PRE_COMPILE_CMD:
@@ -105,7 +106,7 @@ class ActionFrame:
         if self._PRE_COMPILE_CMD:
             self._controller.append_to_stack(byte_string=self._action_cmd, hang_time=self._hang_time)
         else:
-            self._controller.set_motors_speed(speed_list=self._action_speed_list)
+            self._controller.set_motors_speed(speed_list=self._action_speed_list, hang_time=self._hang_time)
         if self._action_duration and delay_ms(milliseconds=self._action_duration, breaker_func=self._breaker_func):
             return self._break_action
 
