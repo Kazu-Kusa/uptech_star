@@ -5,9 +5,24 @@ from typing import Tuple, Dict
 CONFIG_FILE: str = './config.json'
 PACKAGE_ROOT = os.path.abspath(os.path.dirname(__file__))
 PATH_CONFIG = os.path.join(PACKAGE_ROOT, CONFIG_FILE)
-with open(PATH_CONFIG, mode='r') as config_file:
-    config: Dict = json.load(config_file)
 
+
+def read_config() -> Dict:
+    try:
+        with open(PATH_CONFIG, mode='r') as config_file:
+            config: Dict = json.load(config_file)
+        return config
+    except FileNotFoundError:
+        raise Exception("config file not found")
+    except json.JSONDecodeError:
+        raise Exception("failed to decode config file")
+
+
+try:
+    config: Dict = read_config()
+except Exception as e:
+    print("failed to load config：", e)
+    # 可以选择终止程序或使用默认配置
 FAN_GPIO_PWM: int = 18
 FAN_pulse_frequency: int = 20000
 FAN_duty_time_us: int = 1000000
