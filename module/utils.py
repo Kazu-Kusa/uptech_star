@@ -33,12 +33,7 @@ def resize(src: np.ndarray, scale_percent: float) -> np.ndarray:
     :param scale_percent: 缩放比例，控制图像变小的程度。取值范围为[0,100]。
     :return: 缩放后的图像数据，类型为np.ndarray。
     """
-    width = int(src.shape[1] * scale_percent / 100)
-    height = int(src.shape[0] * scale_percent / 100)
-    dim = (width, height)
-    # resize image
-    resized = cv2.resize(src, dim, interpolation=cv2.INTER_AREA)
-    return resized
+    return cv2.resize(src, dsize=None, fx=scale_percent, fy=scale_percent, interpolation=cv2.INTER_AREA)
 
 
 def calcGrayHist(src: np.ndarray) -> np.ndarray:
