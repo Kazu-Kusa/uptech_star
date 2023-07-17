@@ -26,7 +26,7 @@ class Camera(object):
         self._frame_center = (int(width / 2), int(height / 2))
 
     @property
-    def get_frame_center(self) -> Tuple[int, int]:
+    def frame_center(self) -> Tuple[int, int]:
         return self._frame_center
 
     def set_cam_resolution(self, new_width: Optional[int] = None, new_height: Optional[int] = None,
@@ -45,15 +45,15 @@ class Camera(object):
         self._read_status, self._frame = self._camera.read()
 
     @property
-    def get_latest_read_status(self) -> bool:
+    def latest_read_status(self) -> bool:
         return self._read_status
 
     @property
-    def get_latest_frame(self):
+    def latest_frame(self):
         return self._frame
 
     @property
-    def get_camera_device(self) -> cv2.VideoCapture:
+    def camera_device(self) -> cv2.VideoCapture:
         return self._camera
 
     def test_frame_time(self, test_frames_count: int = 600) -> float:
