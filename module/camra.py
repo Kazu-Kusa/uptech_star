@@ -9,7 +9,7 @@ class Camera(object):
 
     def __init__(self, device_id: int = 0):
         # 使用 cv2.VideoCapture(0) 创建视频捕获对象，从默认摄像头捕获视频。
-        self._camera: Optional[Any] = None
+        self._camera: Optional[cv2.VideoCapture] = None
         self.open_camera(device_id)
         self._read_status, self._frame = self._camera.read()
         if self._camera and self._read_status:
