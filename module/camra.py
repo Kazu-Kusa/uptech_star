@@ -1,57 +1,76 @@
 import warnings
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 import cv2
 
 
 class Camera(object):
-    # 使用 cv2.VideoCapture(0) 创建视频捕获对象，从默认摄像头捕获视频。
-    __camera = cv2.VideoCapture(0)
-    __read_status, __frame = __camera.read()
-    if __camera and __read_status:
-        origin_width: int = __camera.get(cv2.CAP_PROP_FRAME_WIDTH)
-        origin_height: int = __camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        __frame_center: Tuple = (int(origin_width / 2), int(origin_height / 2))
-        print(f"CAMERA RESOLUTION：{int(origin_width)}x{int(origin_height)}|CAM CENTER: [{__frame_center}]")
-    else:
-        warnings.warn('########CAN\'T GET VIDEO########\n'
-                      'please check if the camera is attached!')
 
-    @classmethod
-    def update_cam_center(cls) -> None:
-        width = cls.__camera.get(cv2.CAP_PROP_FRAME_WIDTH)
-        height = cls.__camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        cls.__frame_center = (int(width / 2), int(height / 2))
+    def __init__(self, device_id: int = 0):
+        # 使用 cv2.VideoCapture(0) 创建视频捕获对象，从默认摄像头捕获视频。
+        self._camera = cv2.VideoCapture(device_id)
+        self._read_status, self._frame = self._camera.read()
+        if self._camera and self._read_status:
+            self.origin_width: int = int(self._camera.get(cv2.CAP_PROP_FRAME_WIDTH))
+            self.origin_height: int = int(self._camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            self._frame_center: Tuple = (int(self.origin_width / 2), int(self.origin_height / 2))
+            print(f"CAMERA RESOLUTION：{int(self.origin_width)}x{int(self.origin_height)}\n"
+                  f"CAM CENTER: [{self._frame_center}]")
+        else:
+            warnings.warn('########CAN\'T GET VIDEO########\n'
+                          'please check if the camera is attached!')
 
-    @classmethod
-    def get_frame_center(cls) -> Tuple[int, int]:
-        return cls.__frame_center
+    def update_cam_center(self) -> None:
+        width = self._camera.get(cv2.CAP_PROP_FRAME_WIDTH)
+        height = self._camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        self._frame_center = (int(width / 2), int(height / 2))
 
-    @classmethod
-    def set_cam_resolution(cls, new_width: Optional[int] = None, new_height: Optional[int] = None,
+    @property
+    def get_frame_center(self) -> Tuple[int, int]:
+        return self._frame_center
+
+    def set_cam_resolution(self, new_width: Optional[int] = None, new_height: Optional[int] = None,
                            multiplier: Optional[float] = None) -> None:
         assert (new_width is not None and new_height is not None) or (
                 multiplier is not None), 'Please specify the resolution params'
         if multiplier:
-            cls.__camera.set(cv2.CAP_PROP_FRAME_WIDTH, int(multiplier * cls.origin_width))
-            cls.__camera.set(cv2.CAP_PROP_FRAME_HEIGHT, int(multiplier * cls.origin_height))
+            self._camera.set(cv2.CAP_PROP_FRAME_WIDTH, int(multiplier * self.origin_width))
+            self._camera.set(cv2.CAP_PROP_FRAME_HEIGHT, int(multiplier * self.origin_height))
         else:
-            cls.__camera.set(cv2.CAP_PROP_FRAME_WIDTH, new_width)
-            cls.__camera.set(cv2.CAP_PROP_FRAME_HEIGHT, new_height)
-        cls.update_cam_center()
+            self._camera.set(cv2.CAP_PROP_FRAME_WIDTH, new_width)
+            self._camera.set(cv2.CAP_PROP_FRAME_HEIGHT, new_height)
+        self.update_cam_center()
 
-    @classmethod
-    def update_frame(cls) -> None:
-        cls.__read_status, cls.__frame = cls.__camera.read()
+    def update_frame(self) -> None:
+        self._read_status, self._frame = self._camera.read()
 
-    @classmethod
-    def get_latest_read_status(cls) -> bool:
-        return cls.__read_status
+    @property
+    def get_latest_read_status(self) -> bool:
+        return self._read_status
 
-    @classmethod
-    def get_latest_frame(cls):
-        return cls.__frame
+    @property
+    def get_latest_frame(self):
+        return self._frame
 
-    @classmethod
-    def get_camera_device(cls) -> cv2.VideoCapture:
-        return cls.__camera
+    @property
+    def get_camera_device(self) -> cv2.VideoCapture:
+        return self._camera
+
+    def test_frame_time(self, test_frames_count: int = 600) -> float:
+        """
+        test the frame time on the given count and return the average value of it
+        :param test_frames_count:
+        :return:
+        """
+        from timeit import repeat
+        from numpy import mean, std
+        durations: List[float] = repeat(stmt=self.update_frame, number=1, repeat=test_frames_count)
+        hall_duration: float = sum(durations)
+        average_duration: float = float(mean(hall_duration))
+        std_error = std(a=durations, ddof=1)
+        print("Frame Time Test Results: \n"
+              f"\tRunning on [{test_frames_count}] frame updates\n"
+              f"\tTotal Time Cost: [{hall_duration}]\n"
+              f"\tAverage Frame time: [{average_duration}]\n"
+              f"\tStd Error: [{std_error}]\n")
+        return average_duration
