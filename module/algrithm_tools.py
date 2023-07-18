@@ -134,6 +134,16 @@ def random_sign() -> int:
     return choice([-1, 1])
 
 
+def random_enlarge_multiplier() -> float:
+    return choice([1.0, 1.05, 1.10, 1.15, 1.20, 1.25, 1.30, 1.35, 1.40, 1.45,
+                   1.50, 1.55, 1.60, 1.65, 1.70, 1.75, 1.80, 1.85, 1.90, 1.95, 2.00])
+
+
+def random_shrink_multiplier() -> float:
+    return choice([0.5, 0.525, 0.55, 0.575, 0.6, 0.625, 0.65, 0.675, 0.7, 0.725,
+                   0.75, 0.775, 0.8, 0.825, 0.85, 0.875, 0.9, 0.925, 0.95, 0.975, 1.0])
+
+
 def calc_p2p_dst(point_1: Tuple[int | float, int | float], point_2: Tuple[int | float, int | float]) -> float:
     return ((point_1[0] - point_2[0]) ** 2 + (
             point_1[1] - point_2[1]) ** 2) ** 0.5
