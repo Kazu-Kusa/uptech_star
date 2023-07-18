@@ -2,7 +2,7 @@ import time
 import timeit
 import warnings
 from random import choice
-from typing import List, Union, Sequence, Tuple
+from typing import List, Union, Sequence, Tuple, Any
 
 from .db_tools import persistent_lru_cache, CacheFILE
 from ..constant import ENV_CACHE_DIR_PATH
@@ -137,3 +137,7 @@ def random_sign() -> int:
 def calc_p2p_dst(point_1: Tuple[int | float, int | float], point_2: Tuple[int | float, int | float]) -> float:
     return ((point_1[0] - point_2[0]) ** 2 + (
             point_1[1] - point_2[1]) ** 2) ** 0.5
+
+
+def calc_p2p_error(start: Tuple[int | float, int | float], target: Tuple[int | float, int | float]) -> Tuple:
+    return tuple(y - x for x, y in zip(start, target))
