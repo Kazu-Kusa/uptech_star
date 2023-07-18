@@ -73,11 +73,12 @@ class ActionFrame:
         :param action_speed: the speed of the action
         :param action_duration: the duration of the action
         :param breaker_func: used to break the action during move,exit the action when the breaker returns True
-        :param break_action: the object type is ActionFrame,
-        the action that will be executed when the breaker is activated
+        :param break_action: the object type is ActionFrame or List[ActionFrame],the action that will be executed when
+                the breaker is activated,overriding all frames that haven't been executed
         :param hang_time: the time during which the serial channel will be hang up,to save the cpu time
         """
-
+        if break_action:
+            assert bool(breaker_func), "breaker_func can not be None"
         if self._PRE_COMPILE_CMD:
             # pre-compile the command
             if is_list_all_zero(action_speed):
@@ -250,7 +251,8 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
         action_duration = multiply(action_duration, action_duration_multiplier)
     return ActionFrame(action_speed=action_speed_list, action_duration=action_duration,
                        breaker_func=breaker_func, break_action=break_action,
-                       hang_time=calc_hang_time(action_duration, HANG_TIME_MAX_ERROR)
+                       hang_time=calc_hang_time(action_duration,
+                                                HANG_TIME_MAX_ERROR)  # will be 0 if breaker is specified
                        if hang_during_action or (hang_during_action is None and not bool(breaker_func)) else 0)
 
 
