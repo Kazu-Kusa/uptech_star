@@ -2,11 +2,13 @@ from multiprocessing import Process
 import time
 import warnings
 from time import sleep, time
-from typing import Tuple, List
+from typing import Tuple, List, Dict
 
 from .algrithm_tools import calc_p2p_dst
 from .camra import Camera
 from ..constant import TAG_GROUP
+
+TABLE_INIT_VALUE = (None, 0.)
 
 CAMERA_RESOLUTION_MULTIPLIER = 0.4
 
@@ -42,17 +44,30 @@ class TagDetector:
                                               debug=False,
                                               quad_contours=True)).detect
 
-    def __init__(self, camera: Camera, team_color: str = '', start_detect_tag: bool = True, max_fps: int = 20):
-        self._camera = camera
+    def __init__(self, camera: Camera, team_color: str, start_detect_tag: bool = True, max_fps: int = 20):
+        self._camera: Camera = camera
+        self._tags_table: Dict[int, Tuple] = {}
+        self._tags: List = []
         self._tag_id: int = -1
         self._tag_monitor_switch: bool = False
         self._enemy_tag: int = -999
         self._ally_tag: int = -999
+        self._neutral_tag: int = -999
         self._max_fps: int = max_fps
-        if team_color:
-            self.set_tags(team_color)
+
+        self.set_tags(team_color)
+        self._init_tags_table()
         if start_detect_tag:
             self.apriltag_detect_start()
+
+    def _init_tags_table(self):
+        """
+        the tags table stores the tag obj and the distance to the camera center
+        :return:
+        """
+        self._tags_table[self._enemy_tag] = TABLE_INIT_VALUE
+        self._tags_table[self._ally_tag] = TABLE_INIT_VALUE
+        self._tags_table[self._neutral_tag] = TABLE_INIT_VALUE
 
     def set_tags(self, team_color: str = 'blue'):
         """
@@ -63,6 +78,7 @@ class TagDetector:
         :param team_color: blue or yellow
         :return:
         """
+        self._neutral_tag = 0
         if team_color == 'blue':
             self._enemy_tag = 2
             self._ally_tag = 1
@@ -91,7 +107,8 @@ class TagDetector:
         fps: int = 0
         while self._camera.latest_read_status:
             if self.tag_monitor_switch:  # 台上开启 台下关闭 节约性能
-                self._apriltag_detect(single_tag_mode)
+                self._update_tags()
+                self._update_tag_id(single_tag_mode)
                 if time() - start_time < 1:
                     # TODO: such fps limiter may not be accurate
                     fps += 1
@@ -109,20 +126,54 @@ class TagDetector:
                       '###ENTERING NO CAMERA MODE###')
         self._tag_id = -1
 
-    def _apriltag_detect(self, single_tag_mode):
+    def _update_tags(self):
+        """
+        update tags from the newly sampled frame
+        :return:
+        """
         self._camera.update_frame()
         frame = self._camera.latest_frame
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)  # 将帧转换为灰度并存储在 gray 变量中。
-        # 使用 AprilTag 检测器对象（self.tag_detector）在灰度帧中检测 AprilTags。检测到的标记存储在 tags 变量中。
-        tags: List = self.__tag_detector.detect(gray)
-        if tags:
-            if len(tags) == 1 or single_tag_mode:
-                self._tag_id = tags[0].tag_id
-            else:
-                self._tag_id = get_center_tag(frame_center=self._camera.frame_center, tags=tags).tag_id
-        else:
-            # if not tags detected,return to default
+        # 使用 AprilTag 检测器对象（self.tag_detector）在灰度帧中检测 AprilTags。检测到的标记存储在 self._tags 变量中。
+        self._tags: List = self.__tag_detector.detect(gray)
+        if self._tags:
+            # override old tags
+            self._init_tags_table()
+            for tag in self._tags:
+                self._tags_table[tag.tag_id] = (tag, calc_p2p_dst(tag.center, self._camera.frame_center))
+
+    def _update_tag_id(self, single_tag_mode):
+        """
+        update the tag id from the self._tags_table
+        :param single_tag_mode:
+        :return:
+        """
+
+        def single_mode():
             self._tag_id = -1
+            for tag_data in self._tags_table.values():
+                if tag_data[0]:
+                    self._tag_id = tag_data[0].tag_id
+                    break
+
+        def nearest_mode():
+            closest_dist = float('inf')
+            closest_tag = None
+            for tag_data in self._tags_table.values():
+                # check the tag obj is valid and compare with the closest tag
+                if tag_data[0] and tag_data[1] < closest_dist:
+                    closest_dist = tag_data[1]
+                    closest_tag = tag_data[0]
+            self._tag_id = closest_tag.tag_id if closest_tag else -1
+
+        if single_tag_mode:
+            single_mode()
+        else:
+            nearest_mode()
+
+    @property
+    def tag_table(self):
+        return self._tags_table
 
     @property
     def tag_id(self):
