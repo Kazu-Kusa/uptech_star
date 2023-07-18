@@ -4,7 +4,7 @@ import warnings
 from time import sleep, time
 from typing import Tuple, List, Dict
 
-from .algrithm_tools import calc_p2p_dst
+from .algrithm_tools import calc_p2p_dst, calc_p2p_error
 from .camra import Camera
 from ..constant import TAG_GROUP
 
@@ -50,13 +50,13 @@ class TagDetector:
 
     def __init__(self, camera: Camera, team_color: str, start_detect_tag: bool = True, max_fps: int = 20):
         self._camera: Camera = camera
-        self._tags_table: Dict[int, Tuple] = {}
+        self._tags_table: Dict[int, Tuple] = {}  # Dict[int, Tuple[Apriltag, Tuple[float,float]]]
         self._tags: List = []
         self._tag_id: int = DEFAULT_TAG_ID
         self._tag_monitor_switch: bool = False
-        self._enemy_tag: int = NULL_TAG
-        self._ally_tag: int = NULL_TAG
-        self._neutral_tag: int = NULL_TAG
+        self._enemy_tag_id: int = NULL_TAG
+        self._ally_tag_id: int = NULL_TAG
+        self._neutral_tag_id: int = NULL_TAG
         self._max_fps: int = max_fps
 
         self.set_tags(team_color)
@@ -69,9 +69,9 @@ class TagDetector:
         the tags table stores the tag obj and the distance to the camera center
         :return:
         """
-        self._tags_table[self._enemy_tag] = TABLE_INIT_VALUE
-        self._tags_table[self._ally_tag] = TABLE_INIT_VALUE
-        self._tags_table[self._neutral_tag] = TABLE_INIT_VALUE
+        self._tags_table[self._enemy_tag_id] = TABLE_INIT_VALUE
+        self._tags_table[self._ally_tag_id] = TABLE_INIT_VALUE
+        self._tags_table[self._neutral_tag_id] = TABLE_INIT_VALUE
 
     def set_tags(self, team_color: str = 'blue'):
         """
@@ -82,13 +82,13 @@ class TagDetector:
         :param team_color: blue or yellow
         :return:
         """
-        self._neutral_tag = 0
+        self._neutral_tag_id = 0
         if team_color == 'blue':
-            self._enemy_tag = 2
-            self._ally_tag = 1
+            self._enemy_tag_id = 2
+            self._ally_tag_id = 1
         elif team_color == 'yellow':
-            self._enemy_tag = 1
-            self._ally_tag = 2
+            self._enemy_tag_id = 1
+            self._ally_tag_id = 2
 
     def apriltag_detect_start(self, **kwargs):
         """
@@ -144,7 +144,7 @@ class TagDetector:
             # override old tags
             self._init_tags_table()
             for tag in self._tags:
-                self._tags_table[tag.tag_id] = (tag, calc_p2p_dst(tag.center, self._camera.frame_center))
+                self._tags_table[tag.tag_id] = (tag, calc_p2p_error(tag.center, self._camera.frame_center))
 
     def _update_tag_id(self, single_tag_mode):
         """
@@ -166,7 +166,7 @@ class TagDetector:
             for tag_data in self._tags_table.values():
                 # check the tag obj is valid and compare with the closest tag
                 if tag_data[0] and tag_data[1] < closest_dist:
-                    closest_dist = tag_data[1]
+                    closest_dist = abs(tag_data[1][0])
                     closest_tag = tag_data[0]
             self._tag_id = closest_tag.tag_id if closest_tag else DEFAULT_TAG_ID
 
@@ -202,9 +202,25 @@ class TagDetector:
             self._tag_id = DEFAULT_TAG_ID
 
     @property
-    def ally_tag(self):
-        return self._ally_tag
+    def ally_tag_id(self):
+        return self._ally_tag_id
 
     @property
-    def enemy_tag(self):
-        return self._enemy_tag
+    def enemy_tag_id(self):
+        return self._enemy_tag_id
+
+    @property
+    def neutral_tag_id(self):
+        return self._neutral_tag_id
+
+    @property
+    def ally_tag_data(self) -> Tuple[object, Tuple[float, float]]:
+        return self._tags_table.get(self._ally_tag_id)
+
+    @property
+    def enemy_tag_data(self) -> Tuple[object, Tuple[float, float]]:
+        return self._tags_table.get(self._enemy_tag_id)
+
+    @property
+    def neutral_tag_data(self) -> Tuple[object, Tuple[float, float]]:
+        return self._tags_table.get(self._neutral_tag_id)
