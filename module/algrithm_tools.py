@@ -144,6 +144,11 @@ def random_shrink_multiplier() -> float:
                    0.75, 0.775, 0.8, 0.825, 0.85, 0.875, 0.9, 0.925, 0.95, 0.975, 1.0])
 
 
+def random_float_multiplier() -> float:
+    return choice([0.75, 0.775, 0.8, 0.825, 0.85, 0.875, 0.9, 0.925, 0.95, 0.975,
+                   1.0, 1.025, 1.05, 1.075, 1.1, 1.125, 1.15, 1.175, 1.2, 1.225, 1.25])
+
+
 def calc_p2p_dst(point_1: Tuple[int | float, int | float], point_2: Tuple[int | float, int | float]) -> float:
     return ((point_1[0] - point_2[0]) ** 2 + (
             point_1[1] - point_2[1]) ** 2) ** 0.5
