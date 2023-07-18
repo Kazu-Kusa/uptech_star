@@ -8,6 +8,10 @@ from .algrithm_tools import calc_p2p_dst
 from .camra import Camera
 from ..constant import TAG_GROUP
 
+DEFAULT_TAG_ID = -1
+
+NULL_TAG = -999
+
 TABLE_INIT_VALUE = (None, 0.)
 
 CAMERA_RESOLUTION_MULTIPLIER = 0.4
@@ -48,11 +52,11 @@ class TagDetector:
         self._camera: Camera = camera
         self._tags_table: Dict[int, Tuple] = {}
         self._tags: List = []
-        self._tag_id: int = -1
+        self._tag_id: int = DEFAULT_TAG_ID
         self._tag_monitor_switch: bool = False
-        self._enemy_tag: int = -999
-        self._ally_tag: int = -999
-        self._neutral_tag: int = -999
+        self._enemy_tag: int = NULL_TAG
+        self._ally_tag: int = NULL_TAG
+        self._neutral_tag: int = NULL_TAG
         self._max_fps: int = max_fps
 
         self.set_tags(team_color)
@@ -124,7 +128,7 @@ class TagDetector:
                 sleep(0.4)
         warnings.warn('\n##########CAMERA LOST###########\n'
                       '###ENTERING NO CAMERA MODE###')
-        self._tag_id = -1
+        self._tag_id = DEFAULT_TAG_ID
 
     def _update_tags(self):
         """
@@ -150,7 +154,7 @@ class TagDetector:
         """
 
         def single_mode():
-            self._tag_id = -1
+            self._tag_id = DEFAULT_TAG_ID
             for tag_data in self._tags_table.values():
                 if tag_data[0]:
                     self._tag_id = tag_data[0].tag_id
@@ -164,7 +168,7 @@ class TagDetector:
                 if tag_data[0] and tag_data[1] < closest_dist:
                     closest_dist = tag_data[1]
                     closest_tag = tag_data[0]
-            self._tag_id = closest_tag.tag_id if closest_tag else -1
+            self._tag_id = closest_tag.tag_id if closest_tag else DEFAULT_TAG_ID
 
         if single_tag_mode:
             single_mode()
@@ -195,7 +199,7 @@ class TagDetector:
         """
         if switch != self._tag_monitor_switch:
             self._tag_monitor_switch = switch
-            self._tag_id = -1
+            self._tag_id = DEFAULT_TAG_ID
 
     @property
     def ally_tag(self):
