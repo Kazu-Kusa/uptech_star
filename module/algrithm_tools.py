@@ -132,3 +132,8 @@ def multiply(factor_1: Union[float, int], factor_2: Union[float, int]) -> int:
 
 def random_sign() -> int:
     return choice([-1, 1])
+
+
+def calc_p2p_dst(point_1: Tuple[int | float, int | float], point_2: Tuple[int | float, int | float]) -> float:
+    return ((point_1[0] - point_2[0]) ** 2 + (
+            point_1[1] - point_2[1]) ** 2) ** 0.5

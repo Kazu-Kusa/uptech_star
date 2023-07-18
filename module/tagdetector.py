@@ -4,6 +4,7 @@ import warnings
 from time import sleep, time
 from typing import Tuple, List
 
+from .algrithm_tools import calc_p2p_dst
 from .camra import Camera
 from ..constant import TAG_GROUP
 
@@ -14,11 +15,6 @@ try:
     from apriltag import Detector, DetectorOptions
 except ImportError:
     warnings.warn('failed to import vision deps')
-
-
-def calc_p2p_dst(point_1: Tuple[int | float, int | float], point_2: Tuple[int | float, int | float]) -> float:
-    return ((point_1[0] - point_2[0]) ** 2 + (
-            point_1[1] - point_2[1]) ** 2) ** 0.5
 
 
 def get_center_tag(frame_center: Tuple[int, int], tags: List):
