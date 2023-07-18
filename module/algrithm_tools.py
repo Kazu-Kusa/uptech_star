@@ -1,7 +1,7 @@
 import time
 import timeit
 import warnings
-from random import choice
+from random import choice, uniform
 from typing import List, Union, Sequence, Tuple, Any
 
 from .db_tools import persistent_lru_cache, CacheFILE
@@ -132,6 +132,14 @@ def multiply(factor_1: Union[float, int], factor_2: Union[float, int]) -> int:
 
 def random_sign() -> int:
     return choice([-1, 1])
+
+
+def random_enlarge_multiplier() -> float:
+    return uniform(1., 2.)
+
+
+def random_shrink_multiplier() -> float:
+    return uniform(0.5, 1.)
 
 
 def calc_p2p_dst(point_1: Tuple[int | float, int | float], point_2: Tuple[int | float, int | float]) -> float:
