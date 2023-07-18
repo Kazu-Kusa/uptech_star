@@ -1,6 +1,7 @@
 import time
 import timeit
 import warnings
+from random import choice
 from typing import List, Union, Sequence, Tuple
 
 from .db_tools import persistent_lru_cache, CacheFILE
@@ -127,3 +128,7 @@ def factor_list_multiply(factor: Union[float, int],
 
 def multiply(factor_1: Union[float, int], factor_2: Union[float, int]) -> int:
     return int(factor_2 * factor_1)
+
+
+def random_sign() -> int:
+    return choice([-1, 1])
