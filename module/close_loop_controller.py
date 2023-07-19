@@ -24,7 +24,7 @@ class CloseLoopController:
             def serial_handler(data: ByteString):
                 print(data)
 
-            self._serial.set_on_data_received_handler(serial_handler)
+            self._serial.set_data_handler(serial_handler)
             self._serial.start_read_thread()
         # 发送的数据队列
         self._motor_speeds: Tuple[int, int, int, int] = (0, 0, 0, 0)
@@ -170,7 +170,7 @@ class CloseLoopController:
             def handler(data: ByteString):
                 print(f'\nout[{ct}]: {data}')
 
-            self._serial.set_on_data_received_handler(handler)
+            self._serial.set_data_handler(handler)
         while True:
             user_input = input(f'\rin[{ct}]: ')
             ct += 1
