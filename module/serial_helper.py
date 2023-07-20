@@ -35,13 +35,16 @@ class ReadProtocol(Protocol):
         self._read_handler(data)
 
 
-def new_ReadProtocol(read_handler: Optional[ReadHandler] = None) -> ReadProtocol:
-    return ReadProtocol(read_handler)
+def new_ReadProtocol_factory(read_handler: Optional[ReadHandler] = None) -> Callable[[], ReadProtocol]:
+    def factory():
+        return ReadProtocol(read_handler)
+
+    return factory
 
 
 class SerialHelper:
 
-    def __init__(self, port: Optional[str] = None, serial_config: Optional[dict] = frozenset(SERIAL_KWARGS)):
+    def __init__(self, port: Optional[str] = None, serial_config: Optional[dict] = SERIAL_KWARGS):
         """
         :param serial_config: a dict that contains the critical transport parameters
         :param port: the serial port to use
@@ -168,9 +171,12 @@ class SerialHelper:
         """
         warnings.warn('##Start Read Thread##')
         self._read_thread = ReaderThread(serial_instance=self._serial,
-                                         protocol_factory=new_ReadProtocol(read_handler))
+                                         protocol_factory=new_ReadProtocol_factory(read_handler))
         self._read_thread.daemon = True
         self._read_thread.start()
+
+    def stop_read_thread(self) -> None:
+        self._read_thread.stop()
 
 
 def find_usb_tty(id_product: int = 0, id_vendor: int = 0) -> List[str]:
