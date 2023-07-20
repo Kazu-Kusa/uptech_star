@@ -105,7 +105,7 @@ class ActionFrame:
         # TODO: untested precompile option
 
         if self._PRE_COMPILE_CMD:
-            self._controller.append_to_stack(byte_string=self._action_cmd, hang_time=self._hang_time)
+            self._controller.append_to_queue(byte_string=self._action_cmd, hang_time=self._hang_time)
         else:
             self._controller.set_motors_speed(speed_list=self._action_speed_list, hang_time=self._hang_time)
         if self._action_duration and delay_ms(milliseconds=self._action_duration, breaker_func=self._breaker_func):
@@ -283,7 +283,7 @@ class ActionPlayer:
         self._action_frame_queue: List[ActionFrame] = []
 
     @property
-    def action_frame_stack(self):
+    def action_frame_queue(self):
         return self._action_frame_queue
 
     def append(self, action: ActionFrame, play_now: bool = True):
@@ -328,8 +328,7 @@ class ActionPlayer:
         """
         while self._action_frame_queue:
             # if action exit because breaker then it should return the break action or None
-            break_action: Optional[BreakAction] = self._action_frame_queue.pop(
-                0).action_start()
+            break_action: Optional[BreakAction] = self._action_frame_queue.pop(0).action_start()
             if break_action:
                 # the break action will override those ActionFrames that haven't been executed yet
                 self._action_frame_queue.clear()

@@ -29,11 +29,12 @@ class CloseLoopController:
         self._motor_speeds: Tuple[int, int, int, int] = (0, 0, 0, 0)
         self._motor_ids: Tuple[int, int, int, int] = motor_ids
         self._motor_dirs: Tuple[int, int, int, int] = motor_dirs
-        self._cmd_list: List[ByteString] = [makeCmd('RESET')]
-        self._hang_time_list: List[float] = [0.]
+        self._cmd_queue: List[ByteString] = [makeCmd('RESET')]
+        self._hang_time_queue: List[float] = [0.]
 
         self._msg_send_thread: Optional[Thread] = None
-        self._start_msg_sending()
+        self._msg_send_thread_should_run: bool = True
+        self.start_msg_sending()
 
     @property
     def motor_ids(self) -> Tuple[int, int, int, int]:
@@ -51,12 +52,13 @@ class CloseLoopController:
     def debug(self) -> bool:
         return self._debug
 
-    @debug.setter
-    def debug(self, debug: bool):
-        self._debug = debug
+    def stop_msg_sending(self) -> None:
+        self._msg_send_thread_should_run = False
+        self._msg_send_thread.join()
 
-    def _start_msg_sending(self) -> None:
+    def start_msg_sending(self) -> None:
         # 通信线程创建启动
+        self._msg_send_thread_should_run = True
         self._msg_send_thread = Thread(name="msg_send_thread", target=self._msg_sending_loop)
         self._msg_send_thread.daemon = True
         self._msg_send_thread.start()
@@ -67,27 +69,19 @@ class CloseLoopController:
         :return:
         """
         print(f"msg_sending_thread_start, the debugger is [{self._debug}]")
-
-        def sending_loop() -> None:
-            while True:
-                if self._cmd_list:
-                    self._serial.write(self._cmd_list.pop(0))
-                    if self._hang_time_list:
-                        sleep(self._hang_time_list.pop(0))
-
-        def sending_loop_debugging() -> None:
-            while True:
-                if self._cmd_list:
-                    temp = self._cmd_list.pop(0)
-                    print(f'\nwriting {temp} to channel,remaining {len(self._cmd_list)}')
-                    self._serial.write(temp)
-                    if self._hang_time_list:
-                        sleep(self._hang_time_list.pop(0))
-
         if self._debug:
-            sending_loop_debugging()
+            def sending_loop() -> None:
+                temp = self._cmd_queue.pop(0)
+                print(f'\n\rwriting {temp} to channel,remaining {len(self._cmd_queue)}')
+                self._serial.write(temp)
         else:
-            sending_loop()
+            def sending_loop() -> None:
+                self._serial.write(self._cmd_queue.pop(0))
+
+        while self._msg_send_thread_should_run:
+            if self._cmd_queue:
+                sending_loop()
+                sleep(self._hang_time_queue.pop(0)) if self._hang_time_queue else None
 
     def makeCmds_dirs(self, speed_list: Tuple[int, int, int, int]) -> ByteString:
         """
@@ -99,16 +93,15 @@ class CloseLoopController:
                              for motor_id, speed, direction in
                              zip(self._motor_ids, speed_list, self._motor_dirs)])
 
-    def append_to_stack(self, byte_string: ByteString, hang_time: float = 0.):
+    def append_to_queue(self, byte_string: ByteString, hang_time: float = 0.):
         """
         push the given byte string onto the stack
         :param hang_time:the time during which the cmd sender will hang up , to release the cpu
         :param byte_string:the string to write to the cmd_list
         :return:
         """
-        self._cmd_list.append(byte_string)
-        if hang_time:
-            self._hang_time_list.append(hang_time)
+        self._cmd_queue.append(byte_string)
+        self._hang_time_queue.append(hang_time) if hang_time else None
 
     def move_cmd(self, left_speed: int, right_speed: int) -> None:
         """
@@ -140,7 +133,7 @@ class CloseLoopController:
                         if speed != cur_speed]
 
             if cmd_list:
-                self.append_to_stack(byte_string=makeCmd_list(cmd_list), hang_time=hang_time)
+                self.append_to_queue(byte_string=makeCmd_list(cmd_list), hang_time=hang_time)
 
     def set_all_motors_speed(self, speed: int, hang_time: float = 0.) -> None:
         """
@@ -150,35 +143,33 @@ class CloseLoopController:
         :param hang_time:
         :return:
         """
-        self.append_to_stack(byte_string=makeCmd(f'v{speed}'), hang_time=hang_time)
+        self.append_to_queue(byte_string=makeCmd(f'v{speed}'), hang_time=hang_time)
         self._motor_speeds = (speed, speed, speed, speed)
 
-    def open_userInput_channel(self, debug: bool = False) -> None:
+    def open_userInput_channel(self) -> None:
         """
         open a user input channel for direct access to the driver
         :return:
         """
 
         ct = 0
-        print('\n\nuser input channel opened\nplease enter cmd below,enter [exit] to end the channel')
-        debug_temp = self._debug
-        self._debug = debug
-        if self._debug:
-            def handler(data: ByteString):
-                print(f'\nout[{ct}]: {data}')
+        print('\n\nuser input channel opened\n'
+              'please enter cmd below,enter [exit] to end the channel')
 
-            self._serial.start_read_thread(handler)
+        def handler(data: ByteString):
+            print(f'\n\rout[{ct}]: {data}')
 
-        while True:
-            user_input = input(f'\rin[{ct}]: ')
-            ct += 1
-            # 对输入的内容进行处理
-            if user_input == 'exit':
-                print('\nuser input channel closed')
-                self._debug = debug_temp
-                break
-            else:
-                self.append_to_stack(byte_string=makeCmd(user_input))
+        self._serial.start_read_thread(handler)
+
+        try:
+            while True:
+                user_input = input(f'\n\rin[{ct}]: ')
+                ct += 1
+                # 对输入的内容进行处理
+                self.append_to_queue(byte_string=makeCmd(user_input))
+        except KeyboardInterrupt:
+            self._serial.stop_read_thread()
+            print('\n\ruser input channel closed')
 
 
 def is_list_all_zero(lst: Sequence[int]) -> bool:
