@@ -1,137 +1,108 @@
 from time import sleep
 from typing import List, Callable, Any, Optional, ByteString
 import serial
-from serial import Serial
+from serial import Serial, EIGHTBITS, PARITY_NONE, STOPBITS_ONE
 from serial.tools.list_ports import comports
+from serial.threaded import ReaderThread, Protocol
+from serial.serialutil import SerialException
 import warnings
-from threading import Thread
-import threading
+
+ReadHandler = Callable[[bytes | bytearray], Optional[Any]]
+SERIAL_KWARGS = {'baudrate': 115200,
+                 'bytesize': EIGHTBITS,
+                 'parity': PARITY_NONE,
+                 'stopbits': STOPBITS_ONE,
+                 'timeout': 2}
+
+CODING_METHOD = 'ascii'
+
+
+def default_read_handler(data: bytes | bytearray) -> None:
+    print(f'\n##Received:{data.decode(CODING_METHOD)}')
+
+
+class ReadProtocol(Protocol):
+
+    def __init__(self, read_handler: Optional[ReadHandler] = None):
+        self._read_handler: ReadHandler = read_handler if read_handler else lambda data: None
+
+    def connection_made(self, transport):
+        """Called when reader thread is started"""
+        warnings.warn('##ReadProtocol has been Set##')
+
+    def data_received(self, data):
+        """Called with snippets received from the serial port"""
+        self._read_handler(data)
+
+
+def new_ReadProtocol(read_handler: Optional[ReadHandler] = None) -> ReadProtocol:
+    return ReadProtocol(read_handler)
 
 
 class SerialHelper:
-    """
-    所有共享状态变量（如 _serial 和 _is_connected）的访问都添加了对应的锁获取和释放操作。
 
-    而使用 DummyLock 可以不影响程序性能并且可以消除后面调用锁时可能会出现的 NoneType Error 问题。
-    另外，在新代码中，我们新增了 start_read_thread 方法和 _on_data_received_handler 回调函数，
-    可以统一应对串口设备发送过来的数据，并且用户也可以使用 set_data_handler 方法通过传入回调函数的方式来自定义处理接收到的数据。
-    """
-
-    def __init__(self, port: Optional[str] = None,
-                 baud_rate: int = 115200, bytesize: int = 8, parity: str = 'N', stop_bits: int = 1,
-                 con2port_when_created: bool = True, auto_search_port: bool = True):
+    def __init__(self, port: Optional[str] = None, serial_config: Optional[dict] = frozenset(SERIAL_KWARGS)):
         """
-
-        :param port:
-        :param baud_rate:
-        :param bytesize:
-        :param parity:
-        :param stop_bits:
-        :param con2port_when_created:
-        :param auto_search_port:
+        :param serial_config: a dict that contains the critical transport parameters
+        :param port: the serial port to use
         """
-        assert find_serial_ports(), "No serial ports FOUND!"
-        self._serial: Optional[Serial] = None
-        self._serial_port: str = port if port else find_serial_ports()[0]
-        self._baud_rate: int = baud_rate
-        self._bytesize: int = bytesize
-        self._parity: str = parity
-        self._stop_bits: int = stop_bits
+        available_serial_ports = find_serial_ports()
+        assert available_serial_ports, "No serial ports FOUND!"
 
-        self._serial_lock: DummyLock = DummyLock()
-        self._is_connected_lock: DummyLock = DummyLock()
-        self._is_connected: bool = False
+        if port:
+            self._serial: Optional[Serial] = Serial(port=port, **serial_config)
+        else:
+            # try to search for a new port
+            warnings.warn('Searching available Ports')
+            print(f'Available ports: {available_serial_ports}')
+            for i in available_serial_ports:
+                port = i
+                print(f'try to open to {port}')
+                if self.open():
+                    break
 
-        self._read_thread_should_stop: Optional[bool] = None
-        self._read_thread: Optional[Thread] = None
-        self._on_data_handler: Optional[Callable[[ByteString], Optional[Any]]] = None
-        if con2port_when_created:
-            if self._serial_port:
-                self.connect(logging=True)
-            if not self.is_connected and auto_search_port:
-                # connection to the default has failed
-                # try to search for a new port
-                warnings.warn('Searching available Ports')
-                ports = find_serial_ports()
-                print(f'Available ports: {ports}')
-                for i in ports:
-                    self.serial_port = i
-                    print(f'try to connect to {self._serial_port}')
-                    if self.connect():
-                        break
+        self._read_thread: Optional[ReaderThread] = None
 
     @property
     def is_connected(self) -> bool:
-        with self._is_connected_lock:
-            return self._is_connected
+
+        return self._serial.isOpen()
 
     @property
     def serial_port(self) -> str:
-        return self._serial_port
+        return self._serial.port
 
     @serial_port.setter
     def serial_port(self, value: str):
-        self._serial_port = value
+        """
+        pyserial will reopen the serial port on the serial port change
+        :param value:
+        :return:
+        """
+        self._serial.port = value
 
-    @property
-    def baud_rate(self) -> int:
-        return self._baud_rate
-
-    @property
-    def byte_size(self) -> int:
-        return self._bytesize
-
-    @property
-    def parity(self) -> str:
-        return self._parity
-
-    @property
-    def stop_bits(self) -> int:
-        return self._stop_bits
-
-    def connect(self, logging: bool = True) -> bool:
+    def open(self, logging: bool = True) -> bool:
         """
         Connect to the serial port with the settings specified in the instance attributes using a thread-safe mechanism.
         Return True if the connection is successful, else False.
         """
-
-        # 使用串口锁 `_serial_lock` 确保线程安全
-        with self._serial_lock:
-            # 如果当前尚未连接
-            if not self.is_connected:
-                try:
-                    # 创建一个 `Serial` 实例连接到对应的串口，并根据实例属性设置相关参数
-                    self._serial = serial.Serial(
-                        port=self.serial_port,
-                        baudrate=self.baud_rate,
-                        bytesize=self.byte_size,
-                        parity=self.parity,
-                        stopbits=self.stop_bits,
-                        timeout=1
-                    )
-                    # 设置成功连接标志为 True，使用连接标志锁 `_is_connected_lock` 确保线程安全
-                    with self._is_connected_lock:
-                        self._is_connected = True
-                    # 返回 True 表示连接成功
-                    if logging:
-                        print(f"Successfully connect to [{self._serial_port}]")
-                    return True
-                except serial.serialutil.SerialException:
-                    # 如果连接失败，则打印错误信息并返回 False 表示连接失败
-                    pass
+        # 如果当前尚未连接
+        try:
+            # 创建一个 `Serial` 实例连接到对应的串口，并根据实例属性设置相关参数
+            self._serial.open() if not self._serial.isOpen() else None
+            print(f"##INFO:: Successfully open [{self._serial.port}]##") if logging else None
             # 如果已经连接，直接返回 True 表示已连接
-            if logging:
-                print(f'##Failed to connect to [{self._serial_port}]##')
+            return True
+        except SerialException:
+            print(f'##INFO:: Failed to open [{self._serial.port}]##') if not self._serial.isOpen() and logging else None
             return False
 
-    def disconnect(self):
+    def close(self):
         """
         disconnects the connection
         :return:
         """
-        with self._serial_lock:
-            if self.is_connected and self._serial.isOpen():
-                self._serial.close()
+        self._serial.close()
 
     def write(self, data: ByteString) -> bool:
         """
@@ -157,88 +128,49 @@ class SerialHelper:
             1. 此方法需要确保串口设备已经连接并打开，并且调用此方法前应该先检查设备的状态是否正常。
             2. 在多线程或多进程环境下使用此方法时，需要确保对串口上下文对象（即 SerialPort 类的实例）进行正确的锁定保护，以避免多个线程或进程同时访问串口设备造成不可预期的错误。
         """
-        with self._serial_lock:
-            try:
-                if self.is_connected:
-                    self._serial.write(data)
-                    return True
-                else:
-                    warnings.warn("Connection is not set")
-            except serial.serialutil.SerialException as e:
-                warnings.warn(f"Serial write error: {e}", category=RuntimeWarning)
-        return False
+        try:
+            self._serial.write(data)
+            return True
+        except SerialException:
+            warnings.warn("#Exception:: Serial write error")
+            return False
 
     def read(self, length: int) -> ByteString:
         """
-                从串口设备中读取指定长度的字节数据。
+        从串口设备中读取指定长度的字节数据。
 
-                Args:
-                    length: 整数类型，要读取的字节长度。
+        Args:
+            length: 整数类型，要读取的字节长度。
 
-                Returns:
-                    字节串类型，表示所读取的字节数据。如果读取失败，则返回一个空字节串（b''）。
+        Returns:
+            字节串类型，表示所读取的字节数据。如果读取失败，则返回一个空字节串（b''）。
 
-                Raises:
-                    无异常抛出。
+        Raises:
+            无异常抛出。
 
-                Example:
-                    data = serial.read(length=10)
-                    print(data)
+        Example:
+            data = serial.read(length=10)
+            print(data)
 
-                Note:
-                    如果连接断开或者读取过程中发生异常，会在控制台打印错误信息并返回一个空字节串（b''）。
+        Note:
+            如果连接断开或者读取过程中发生异常，会在控制台打印错误信息并返回一个空字节串（b''）。
         """
-        with self._serial_lock:
-            if self.is_connected:
-                try:
-                    data: bytes = self._serial.read(length)
-                    return data
-                except serial.serialutil.SerialException as e:
-                    warnings.warn(f"Serial read error: {e}", category=RuntimeWarning)
-            warnings.warn("Connection is not set")
+        try:
+            return self._serial.read(length)
+        except SerialException:
+            warnings.warn("Exception:: Serial read error")
         return b''
 
-    def start_read_thread(self, interval: float = 0.1, read_buffer_size: int = 1024) -> None:
+    def start_read_thread(self, read_handler: [ReadHandler]) -> None:
         """
         Start the thread reading loop.
-        :param interval:
-        :param read_buffer_size:
         :return:
         """
         warnings.warn('##Start Read Thread##')
-        self._read_thread_should_stop = False
-        self._read_thread = threading.Thread(target=self._read_loop, args=(interval, read_buffer_size),
-                                             name="read_thread")
+        self._read_thread = ReaderThread(serial_instance=self._serial,
+                                         protocol_factory=new_ReadProtocol(read_handler))
         self._read_thread.daemon = True
         self._read_thread.start()
-
-    def stop_read_thread(self, wait: bool = True):
-        """
-        Stop the thread reading loop.
-        :param wait: Whether to wait for the thread to finish. Default is true.
-        """
-        self._read_thread_should_stop = True
-        if wait and self._read_thread is not None:
-            self._read_thread.join()
-        self._read_thread = None
-
-    def _read_loop(self, interval: float, read_buffer_size: int) -> None:
-        """
-        Thread loop that reads data from the serial port.
-
-        :param interval: 循环间隔时间，以秒为单位。默认值为0.1。
-        :param read_buffer_size: 每次读取的字节数。默认值为512。
-        :return: None
-
-        """
-        while not self._read_thread_should_stop:
-            data = self.read(read_buffer_size)
-            self._on_data_handler(data) if data else None
-            sleep(interval)
-
-    def set_data_handler(self, func: Callable[[ByteString], Optional[Any]]):
-        """set serial data received callback"""
-        self._on_data_handler = func
 
 
 def find_usb_tty(id_product: int = 0, id_vendor: int = 0) -> List[str]:
@@ -299,30 +231,3 @@ def find_usb_tty(id_product: int = 0, id_vendor: int = 0) -> List[str]:
 
 def find_serial_ports() -> List[str]:
     return [port.device for port in serial.tools.list_ports.comports()]
-
-
-class DummyLock:
-    """
-    这个 DummyLock 类的作用是提供一种无操作（no-op）的锁定机制。
-    在某些业务逻辑中可能需要加锁保证并发安全性，但如果暂时不需要对共享资源进行访问就可以使用这个类来替代真正的锁定机制。
-    当使用 with 语句将这个类实例化并运行时，进入该上下文后会直接进入 pass 语句，而退出上下文则也立即进入 pass 语句，
-    从而忽略了实际的加锁解锁操作。虽然 DummyLock 不实现真正的锁定功能，但其语法合法，可以用于某些场景下仅需占位符的临时方案。
-    """
-
-    def __enter__(self):
-        """
-        enter the state of the dummy locker
-        :return:
-        """
-        pass
-
-    def __exit__(self, exception_type, exception_value, traceback):
-        """
-        exit the state of the dummy locker
-        :param exception_type:
-        :param exception_value:
-        :param traceback:
-        :return:
-        """
-
-        pass
