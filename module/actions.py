@@ -4,7 +4,7 @@ import pickle
 import time
 import warnings
 from functools import singledispatch
-from typing import Callable, Tuple, Union, Optional, List, Dict, ByteString
+from typing import Callable, Tuple, Union, Optional, List, Dict, ByteString, Sequence
 from .db_tools import persistent_lru_cache
 from ..constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_IDS, HALT_CMD, MOTOR_DIRS, DRIVER_DEBUG_MODE, \
     BREAK_ACTION_KEY, BREAKER_FUNC_KEY, ACTION_DURATION, ACTION_SPEED_KEY, HANG_DURING_ACTION_KEY, DRIVER_SERIAL_PORT
@@ -110,6 +110,9 @@ class ActionFrame:
             self._controller.set_motors_speed(speed_list=self._action_speed_list, hang_time=self._hang_time)
         if self._action_duration and delay_ms(milliseconds=self._action_duration, breaker_func=self._breaker_func):
             return self._break_action
+
+
+BreakAction = Tuple[ActionFrame, ...]
 
 
 def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[str, List]:
@@ -253,7 +256,7 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
                        breaker_func=breaker_func, break_action=break_action,
                        hang_time=calc_hang_time(action_duration,
                                                 HANG_TIME_MAX_ERROR)  # will be 0 if breaker is specified
-                       if hang_during_action or (hang_during_action is None and not bool(breaker_func)) else 0)
+                       if hang_during_action or breaker_func is None else 0)
 
 
 def pre_build_action_frame(speed_range: Tuple[int, int, int], duration_range: Tuple[int, int, int]):
@@ -294,19 +297,19 @@ class ActionPlayer:
         if play_now:
             self.play()
 
-    def extend(self, action_list: List[ActionFrame], play_now: bool = True):
+    def extend(self, actions: Sequence[ActionFrame], play_now: bool = True):
         """
         extend ActionFrames stack with given ActionFrames
         :param play_now: play on the ActionFrames added
-        :param action_list: the ActionFrames to extend
+        :param actions: the ActionFrames to extend
         :return: None
         """
-        self._action_frame_queue.extend(action_list)
+        self._action_frame_queue.extend(actions)
         if play_now:
             self.play()
 
-    def add(self, actions: Union[ActionFrame, List[ActionFrame]]):
-        if isinstance(actions, List):
+    def add(self, actions: Union[ActionFrame, Sequence[ActionFrame]]):
+        if isinstance(actions, Sequence):
             self._action_frame_queue.extend(actions)
         else:
             self._action_frame_queue.append(actions)
@@ -325,9 +328,9 @@ class ActionPlayer:
         """
         while self._action_frame_queue:
             # if action exit because breaker then it should return the break action or None
-            break_action: Optional[Union[ActionFrame, List[ActionFrame]]] = self._action_frame_queue.pop(
+            break_action: Optional[BreakAction] = self._action_frame_queue.pop(
                 0).action_start()
             if break_action:
                 # the break action will override those ActionFrames that haven't been executed yet
                 self._action_frame_queue.clear()
-                self.add(break_action)
+                self.extend(break_action)
