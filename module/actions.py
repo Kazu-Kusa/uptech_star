@@ -153,11 +153,11 @@ def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[s
     # TODO: to prevent spelling errors , we should create a spell checker
     # TODO: should add a more powerful syntax check to reach a higher level of complexity
     @singledispatch
-    def load_action_frame(data: Union[List, Dict]) -> Optional[Union[ActionFrame, Tuple[ActionFrame, ...]]]:
+    def load_action_frame(unit: Union[List, Dict]) -> Optional[Union[ActionFrame, Tuple[ActionFrame, ...]]]:
         """
         递归加载动作帧数据
         Args:
-            data (dict): 动作帧数据的字典表示
+            unit (dict): 动作帧数据的字典表示
 
         Returns:
             ActionFrame: 加载后的动作帧对象
@@ -167,12 +167,12 @@ def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[s
             这个函数使用了@singledispatch构造了一个泛型递归加载函数，用作加载动作帧的配置文件
 
       """
-        if data is None:
+        if unit is None:
             return None
         raise NotImplementedError('Unsupported data type')
 
     @load_action_frame.register(dict)
-    def _(data: Dict) -> ActionFrame:
+    def _(unit: Dict) -> ActionFrame:
         """
           从字典中加载 ActionFrame 对象。
 
@@ -188,13 +188,13 @@ def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[s
         """
         if logging:
             print(f'Loading ActionFrame: \n'
-                  f'\t{data}')
-        temp = data.get(ACTION_SPEED_KEY, ZEROS)
+                  f'\t{unit}')
+        temp = unit.get(ACTION_SPEED_KEY, ZEROS)
         action_speed: Union[Tuple, int] = tuple(temp) if isinstance(temp, list) else temp
-        action_duration: int = data.get(ACTION_DURATION, 0)
-        breaker_func: Watcher = watchers.get(data.get(BREAKER_FUNC_KEY, None), None)
-        break_action_data: List[Dict] = data.get(BREAK_ACTION_KEY, None)
-        hang_during_action: Optional[bool] = data.get(HANG_DURING_ACTION_KEY, None)
+        action_duration: int = unit.get(ACTION_DURATION, 0)
+        breaker_func: Watcher = watchers.get(unit.get(BREAKER_FUNC_KEY, None), None)
+        break_action_data: List[Dict] = unit.get(BREAK_ACTION_KEY, None)
+        hang_during_action: Optional[bool] = unit.get(HANG_DURING_ACTION_KEY, None)
 
         # 递归加载
         break_action = load_action_frame(break_action_data) if break_action_data else None
@@ -208,11 +208,11 @@ def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[s
         )
 
     @load_action_frame.register(list)
-    def _(data: List[Dict]) -> Tuple[ActionFrame, ...]:
+    def _(unit: List[Dict]) -> Tuple[ActionFrame, ...]:
         """
         Loads a list of ActionFrame objects from a list.
         Args:
-            data (List): The list containing the action frame data.
+            unit (List): The list containing the action frame data.
 
         Returns:
             List[ActionFrame]: The loaded list of ActionFrame objects.
@@ -223,8 +223,8 @@ def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[s
         """
         if logging:
             print(f'Loading ActionFrame Chain: \n'
-                  f'\t{data}')
-        return tuple(load_action_frame(item) for item in data)
+                  f'\t{unit}')
+        return tuple(load_action_frame(item) for item in unit)
 
     with open(file_path, 'r') as file:
         data: Dict[str, List] = json.load(file)  # load the Action config file into a dict
