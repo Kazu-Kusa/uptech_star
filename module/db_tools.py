@@ -38,7 +38,7 @@ class CacheFILE:
             cache_file.save_cache()
 
 
-def persistent_lru_cache(cache_file_path: str):
+def persistent_cache(cache_file_path: str):
     """
     装饰器函数，用于缓存函数调用结果并持久化缓存
     :param cache_file_path:

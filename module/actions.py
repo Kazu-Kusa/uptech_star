@@ -5,7 +5,7 @@ import time
 import warnings
 from functools import singledispatch
 from typing import Callable, Tuple, Union, Optional, List, Dict, ByteString, Sequence
-from .db_tools import persistent_lru_cache
+from .db_tools import persistent_cache
 from ..constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_IDS, HALT_CMD, MOTOR_DIRS, DRIVER_DEBUG_MODE, \
     BREAK_ACTION_KEY, BREAKER_FUNC_KEY, ACTION_DURATION, ACTION_SPEED_KEY, HANG_DURING_ACTION_KEY, DRIVER_SERIAL_PORT
 from ..constant import HANG_TIME_MAX_ERROR
@@ -26,16 +26,13 @@ class ActionFrame:
     CACHE_FILE_NAME: str = 'ActionFrame_cache'
     _CACHE_FILE_PATH = f"{CACHE_DIR}\\{CACHE_FILE_NAME}"
     print(f'Action Frame caches at [{_CACHE_FILE_PATH}]')
-    """
-    [4]fl           fr[2]
-           O-----O
-              |
-           O-----O
-    [3]rl           rr[1]
-    """
 
     @classmethod
-    def load_cache(cls):
+    def load_cache(cls) -> None:
+        """
+        load the action frame cache to class variable, using pickle
+        :return: None
+        """
         try:
             with open(cls._CACHE_FILE_PATH, "rb") as file:
                 cls._instance_cache = pickle.load(file)
@@ -43,7 +40,11 @@ class ActionFrame:
             pass
 
     @classmethod
-    def save_cache(cls):
+    def save_cache(cls) -> None:
+        """
+        save the action frame cache to the file,using pickle
+        :return: None
+        """
         print(f'##Saving Action Frame instance cache: \n'
               f'\tCache Size: {len(cls._instance_cache.items())}')
 
@@ -51,6 +52,15 @@ class ActionFrame:
             pickle.dump(cls._instance_cache, file)
 
     def __new__(cls, *args, **kwargs):
+        """
+        will be called when a new instance is created
+        functions varies depending on if the instance is cached:
+        if the instance is cached: directly return the cached instance
+        if the instance isn't cached: create a new instance and add it to the _instance_cache,and eventually return it
+
+        :param args:args that will be passed to the new instance
+        :param kwargs:kwargs that will be passed to the new instance
+        """
         # Check if the instance exists in the cache
         key = (args, tuple(kwargs.items()))
         if key in cls._instance_cache:
@@ -68,47 +78,61 @@ class ActionFrame:
                  break_action: Optional[Tuple[object, ...]] = None,
                  hang_time: float = 0.):
         """
-        the minimal action unit that could be customized and glue together to be a chain movement,
-        default stops the robot
-        :param action_speed: the speed of the action
-        :param action_duration: the duration of the action
-        :param breaker_func: used to break the action during move,exit the action when the breaker returns True
-        :param break_action: the object type is ActionFrame or List[ActionFrame],the action that will be executed when
-                the breaker is activated,overriding all frames that haven't been executed
-        :param hang_time: the time during which the serial channel will be hang up,to save the cpu time
+        The minimal action unit that could be customized and glue together to be a chain movement,
+        if no parameters are given,default parameters stop the robot
+        :param action_speed: the speed of the action, accepts a tuple of 4 integers, each integer represents a motor
+            speed,which can be either positive or negative.
+            Index 0 is the front left motor.
+            Index 1 is the back left motor.
+            Index 2 is the back right motor.
+            Index 3 is the front right motor.
+            [0]fl         fr[3]
+                  O-----O
+                        |
+                  O-----O
+            [1]rl        rr[2]
+
+        :param action_duration: the duration of the action accepts an integer only,and its unit is ms
+        :param breaker_func: used to break the action during move,exit the action when the function returns True
+        :param break_action: the action that will be executed when the breaker is activated,
+            it should override all frames that haven't been executed, this logic is implemented in the ActionPlayer
+        :param hang_time: the time during which the serial channel will be hanging up,to save the cpu time. Unit is s.
         """
         if break_action:
+            # breaker_func can not be None as the break action is specified
             assert bool(breaker_func), "breaker_func can not be None"
         if self._PRE_COMPILE_CMD:
-            # pre-compile the command
+            # pre-compile the cmd to save the time in string encoding in the future
             if is_list_all_zero(action_speed):
                 # stop cmd can be represented by a short broadcast cmd
                 self._action_cmd: ByteString = HALT_CMD
             else:
-
+                # pre-compile the cmd into byte string that fits the driver's communication protocol
                 self._action_cmd: ByteString = self._controller.makeCmds_dirs(action_speed)
         else:
-            self._action_speed_list: Tuple[int, int, int, int] = action_speed
+            # if the pre-compile cmd is not used, just save the action speed
+            self._action_speed_sequence: Tuple[int, int, int, int] = action_speed
+
+        # convey the rest of the parameters
         self._action_duration: int = action_duration
         self._breaker_func: Callable[[], bool] = breaker_func
         self._break_action: Tuple[object, ...] = break_action
-
         self._hang_time: float = hang_time
-        # TODO:actually ,hang_time may have some conflicts with breaker_func
 
     def action_start(self) -> Optional[Tuple[object, ...]]:
         """
         execute the ActionFrame
-        :return: None
+        :return: the breaker action(s),the detailed implementation is at the ActionPlayer
         """
-        # TODO: untested direction control
-        # TODO: untested precompile option
-
         if self._PRE_COMPILE_CMD:
+            # if the pre-compile cmd is used, directly write the cmd to the serial queue
             self._controller.append_to_queue(byte_string=self._action_cmd, hang_time=self._hang_time)
         else:
-            self._controller.set_motors_speed(speed_list=self._action_speed_list, hang_time=self._hang_time)
-        if self._action_duration and delay_ms(milliseconds=self._action_duration, breaker_func=self._breaker_func):
+            # if the pre-compile cmd is not used, just use the sealed method to implement the action
+            self._controller.set_motors_speed(speed_list=self._action_speed_sequence, hang_time=self._hang_time)
+        if delay_ms(milliseconds=self._action_duration, breaker_func=self._breaker_func) and self._action_duration:
+            # if the breaker is activated, will return the break action with None check, which will be executed in
+            # the ActionPlayer
             return self._break_action
 
 
@@ -117,29 +141,31 @@ BreakAction = Tuple[ActionFrame, ...]
 
 def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[str, List]:
     """
-       从 JSON 文件中递归加载创建链式动作
+   从 JSON 文件中递归加载创建链式动作
 
-       Args:
-           file_path (str): JSON 文件路径
-           logging (bool):是否打印细节
-       Returns:
-           List[ActionFrame]: 创建的链式动作列表
-
+   Args:
+       file_path (str): JSON 文件路径
+       logging (bool):是否打印细节
+   Returns:
+       List[ActionFrame]: 创建的链式动作列表
    """
 
     # TODO: to prevent spelling errors , we should create a spell checker
+    # TODO: should add a more powerful syntax check to reach a higher level of complexity
     @singledispatch
     def load_action_frame(data: Union[List, Dict]) -> Optional[Union[ActionFrame, Tuple[ActionFrame, ...]]]:
         """
-          加载动作帧数据
+        递归加载动作帧数据
+        Args:
+            data (dict): 动作帧数据的字典表示
 
-          Args:
-              data (dict): 动作帧数据的字典表示
+        Returns:
+            ActionFrame: 加载后的动作帧对象
+        Exception:
+            在未知数据类型上抛出 NotImplementedError
+        Note:
+            这个函数使用了@singledispatch构造了一个泛型递归加载函数，用作加载动作帧的配置文件
 
-          Returns:
-              ActionFrame: 加载后的动作帧对象
-          Note:
-              这个函数使用了@singledispatch构造了一个泛型递归加载函数，用作加载动作帧的配置文件
       """
         if data is None:
             return None
@@ -150,16 +176,13 @@ def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[s
         """
           从字典中加载 ActionFrame 对象。
 
-        参数：
+        Args：
             data (Dict)：包含 ActionFrame 数据的字典。
 
-        返回值：
+        Returns：
             ActionFrame：加载的 ActionFrame 对象。
 
-        异常：
-            TypeError：如果提供的数据不是字典类型或缺少必要的属性。
-
-        注意：
+        Note：
             此函数被注册在 `load_action_frame` 装饰器下，用于将字典表示的 ActionFrame 反序列化为实际的 ActionFrame 对象。
 
         """
@@ -173,6 +196,7 @@ def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[s
         break_action_data: List[Dict] = data.get(BREAK_ACTION_KEY, None)
         hang_during_action: Optional[bool] = data.get(HANG_DURING_ACTION_KEY, None)
 
+        # 递归加载
         break_action = load_action_frame(break_action_data) if break_action_data else None
 
         return new_ActionFrame(
@@ -187,19 +211,15 @@ def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[s
     def _(data: List[Dict]) -> Tuple[ActionFrame, ...]:
         """
         Loads a list of ActionFrame objects from a list.
-
         Args:
             data (List): The list containing the action frame data.
 
         Returns:
             List[ActionFrame]: The loaded list of ActionFrame objects.
 
-        Raises:
-            TypeError: If the provided data is not of type list or is missing required attributes.
-
         Note:
             This function is registered under the `load_action_frame` decorator and is used to deserialize
-            a list representation of ActionFrames into a list of ActionFrame objects.
+            a list representation of ActionFrames into a tuple of ActionFrame objects.
         """
         if logging:
             print(f'Loading ActionFrame Chain: \n'
@@ -215,7 +235,7 @@ def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[s
     return data
 
 
-@persistent_lru_cache(f'{CACHE_DIR}/new_action_frame_cache')
+@persistent_cache(f'{CACHE_DIR}/new_action_frame_cache')
 def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, int, int]] = 0,
                     action_speed_multiplier: float = 0,
                     action_duration: int = 0,
@@ -224,15 +244,21 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
                     break_action: Optional[Union[ActionFrame, Tuple[ActionFrame]]] = None,
                     hang_during_action: Optional[bool] = None) -> ActionFrame:
     """
-    generates a new action frame ,with LRU caching rules
+    an ActionFrame factory that generates a new action frame, with caching
 
-    :keyword action_speed: int = 0
-    :keyword action_duration: int = 0
-    :keyword action_speed_multiplier: float = 0
-    :keyword action_duration_multiplier: float = 0
-    :keyword breaker_func: Callable[[], bool] = None
-    :keyword break_action: object = None
-    :return: the ActionFrame object
+    :keyword action_speed: allows 3 input styles:
+        1.int: a single integer representing the speed of the all motors are the same speed
+        2.Tuple[int,int,int,int]: a tuple of 4 integers representing the speed of the corresponding motors
+        3.Tuple[int,int]: a tuple of 2 integers representing the speed of left motors and right motors
+
+    :keyword action_duration: the action duration, in ms
+    :keyword action_speed_multiplier: multiplier that will be applied to the action speed
+    :keyword action_duration_multiplier: multiplier that will be applied to the action duration
+    :keyword breaker_func: the breaker function to break the action
+    :keyword break_action: the break action(s) that will be executed when the breaker is activated
+
+    :keyword hang_during_action: if True, the serial channel will be hanging up to save the cpu time.
+    :return: the desired ActionFrame object
     """
     action_speed_list = ZEROS
     if isinstance(action_speed, Tuple):
@@ -243,7 +269,7 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
     elif isinstance(action_speed, int):
         action_speed_list = (action_speed,) * 4
     else:
-        warnings.warn('##UNKNOWN INPUT##')
+        raise TypeError('##UNKNOWN INPUT##')
 
     if action_speed_multiplier:
         # apply the multiplier
@@ -278,7 +304,7 @@ def pre_build_action_frame(speed_range: Tuple[int, int, int], duration_range: Tu
 class ActionPlayer:
     def __init__(self):
         """
-        action player,stores and plays the ActionFrames with stack
+        action player, stores and plays the ActionFrames with in a queue
         """
         self._action_frame_queue: List[ActionFrame] = []
 
@@ -311,8 +337,10 @@ class ActionPlayer:
     def add(self, actions: Union[ActionFrame, Sequence[ActionFrame]]):
         if isinstance(actions, Sequence):
             self._action_frame_queue.extend(actions)
-        else:
+        elif isinstance(actions, ActionFrame):
             self._action_frame_queue.append(actions)
+        else:
+            raise TypeError('##UNKNOWN INPUT##')
 
     def clear(self):
         """
@@ -320,6 +348,15 @@ class ActionPlayer:
         :return: None
         """
         self._action_frame_queue.clear()
+
+    def override(self, action: Union[ActionFrame, Sequence[ActionFrame]]):
+        """
+        override the ActionFrames queue
+        :param action:
+        :return:
+        """
+        self._action_frame_queue.clear()
+        self.add(action)
 
     def play(self):
         """
@@ -329,7 +366,5 @@ class ActionPlayer:
         while self._action_frame_queue:
             # if action exit because breaker then it should return the break action or None
             break_action: Optional[BreakAction] = self._action_frame_queue.pop(0).action_start()
-            if break_action:
-                # the break action will override those ActionFrames that haven't been executed yet
-                self._action_frame_queue.clear()
-                self.extend(break_action)
+            # the break action will override those ActionFrames that haven't been executed yet
+            self.override(break_action) if break_action else None

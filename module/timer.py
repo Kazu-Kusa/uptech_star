@@ -3,19 +3,19 @@ from typing import Callable, Optional
 
 
 def delay_ms(milliseconds: int,
-             breaker_func: Optional[Callable[[], bool]] = None) -> int:
+             breaker_func: Optional[Callable[[], bool]] = None) -> bool:
     """
     delay_ms 函数具有延迟指定毫秒数的功能，在提供退出条件和退出后执行操作时支持可选参数。
     如果给出了 breaker_func 参数，则在等待过程中每隔一段时间调用此函数检查是否应该中断等待
     :param milliseconds:
     :param breaker_func:
-    :return:
+    :return: False if the breaker function is never activated,otherwise True
     """
 
     def delay(millisecond: int) -> bool:
         end = perf_counter_ns() + millisecond * 1000000
         while perf_counter_ns() < end:
-            pass
+            continue
         return False
 
     def delay_with_breaker(millisecond: int,
