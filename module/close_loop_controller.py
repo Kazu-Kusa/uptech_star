@@ -12,7 +12,7 @@ cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
 class CloseLoopController:
 
     def __init__(self, motor_ids: Tuple[int, int, int, int], motor_dirs: Tuple[int, int, int, int],
-                 port: Optional[str] = 'tty/USB0', debug: bool = False):
+                 port: Optional[str] = None, debug: bool = False):
         """
         :param motor_dirs:
         :param motor_ids: the id of the motor,represent as follows [fl,rl,rr,fr]
