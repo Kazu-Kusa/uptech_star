@@ -1,5 +1,6 @@
 from time import sleep
-from typing import List, Callable, Any, Optional, ByteString
+from typing import List, Callable, Any, Optional, ByteString, Union, Dict
+from types import MappingProxyType
 import serial
 from serial import Serial, EIGHTBITS, PARITY_NONE, STOPBITS_ONE
 from serial.tools.list_ports import comports
@@ -8,11 +9,24 @@ from serial.serialutil import SerialException
 import warnings
 
 ReadHandler = Callable[[bytes | bytearray], Optional[Any]]
-SERIAL_KWARGS = {'baudrate': 115200,
-                 'bytesize': EIGHTBITS,
-                 'parity': PARITY_NONE,
-                 'stopbits': STOPBITS_ONE,
-                 'timeout': 2}
+DEFAULT_SERIAL_KWARGS = MappingProxyType({'baudrate': 115200,
+                                          'bytesize': EIGHTBITS,
+                                          'parity': PARITY_NONE,
+                                          'stopbits': STOPBITS_ONE,
+                                          'timeout': 2})
+
+
+def serial_kwargs_factory(baudrate: int = 115200,
+                          bytesize: int = EIGHTBITS,
+                          parity: str = PARITY_NONE,
+                          stopbits: int = STOPBITS_ONE,
+                          timeout: float = 2) -> MappingProxyType:
+    return MappingProxyType({'baudrate': baudrate,
+                             'bytesize': bytesize,
+                             'parity': parity,
+                             'stopbits': stopbits,
+                             'timeout': timeout})
+
 
 CODING_METHOD = 'ascii'
 
@@ -44,7 +58,7 @@ def new_ReadProtocol_factory(read_handler: Optional[ReadHandler] = None) -> Call
 
 class SerialHelper:
 
-    def __init__(self, port: Optional[str] = None, serial_config: Optional[dict] = SERIAL_KWARGS):
+    def __init__(self, port: Optional[str] = None, serial_config: Optional[dict] = DEFAULT_SERIAL_KWARGS):
         """
         :param serial_config: a dict that contains the critical transport parameters
         :param port: the serial port to use
