@@ -86,11 +86,11 @@ class SerialHelper:
         return self._serial.isOpen()
 
     @property
-    def serial_port(self) -> str:
+    def port(self) -> str:
         return self._serial.port
 
-    @serial_port.setter
-    def serial_port(self, value: str):
+    @port.setter
+    def port(self, value: str):
         """
         pyserial will reopen the serial port on the serial port change
         :param value:
@@ -152,7 +152,7 @@ class SerialHelper:
             warnings.warn("#Exception:: Serial write error")
             return False
 
-    def read(self, length: int) -> ByteString:
+    def read(self, length: int) -> bytes | bytearray:
         """
         从串口设备中读取指定长度的字节数据。
 
