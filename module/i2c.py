@@ -1,4 +1,8 @@
-from .serial_helper import SerialHelper
+from typing import Dict, List
+
+from .serial_helper import SerialHelper, serial_kwargs_factory
+
+Hex = int | bytes
 
 """
 CH341可以外接I2C接口的器件，例如常用的24系列串行非易失存储器EEPROM，
@@ -26,11 +30,12 @@ CH341可以外接I2C接口的器件，例如常用的24系列串行非易失存�
    将24C0X中地址为02E7H的数据读出，可以从串口接收到一个字节的数据
    注意，只有24C08和24C16中有地址为02E7H的数据单元
 """
+DEFAULT_I2C_SERIAL_KWARGS = serial_kwargs_factory(baudrate=300)
 
 
 class I2CReader(object):
-    def __init__(self, port: str):
-        self._serial: SerialHelper = SerialHelper(port=port)
+    def __init__(self, port: str, serial_config: Dict = DEFAULT_I2C_SERIAL_KWARGS):
+        self._serial: SerialHelper = SerialHelper(port=port, serial_config=serial_config)
 
     @property
     def port(self) -> str:
@@ -38,12 +43,25 @@ class I2CReader(object):
 
     @port.setter
     def port(self, new_port: str):
+        """
+        pyserial will reopen the serial port on the serial port change :param value: :return:
+        :param new_port:
+        :return:
+        """
         self._serial.port = new_port
 
-    def read(self, device_addr: int | bytearray | bytes, register_addr: int | bytearray | bytes) -> bytes | bytearray:
+    def read_1char(self, device_addr: Hex, register_addr: Hex) -> bytes:
         self._serial.write(f'@{device_addr}{register_addr}'.encode('ascii'))
         return self._serial.read(1)
 
-    def write(self, device_addr: int | bytearray | bytes, register_addr: int | bytearray | bytes,
-              data: bytes | bytearray) -> bool:
-        return self._serial.write(f'@{device_addr}{register_addr}{data}'.encode('ascii'))
+    def write_1char(self, device_addr: Hex, register_addr: Hex, trunk: bytes) -> bool:
+        return self._serial.write(f'@{device_addr}{register_addr}{trunk}'.encode('ascii'))
+
+    def read(self, size: int, device_addr: Hex, register_addr: Hex) -> List[bytes]:
+        return [self.read_1char(device_addr=device_addr,
+                                register_addr=register_addr + i) for i in range(size)]
+
+    def write(self, trunk: List[bytes] | bytearray, device_addr: Hex, register_addr: Hex) -> bool:
+        return all([self.write_1char(device_addr=device_addr,
+                                     register_addr=register_addr + i,
+                                     trunk=trunk[i]) for i in range(len(trunk))])
