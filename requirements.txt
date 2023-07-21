@@ -1,5 +1,5 @@
-numpy>=1.23.5
-opencv-python==4.7.0.68
-apriltag==0.0.16
-pigpio>=1.78
-pyserial>=3.5
+numpy
+opencv-python
+apriltag
+pigpio
+pyserial
