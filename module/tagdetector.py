@@ -2,7 +2,7 @@ from multiprocessing import Process
 import time
 import warnings
 from time import sleep, time
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Optional
 
 from .algrithm_tools import calc_p2p_dst, calc_p2p_error
 from .camra import Camera
@@ -48,7 +48,10 @@ class TagDetector:
                                               debug=False,
                                               quad_contours=True)).detect
 
-    def __init__(self, camera: Camera, team_color: str, start_detect_tag: bool = True, max_fps: int = 20):
+    def __init__(self, camera: Camera,
+                 team_color: Optional[str] = None,
+                 start_detect_tag: bool = True,
+                 max_fps: int = 20):
         self._camera: Camera = camera
         self._tags_table: Dict[int, Tuple] = {}  # Dict[int, Tuple[Apriltag, Tuple[float,float]]]
         self._tags: List = []
@@ -59,14 +62,13 @@ class TagDetector:
         self._neutral_tag_id: int = NULL_TAG
         self._max_fps: int = max_fps
 
-        self.set_tags(team_color)
+        self.set_tags(team_color) if team_color else None
         self._init_tags_table()
-        if start_detect_tag:
-            self.apriltag_detect_start()
+        self.apriltag_detect_start() if start_detect_tag else None
 
     def _init_tags_table(self):
         """
-        the tags table stores the tag obj and the distance to the camera center
+        the tag table stores the tag obj and the distance to the camera center
         :return:
         """
         self._tags_table[self._enemy_tag_id] = TABLE_INIT_VALUE
@@ -76,9 +78,9 @@ class TagDetector:
     def set_tags(self, team_color: str = 'blue'):
         """
         set the ally/enemy tag according the team color
+        yellow: ally: 2 | enemy: 1|neutral: 0
+        blue: ally: 1 | enemy: 2 | neutral: 0
 
-        blue: ally: 1 ; enemy: 2
-        yellow: ally: 2 ; enemy: 1
         :param team_color: blue or yellow
         :return:
         """
