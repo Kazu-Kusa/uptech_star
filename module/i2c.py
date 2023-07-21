@@ -2,8 +2,6 @@ from typing import Dict, List
 
 from .serial_helper import SerialHelper, serial_kwargs_factory
 
-Hex = int | bytes
-
 """
 CH341可以外接I2C接口的器件，例如常用的24系列串行非易失存储器EEPROM，
 支持24C01A，24C02，24C04，24C08，24C16等，以及与之时序兼容的器件，
@@ -31,10 +29,16 @@ CH341可以外接I2C接口的器件，例如常用的24系列串行非易失存�
    注意，只有24C08和24C16中有地址为02E7H的数据单元
 """
 DEFAULT_I2C_SERIAL_KWARGS = serial_kwargs_factory(baudrate=300)
+Hex = int | bytes
 
 
 class I2CReader(object):
     def __init__(self, port: str, serial_config: Dict = DEFAULT_I2C_SERIAL_KWARGS):
+        """
+        create an i2c reader using USB serial port
+        :param port: the port name
+        :param serial_config: the serial configuration, built by the config factory
+        """
         self._serial: SerialHelper = SerialHelper(port=port, serial_config=serial_config)
 
     @property
@@ -51,17 +55,45 @@ class I2CReader(object):
         self._serial.port = new_port
 
     def read_1char(self, device_addr: Hex, register_addr: Hex) -> bytes:
+        """
+        from the i2c serial port read a single char(8bit) of a slave device
+        :param device_addr: the device that you want to read
+        :param register_addr: the register of the device that you want to read
+        :return: 8bit data
+        """
+        # send the desired data address to the port
         self._serial.write(f'@{device_addr}{register_addr}'.encode('ascii'))
         return self._serial.read(1)
 
     def write_1char(self, device_addr: Hex, register_addr: Hex, trunk: bytes) -> bool:
+        """
+        write a single char(8bit) to a slave device through the i2c serial port
+        :param device_addr:  the device that you want to write
+        :param register_addr:  the register of the device that you want to write
+        :param trunk: the data you want to write
+        :return: if the write operation is successful.True for success, False for failure
+        """
         return self._serial.write(f'@{device_addr}{register_addr}{trunk}'.encode('ascii'))
 
     def read(self, size: int, device_addr: Hex, register_addr: Hex) -> List[bytes]:
+        """
+        from the i2c serial port read gavin size data of a slave device,
+        :param size: the size of the data,integer only
+        :param device_addr: the device that you want to read
+        :param register_addr: the register of the device that you want to read
+        :return: the data,List of chars(8bit)
+        """
         return [self.read_1char(device_addr=device_addr,
                                 register_addr=register_addr + i) for i in range(size)]
 
     def write(self, trunk: List[bytes] | bytearray, device_addr: Hex, register_addr: Hex) -> bool:
+        """
+        from the i2c serial port write gavin trunk data to a slave device
+        :param trunk:  the data you want to write,List of chars(8bit) or bytearray
+        :param device_addr: the device that you want to write
+        :param register_addr: the register of the device that you want to write
+        :return: if the write operation is successful, True for success, False for failure
+        """
         return all([self.write_1char(device_addr=device_addr,
                                      register_addr=register_addr + i,
                                      trunk=trunk[i]) for i in range(len(trunk))])
