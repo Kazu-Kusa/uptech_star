@@ -1,4 +1,5 @@
 import os
+import warnings
 from threading import Thread
 import time
 from time import sleep
@@ -82,6 +83,7 @@ class CloseLoopController:
             if self._cmd_queue:
                 sending_loop()
                 sleep(self._hang_time_queue.pop(0)) if self._hang_time_queue else None
+        warnings.warn("msg_sending_thread_stop")
 
     def makeCmds_dirs(self, speed_list: Tuple[int, int, int, int]) -> ByteString:
         """
