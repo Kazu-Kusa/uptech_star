@@ -2,9 +2,9 @@ import json
 import os
 import pickle
 import time
-import warnings
-from functools import singledispatch
-from typing import Callable, Tuple, Union, Optional, List, Dict, ByteString, Sequence
+from functools import singledispatch, lru_cache
+from typing import Callable, Tuple, Union, Optional, List, Dict, ByteString, Sequence, Type
+
 from .db_tools import persistent_cache
 from ..constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_IDS, HALT_CMD, MOTOR_DIRS, DRIVER_DEBUG_MODE, \
     BREAK_ACTION_KEY, BREAKER_FUNC_KEY, ACTION_DURATION, ACTION_SPEED_KEY, HANG_DURING_ACTION_KEY, DRIVER_SERIAL_PORT
@@ -15,6 +15,8 @@ from .close_loop_controller import CloseLoopController, is_list_all_zero
 from .watcher import watchers, Watcher
 
 CACHE_DIR = os.environ.get(ENV_CACHE_DIR_PATH)
+
+BreakActions = Tuple['ActionFrame', ...]
 
 
 class ActionFrame:
@@ -74,8 +76,8 @@ class ActionFrame:
     def __init__(self,
                  action_speed: Tuple[int, int, int, int] = ZEROS,
                  action_duration: int = 0,
-                 breaker_func: Optional[Callable[[], bool]] = None,
-                 break_action: Optional[Tuple[object, ...]] = None,
+                 breaker_func: Optional[Watcher] = None,
+                 break_action: Optional[BreakActions] = None,
                  hang_time: float = 0.):
         """
         The minimal action unit that could be customized and glue together to be a chain movement,
@@ -115,11 +117,11 @@ class ActionFrame:
 
         # convey the rest of the parameters
         self._action_duration: int = action_duration
-        self._breaker_func: Callable[[], bool] = breaker_func
-        self._break_action: Tuple[object, ...] = break_action
+        self._breaker_func: Watcher = breaker_func
+        self._break_action: BreakActions = break_action
         self._hang_time: float = hang_time
 
-    def action_start(self) -> Optional[Tuple[object, ...]]:
+    def action_start(self) -> Optional[BreakActions]:
         """
         execute the ActionFrame
         :return: the breaker action(s),the detailed implementation is at the ActionPlayer
@@ -134,9 +136,6 @@ class ActionFrame:
             # if the breaker is activated, will return the break action with None check, which will be executed in
             # the ActionPlayer
             return self._break_action
-
-
-BreakAction = Tuple[ActionFrame, ...]
 
 
 def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[str, List]:
@@ -240,8 +239,8 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
                     action_speed_multiplier: float = 0,
                     action_duration: int = 0,
                     action_duration_multiplier: float = 0,
-                    breaker_func: Optional[Callable[[], bool]] = None,
-                    break_action: Optional[Union[ActionFrame, Tuple[ActionFrame]]] = None,
+                    breaker_func: Optional[Watcher] = None,
+                    break_action: Optional[BreakActions] = None,
                     hang_during_action: Optional[bool] = None) -> ActionFrame:
     """
     an ActionFrame factory that generates a new action frame, with caching
@@ -301,7 +300,7 @@ def pre_build_action_frame(speed_range: Tuple[int, int, int], duration_range: Tu
     ActionFrame.save_cache()
 
 
-class ActionPlayer:
+class ActionPlayer(object):
     def __init__(self):
         """
         action player, stores and plays the ActionFrames with in a queue
@@ -309,10 +308,10 @@ class ActionPlayer:
         self._action_frame_queue: List[ActionFrame] = []
 
     @property
-    def action_frame_queue(self):
+    def action_frame_queue(self) -> List[ActionFrame]:
         return self._action_frame_queue
 
-    def append(self, action: ActionFrame, play_now: bool = True):
+    def append(self, action: ActionFrame, play_now: bool = True) -> None:
         """
         append new ActionFrame to the ActionFrame stack
         :param play_now: play on the ActionFrame added
@@ -334,7 +333,7 @@ class ActionPlayer:
         if play_now:
             self.play()
 
-    def add(self, actions: Union[ActionFrame, Sequence[ActionFrame]]):
+    def add(self, actions: Union[ActionFrame, Sequence[ActionFrame]]) -> None:
         if isinstance(actions, Sequence):
             self._action_frame_queue.extend(actions)
         elif isinstance(actions, ActionFrame):
@@ -342,29 +341,29 @@ class ActionPlayer:
         else:
             raise TypeError('##UNKNOWN INPUT##')
 
-    def clear(self):
+    def clear(self) -> None:
         """
         clean the ActionFrames stack
         :return: None
         """
         self._action_frame_queue.clear()
 
-    def override(self, action: Union[ActionFrame, Sequence[ActionFrame]]):
+    def override(self, actions: Union[ActionFrame, Sequence[ActionFrame]]):
         """
         override the ActionFrames queue
-        :param action:
+        :param actions:
         :return:
         """
         self._action_frame_queue.clear()
-        self.add(action)
+        self.add(actions)
 
-    def play(self):
+    def play(self) -> None:
         """
         Play and remove the ActionFrames in the stack util there is it
         :return: None
         """
         while self._action_frame_queue:
             # if action exit because breaker then it should return the break action or None
-            break_action: Optional[BreakAction] = self._action_frame_queue.pop(0).action_start()
+            break_action: Optional[BreakActions] = self._action_frame_queue.pop(0).action_start()
             # the break action will override those ActionFrames that haven't been executed yet
             self.override(break_action) if break_action else None
