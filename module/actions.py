@@ -30,6 +30,14 @@ class ActionFrame:
     print(f'Action Frame caches at [{_CACHE_FILE_PATH}]')
 
     @classmethod
+    def close_port(cls):
+        cls._controller.stop_msg_sending()
+
+    @classmethod
+    def open_port(cls):
+        cls._controller.start_msg_sending()
+
+    @classmethod
     def load_cache(cls) -> None:
         """
         load the action frame cache to class variable, using pickle
