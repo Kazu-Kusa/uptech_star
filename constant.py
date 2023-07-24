@@ -3,26 +3,24 @@ import os
 from typing import Tuple, Dict
 
 CONFIG_FILE: str = './config.json'
-PACKAGE_ROOT = os.path.abspath(os.path.dirname(__file__))
-PATH_CONFIG = os.path.join(PACKAGE_ROOT, CONFIG_FILE)
+PACKAGE_ROOT: str = os.path.abspath(os.path.dirname(__file__))
+PATH_CONFIG: str = os.path.join(PACKAGE_ROOT, CONFIG_FILE)
 
 
 def read_config() -> Dict:
     try:
         with open(PATH_CONFIG, mode='r') as config_file:
-            config: Dict = json.load(config_file)
-        return config
+            return json.load(config_file)
     except FileNotFoundError:
-        raise Exception("config file not found")
-    except json.JSONDecodeError:
-        raise Exception("failed to decode config file")
+        print(f"Config file not found at: {PATH_CONFIG}")
+        return {}
+    except json.decoder.JSONDecodeError:
+        print(f"Invalid config file at: {PATH_CONFIG}")
+        return {}
 
 
-try:
-    config: Dict = read_config()
-except Exception as e:
-    print("failed to load config：", e)
-    # 可以选择终止程序或使用默认配置
+config: Dict = read_config()
+
 FAN_GPIO_PWM: int = 18
 FAN_pulse_frequency: int = 20000
 FAN_duty_time_us: int = 1000000
@@ -47,25 +45,25 @@ CONFIG_DEFAULT_NORMAL_BASELINE: str = 'DEFAULT_NORMAL_BASELINE'
 CONFIG_DEFAULT_GRAYS_BASELINE: str = 'DEFAULT_GRAYS_BASELINE'
 CONFIG_DRIVER_SERIAL_PORT: str = 'DRIVER_SERIAL_PORT'
 
-PRE_COMPILE_CMD: bool = config.get(CONFIG_PRE_COMPILE_CMD)
-DRIVER_DEBUG_MODE: bool = config.get(CONFIG_DRIVER_DEBUG_MODE)
-MOTOR_IDS: Tuple[int, int, int, int] = tuple(config.get(CONFIG_MOTOR_IDS))
-MOTOR_DIRS: Tuple[int, int, int, int] = tuple(config.get(CONFIG_MOTOR_DIRS))
-HANG_TIME_MAX_ERROR: int = config.get(CONFIG_HANG_TIME_MAX_ERROR)
-TAG_GROUP: str = config.get(CONFIG_TAG_GROUP)
-DEFAULT_EDGE_BASELINE: int = config.get(CONFIG_DEFAULT_EDGE_BASELINE)
-DEFAULT_NORMAL_BASELINE: int = config.get(CONFIG_DEFAULT_NORMAL_BASELINE)
-DEFAULT_GRAYS_BASELINE: int = config.get(CONFIG_DEFAULT_GRAYS_BASELINE)
-DRIVER_SERIAL_PORT: str = config.get(CONFIG_DRIVER_SERIAL_PORT)
+PRE_COMPILE_CMD: bool = config.get(CONFIG_PRE_COMPILE_CMD, default=True)
+DRIVER_DEBUG_MODE: bool = config.get(CONFIG_DRIVER_DEBUG_MODE, default=False)
+MOTOR_IDS: Tuple[int, int, int, int] = tuple(config.get(CONFIG_MOTOR_IDS, default=(4, 3, 1, 2)))
+MOTOR_DIRS: Tuple[int, int, int, int] = tuple(config.get(CONFIG_MOTOR_DIRS, default=(-1, -1, 1, 1)))
+HANG_TIME_MAX_ERROR: int = config.get(CONFIG_HANG_TIME_MAX_ERROR, default=50)
+TAG_GROUP: str = config.get(CONFIG_TAG_GROUP, default='tag36h11')
+DEFAULT_EDGE_BASELINE: int = config.get(CONFIG_DEFAULT_EDGE_BASELINE, default=1750)
+DEFAULT_NORMAL_BASELINE: int = config.get(CONFIG_DEFAULT_NORMAL_BASELINE, default=1000)
+DEFAULT_GRAYS_BASELINE: int = config.get(CONFIG_DEFAULT_GRAYS_BASELINE, default=1)
+DRIVER_SERIAL_PORT: str = config.get(CONFIG_DRIVER_SERIAL_PORT, default='tty/USB0')
 
-PATH_CACHE = os.path.join(PACKAGE_ROOT, DIR_CACHE)
-PATH_LD = os.path.join(PACKAGE_ROOT, DIR_LID_SO)
-HALT_CMD = b'v0\r'
-BREAK_ACTION_KEY = 'break_action'
-BREAKER_FUNC_KEY = 'breaker_func'
-ACTION_DURATION = 'action_duration'
-ACTION_SPEED_KEY = 'action_speed'
-HANG_DURING_ACTION_KEY = 'hang_during_action'
+PATH_CACHE: str = os.path.join(PACKAGE_ROOT, DIR_CACHE)
+PATH_LD: str = os.path.join(PACKAGE_ROOT, DIR_LID_SO)
+HALT_CMD: bytes = b'v0\r'
+BREAK_ACTION_KEY: str = 'break_action'
+BREAKER_FUNC_KEY: str = 'breaker_func'
+ACTION_DURATION: str = 'action_duration'
+ACTION_SPEED_KEY: str = 'action_speed'
+HANG_DURING_ACTION_KEY: str = 'hang_during_action'
 
 FRONT_SENSOR_ID = (4,)
 REAR_SENSOR_ID = (5,)
@@ -74,12 +72,12 @@ EDGE_FRONT_SENSOR_ID = (1, 2)
 EDGE_REAR_SENSOR_ID = (0, 3)
 SIDES_SENSOR_ID = (7, 8)
 
-START_MAX_LINE = 1800
-EDGE_MAX_LINE = 1750
+START_MAX_LINE: int = 1800
+EDGE_MAX_LINE: int = 1750
 
-FRONT_WATCHER_NAME = 'front_watcher'
-REAR_WATCHER_NAME = 'rear_watcher'
-EDGE_REAR_WATCHER_NAME = 'edge_rear_watcher'
-EDGE_FRONT_WATCHER_NAME = 'edge_front_watcher'
-SIDES_WATCHER_NAME = 'sides_watcher'
-GRAYS_WATCHER_NAME = 'grays_watcher'
+FRONT_WATCHER_NAME: str = 'front_watcher'
+REAR_WATCHER_NAME: str = 'rear_watcher'
+EDGE_REAR_WATCHER_NAME: str = 'edge_rear_watcher'
+EDGE_FRONT_WATCHER_NAME: str = 'edge_front_watcher'
+SIDES_WATCHER_NAME: str = 'sides_watcher'
+GRAYS_WATCHER_NAME: str = 'grays_watcher'
