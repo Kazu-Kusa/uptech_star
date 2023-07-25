@@ -319,6 +319,7 @@ class ActionPlayer(object):
     def action_frame_queue(self) -> List[ActionFrame]:
         return self._action_frame_queue
 
+    # TODO: should add a parse check feature
     def append(self, action: ActionFrame, play_now: bool = True) -> None:
         """
         append new ActionFrame to the ActionFrame stack

@@ -16,63 +16,12 @@ ActionFactory = Callable[[Any, ...], ComplexAction]
 Reaction = Union[ComplexAction, ActionFactory, Any]
 
 
-class InferrerBase(metaclass=ABCMeta):
-    __action_table: Dict[Hashable, Reaction] = {}
-
-    def __init__(self, sensor_hub: SensorHub, player: ActionPlayer, config_path: str):
-        """
-        load config into self._config, initiate self._action_table, parse device handle
-        :param sensor_hub:
-        :param player:
-        :param config_path:
-        """
-        self._config_registry: List[str] = []
+class Configurable(metaclass=ABCMeta):
+    def __init__(self, config_path: str):
         self._config: Dict = {}
+        self._config_registry: List[str] = []
         self.register_all_config()
         self.load_config(config_path)
-
-        self._action_table_init()
-        self._player: ActionPlayer = player
-        self._sensors: SensorHub = sensor_hub
-
-    @abstractmethod
-    def _action_table_init(self):
-        """
-        init the method table
-        :return:
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def exc_action(self, reaction: Reaction, *args, **kwargs) -> Any:
-        raise NotImplementedError
-
-    @abstractmethod
-    def infer(self, *args, **kwargs) -> Tuple[Hashable, ...]:
-        raise NotImplementedError
-
-    def react(self, *args, **kwargs) -> Any:
-        """
-
-        :param args: will be parsed into the inferring section
-        :param kwargs: will be parsed into the inferring section
-        :return:
-        """
-        reaction = self.get_action(self.infer(*args, **kwargs))
-        return self.exc_action(reaction)
-
-    @final
-    def register_action(self, case: Hashable, complex_action: Reaction) -> None:
-        self.__action_table[case] = complex_action
-
-    @final
-    def get_action(self, case: Hashable) -> Reaction:
-        return self.__action_table.get(case, DEFAULT_REACTION)
-
-    @final
-    @property
-    def action_table(self) -> Dict:
-        return self.__action_table
 
     @abstractmethod
     def register_all_config(self):
@@ -80,7 +29,7 @@ class InferrerBase(metaclass=ABCMeta):
         register all the config
         :return:
         """
-        raise NotImplementedError
+        pass
 
     @final
     def register_config(self, config_registry_path: str, value: Optional[Any] = None) -> None:
@@ -175,3 +124,59 @@ class InferrerBase(metaclass=ABCMeta):
 
             if not hasattr(self, formatted_path):
                 setattr(self, formatted_path, self.export_config(config_registry_path=config_registry_path))
+
+
+class InferrerBase(Configurable):
+    __action_table: Dict[Hashable, Reaction] = {}
+
+    def __init__(self, sensor_hub: SensorHub, player: ActionPlayer, config_path: str):
+        """
+        load config into self._config, initiate self._action_table, parse device handle
+        :param sensor_hub:
+        :param player:
+        :param config_path:
+        """
+
+        super().__init__(config_path=config_path)
+        self._action_table_init()
+        self._player: ActionPlayer = player
+        self._sensors: SensorHub = sensor_hub
+
+    @abstractmethod
+    def _action_table_init(self):
+        """
+        init the method table
+        :return:
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def exc_action(self, reaction: Reaction, *args, **kwargs) -> Any:
+        raise NotImplementedError
+
+    @abstractmethod
+    def infer(self, *args, **kwargs) -> Tuple[Hashable, ...]:
+        raise NotImplementedError
+
+    def react(self, *args, **kwargs) -> Any:
+        """
+
+        :param args: will be parsed into the inferring section
+        :param kwargs: will be parsed into the inferring section
+        :return:
+        """
+        reaction = self.get_action(self.infer(*args, **kwargs))
+        return self.exc_action(reaction)
+
+    @final
+    def register_action(self, case: Hashable, complex_action: Reaction) -> None:
+        self.__action_table[case] = complex_action
+
+    @final
+    def get_action(self, case: Hashable) -> Reaction:
+        return self.__action_table.get(case, DEFAULT_REACTION)
+
+    @final
+    @property
+    def action_table(self) -> Dict:
+        return self.__action_table
