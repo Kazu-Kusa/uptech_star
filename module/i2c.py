@@ -1,5 +1,7 @@
-from typing import Dict, List
-
+import sys
+from abc import ABCMeta, abstractmethod
+from typing import List, Dict
+from ctypes import c_uint16
 from .serial_helper import SerialHelper, serial_kwargs_factory
 
 """
@@ -32,14 +34,52 @@ DEFAULT_I2C_SERIAL_KWARGS = serial_kwargs_factory(baudrate=300)
 Hex = int | bytes
 
 
-class I2CReader(object):
-    def __init__(self, port: str, serial_config: Dict = DEFAULT_I2C_SERIAL_KWARGS):
-        """
-        create an i2c reader using USB serial port
-        :param port: the port name
-        :param serial_config: the serial configuration, built by the config factory
-        """
+class Ch341aApplication(object, metaclass=ABCMeta):
+    def __init__(self, port: str, serial_config: Dict):
         self._serial: SerialHelper = SerialHelper(port=port, serial_config=serial_config)
+
+    @abstractmethod
+    def read_1char(self, device_addr, register_addr):
+        """
+        from the i2c serial port read a single char(8bit) of a slave device
+        :param device_addr: the device that you want to read
+        :param register_addr: the register of the device that you want to read
+        :return: 8bit data
+        """
+        pass
+
+    @abstractmethod
+    def write_1char(self, device_addr, register_addr, trunk):
+        """
+        write a single char(8bit) to a slave device through the i2c serial port
+        :param device_addr:  the device that you want to write
+        :param register_addr:  the register of the device that you want to write
+        :param trunk: the data you want to write
+        :return: if the write operation is successful.True for success, False for failure
+        """
+        pass
+
+    @abstractmethod
+    def read(self, size, device_addr, register_addr):
+        """
+        from the i2c serial port read gavin size data of a slave device,
+        :param size: the size of the data,integer only
+        :param device_addr: the device that you want to read
+        :param register_addr: the register of the device that you want to read
+        :return: the data,List of chars(8bit)
+        """
+        pass
+
+    @abstractmethod
+    def write(self, trunk, device_addr, register_addr):
+        """
+        from the i2c serial port write gavin trunk data to a slave device
+        :param trunk:  the data you want to write,List of chars(8bit) or bytearray
+        :param device_addr: the device that you want to write
+        :param register_addr: the register of the device that you want to write
+        :return: if the write operation is successful, True for success, False for failure
+        """
+        pass
 
     @property
     def port(self) -> str:
@@ -53,6 +93,9 @@ class I2CReader(object):
         :return:
         """
         self._serial.port = new_port
+
+
+class I2CReader(Ch341aApplication):
 
     def read_1char(self, device_addr: Hex, register_addr: Hex) -> bytes:
         """
@@ -83,8 +126,8 @@ class I2CReader(object):
         :param register_addr: the register of the device that you want to read
         :return: the data,List of chars(8bit)
         """
-        return [self.read_1char(device_addr=device_addr,
-                                register_addr=register_addr + i) for i in range(size)]
+        return ([self.read_1char(device_addr=device_addr,
+                                 register_addr=register_addr + i) for i in range(size)])
 
     def write(self, trunk: List[bytes] | bytearray, device_addr: Hex, register_addr: Hex) -> bool:
         """
@@ -97,3 +140,24 @@ class I2CReader(object):
         return all([self.write_1char(device_addr=device_addr,
                                      register_addr=register_addr + i,
                                      trunk=trunk[i]) for i in range(len(trunk))])
+
+
+class SensorsExpansion(I2CReader, metaclass=ABCMeta):
+    DEVICE_ADDR = 0x24
+    ADC_REGISTER = 0x20
+
+    ADC_DATA_TYPE = c_uint16
+    ADC_DATA_SIZE = 2
+    ADC_CHANNEL_COUNT = 8
+    ADC_CHANNEL_ADDR = [ADC_REGISTER + i * ADC_DATA_SIZE for i in range(ADC_CHANNEL_COUNT)]
+
+    def get_adc_data(self, channel: int) -> ADC_DATA_TYPE:
+        return c_uint16(int.from_bytes(
+            bytes=b''.join(self.read(
+                size=self.ADC_DATA_SIZE,
+                device_addr=self.DEVICE_ADDR,
+                register_addr=self.ADC_CHANNEL_ADDR[channel])),
+            byteorder=sys.byteorder))
+
+    def get_all_adc_data(self) -> List[ADC_DATA_TYPE]:
+        return [self.get_adc_data(i) for i in range(self.ADC_CHANNEL_COUNT)]
