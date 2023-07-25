@@ -11,7 +11,7 @@ CONFIG_PATH_PATTERN = '\\|/'
 
 DEFAULT_REACTION = tuple()
 
-ComplexAction = Tuple[Optional[ActionFrame], ...]
+ComplexAction = Sequence[Optional[ActionFrame], ...]
 ActionFactory = Callable[[Any, ...], ComplexAction]
 Reaction = Union[ComplexAction, ActionFactory, Any]
 
