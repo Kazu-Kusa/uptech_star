@@ -143,6 +143,10 @@ class I2CReader(Ch341aApplication):
 
 
 class SensorsExpansion(I2CReader, metaclass=ABCMeta):
+    VENDOR_ID = '1a86'
+    PRODUCT_ID = '5512'
+    DEVICE_ID = f'{VENDOR_ID}:{PRODUCT_ID}'
+
     DEVICE_ADDR = 0x24
     ADC_REGISTER = 0x20
 
