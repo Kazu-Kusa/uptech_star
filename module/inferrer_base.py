@@ -6,7 +6,7 @@ from .sensors import SensorHub
 
 DEFAULT_REACTION = tuple()
 
-ComplexAction = Sequence[Optional[ActionFrame], ...]
+ComplexAction = Sequence[Optional[ActionFrame]]
 ActionFactory = Callable[[Any, ...], ComplexAction]
 Reaction = Union[ComplexAction, ActionFactory, Any]
 
