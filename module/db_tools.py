@@ -86,6 +86,7 @@ class Configurable(metaclass=ABCMeta):
         self._config_registry: List[str] = []
         self.register_all_config()
         self.load_config(config_path)
+        self.inject_config()
 
     @abstractmethod
     def register_all_config(self):
@@ -130,8 +131,7 @@ class Configurable(metaclass=ABCMeta):
 
         self._config = make_config(self._config, config_registry_path_chain)
 
-    @final
-    def export_config(self, config_registry_path: str) -> Optional[Any]:
+    def export_config(self, config_body: Dict, config_registry_path: str) -> Optional[Any]:
         """
         Exports the value at the specified location in the nested dictionary _config.
 
@@ -145,18 +145,18 @@ class Configurable(metaclass=ABCMeta):
             raise KeyError('The chain is conflicting')
 
         @get_config.register(dict)
-        def _(body, chain: Sequence[str]) -> Any:
+        def _(body: Dict, chain: Sequence[str]) -> Any:
             if len(chain) == 1:
                 # Store the value
-                return body[chain[0]]
+                return body.get(chain[0])
             else:
-                return get_config(body[chain[0]], chain[1:])
+                return get_config(body.get(chain[0]), chain[1:])
 
         @get_config.register(type(None))
-        def _(body, chain: Sequence[str]) -> Any:
+        def _(body: Dict, chain: Sequence[str]) -> Any:
             return None
 
-        return get_config(self._config, config_registry_path_chain)
+        return get_config(config_body, config_registry_path_chain)
 
     @final
     def save_config(self, config_path: str) -> None:
@@ -175,19 +175,29 @@ class Configurable(metaclass=ABCMeta):
     def load_config(self, config_path: str) -> None:
         """
         used to load the important configurations.
-        inject the configurations into the instance
+        will override the default configuration in the self._config.
         :param config_path:
         :return:
         """
 
         with open(config_path, mode='r') as f:
-            self._config = json.load(f)
+            temp_config = json.load(f)
         for config_registry_path in self._config_registry:
+            config = self.export_config(temp_config, config_registry_path)
+            if config is not None:
+                self.register_config(config_registry_path, config)
 
+    @final
+    def inject_config(self):
+        """
+        inject the self._config into the instance
+        :return:
+        """
+        for config_registry_path in self._config_registry:
             formatted_path = re.sub(pattern=CONFIG_PATH_PATTERN, repl='_', string=config_registry_path)
-
             if not hasattr(self, formatted_path):
-                setattr(self, formatted_path, self.export_config(config_registry_path=config_registry_path))
+                setattr(self, formatted_path,
+                        self.export_config(config_body=self._config, config_registry_path=config_registry_path))
 
 
 CONFIG_PATH_PATTERN = '\\|/'
