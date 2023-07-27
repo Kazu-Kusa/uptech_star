@@ -36,13 +36,14 @@ class InferrerBase(Configurable):
         raise NotImplementedError
 
     @abstractmethod
-    def exc_action(self, reaction: Reaction, *args, **kwargs) -> Any:
+    def exc_action(self, *args, **kwargs) -> Any:
         raise NotImplementedError
 
     @abstractmethod
     def infer(self, *args, **kwargs) -> Tuple[Hashable, ...]:
         raise NotImplementedError
 
+    @abstractmethod
     def react(self, *args, **kwargs) -> Any:
         """
 
@@ -50,8 +51,7 @@ class InferrerBase(Configurable):
         :param kwargs: will be parsed into the inferring section
         :return:
         """
-        reaction = self.get_action(self.infer(*args, **kwargs))
-        return self.exc_action(reaction)
+        raise NotImplementedError
 
     @final
     def register_action(self, case: Hashable, complex_action: Reaction) -> None:
