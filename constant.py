@@ -45,16 +45,16 @@ CONFIG_DEFAULT_NORMAL_BASELINE: str = 'DEFAULT_NORMAL_BASELINE'
 CONFIG_DEFAULT_GRAYS_BASELINE: str = 'DEFAULT_GRAYS_BASELINE'
 CONFIG_DRIVER_SERIAL_PORT: str = 'DRIVER_SERIAL_PORT'
 
-PRE_COMPILE_CMD: bool = config.get(CONFIG_PRE_COMPILE_CMD, default=True)
-DRIVER_DEBUG_MODE: bool = config.get(CONFIG_DRIVER_DEBUG_MODE, default=False)
-MOTOR_IDS: Tuple[int, int, int, int] = tuple(config.get(CONFIG_MOTOR_IDS, default=(4, 3, 1, 2)))
-MOTOR_DIRS: Tuple[int, int, int, int] = tuple(config.get(CONFIG_MOTOR_DIRS, default=(-1, -1, 1, 1)))
-HANG_TIME_MAX_ERROR: int = config.get(CONFIG_HANG_TIME_MAX_ERROR, default=50)
-TAG_GROUP: str = config.get(CONFIG_TAG_GROUP, default='tag36h11')
-DEFAULT_EDGE_BASELINE: int = config.get(CONFIG_DEFAULT_EDGE_BASELINE, default=1750)
-DEFAULT_NORMAL_BASELINE: int = config.get(CONFIG_DEFAULT_NORMAL_BASELINE, default=1000)
-DEFAULT_GRAYS_BASELINE: int = config.get(CONFIG_DEFAULT_GRAYS_BASELINE, default=1)
-DRIVER_SERIAL_PORT: str = config.get(CONFIG_DRIVER_SERIAL_PORT, default='tty/USB0')
+PRE_COMPILE_CMD: bool = config.get(CONFIG_PRE_COMPILE_CMD, True)
+DRIVER_DEBUG_MODE: bool = config.get(CONFIG_DRIVER_DEBUG_MODE, False)
+MOTOR_IDS: Tuple[int, int, int, int] = tuple(config.get(CONFIG_MOTOR_IDS, (4, 3, 1, 2)))
+MOTOR_DIRS: Tuple[int, int, int, int] = tuple(config.get(CONFIG_MOTOR_DIRS, (-1, -1, 1, 1)))
+HANG_TIME_MAX_ERROR: int = config.get(CONFIG_HANG_TIME_MAX_ERROR, 50)
+TAG_GROUP: str = config.get(CONFIG_TAG_GROUP, 'tag36h11')
+DEFAULT_EDGE_BASELINE: int = config.get(CONFIG_DEFAULT_EDGE_BASELINE, 1750)
+DEFAULT_NORMAL_BASELINE: int = config.get(CONFIG_DEFAULT_NORMAL_BASELINE, 1000)
+DEFAULT_GRAYS_BASELINE: int = config.get(CONFIG_DEFAULT_GRAYS_BASELINE, 1)
+DRIVER_SERIAL_PORT: str = config.get(CONFIG_DRIVER_SERIAL_PORT, 'tty/USB0')
 
 PATH_CACHE: str = os.path.join(PACKAGE_ROOT, DIR_CACHE)
 PATH_LD: str = os.path.join(PACKAGE_ROOT, DIR_LID_SO)
