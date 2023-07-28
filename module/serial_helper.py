@@ -65,16 +65,15 @@ class SerialHelper:
         """
         available_serial_ports = find_serial_ports()
         assert available_serial_ports, "No serial ports FOUND!"
+        self._serial: Serial = Serial(port=port, **serial_config)
+        if port is None:
 
-        if port:
-            self._serial: Optional[Serial] = Serial(port=port, **serial_config)
-        else:
             # try to search for a new port
             warnings.warn('Searching available Ports')
             print(f'Available ports: {available_serial_ports}')
             for i in available_serial_ports:
-                port = i
-                print(f'try to open to {port}')
+                self._serial.port = i
+                print(f'try to open to {self._serial.port}')
                 if self.open():
                     break
 
