@@ -124,18 +124,18 @@ class CloseLoopController:
         :param hang_time:
         :return:
         """
-        self._motor_speeds = speed_list
-        if is_list_all_zero(self._motor_speeds):
+
+        if is_list_all_zero(speed_list):
             self.set_all_motors_speed(0, hang_time=hang_time)
         else:
             # will check the if target speed and current speed are the same and can customize the direction
             cmd_list = [f'{motor_id}v{speed * direction}'
                         for motor_id, speed, cur_speed, direction in
-                        zip(self._motor_ids, self._motor_speeds, self._motor_speeds, self._motor_dirs)
+                        zip(self._motor_ids, speed_list, self._motor_speeds, self._motor_dirs)
                         if speed != cur_speed]
-
             if cmd_list:
                 self.append_to_queue(byte_string=makeCmd_list(cmd_list), hang_time=hang_time)
+        self._motor_speeds = speed_list
 
     def set_all_motors_speed(self, speed: int, hang_time: float = 0.) -> None:
         """
@@ -200,7 +200,7 @@ def makeCmd(cmd: str) -> ByteString:
     return cmd.encode('ascii') + b'\r'
 
 
-def motor_speed_test(speed_level: int = 11, interval: float = 1, using_id: bool = True, laps: int = 3) -> None:
+def motor_speed_test(port, speed_level: int = 11, interval: float = 1, using_id: bool = True, laps: int = 3) -> None:
     """
     motor speed test function,used to test and check  if the driver configurations are correct
     :param speed_level:
@@ -209,18 +209,20 @@ def motor_speed_test(speed_level: int = 11, interval: float = 1, using_id: bool 
     :param laps:
     :return:
     """
-    con = CloseLoopController(motor_ids=(4, 3, 1, 2), motor_dirs=(-1, -1, 1, 1))
+    con = CloseLoopController(motor_ids=(4, 3, 1, 2), motor_dirs=(-1, -1, 1, 1), port=port, debug=True)
     try:
         for _ in range(laps):
             if using_id:
                 for i in range(speed_level):
-                    print(f'doing {i * 1000}')
-                    con.set_motors_speed((1000 * i, 1000 * i, 1000 * i, 1000 * i))
+                    speed_list = (1000 * i, 1000 * i, 1000 * i, 1000 * i)
+                    print(f'doing {speed_list}')
+                    con.set_motors_speed(speed_list=speed_list)
                     time.sleep(interval)
             else:
                 for i in range(speed_level):
-                    print(f'doing {i * 1000}')
-                    con.set_all_motors_speed(i * 1000)
+                    speed = i * 1000
+                    print(f'doing {speed}')
+                    con.set_all_motors_speed(speed)
                     time.sleep(interval)
     finally:
         con.set_all_motors_speed(0)
