@@ -1,13 +1,9 @@
 import ctypes
 import os
 import threading
-from ctypes import cdll
-from ctypes import CDLL
+from ctypes import cdll, CDLL
 import warnings
-
-import pigpio
-
-from ..constant import FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us, FAN_PWN_range, ENV_LIB_SO_PATH
+from ..constant import ENV_LIB_SO_PATH
 from .db_tools import persistent_cache
 
 ld_library_path = os.environ.get(ENV_LIB_SO_PATH)
@@ -39,23 +35,13 @@ class UpTech:
 
     def __init__(self, open_mpu: bool = True,
                  debug: bool = False,
-                 fan_control: bool = True,
                  using_updating_thread: bool = False):
         self.debug = debug
 
-        # 如果没有运行，则启动pigpio守护进程
-        self.Pi = pigpio.pi()
-        assert self.Pi.connected, 'pi is not connected'
         if open_mpu:
             self.MPU6500_Open()
         if self.debug:
             print('Sensor data buffer loaded')
-        if fan_control:
-            warnings.warn('loading fan control')
-
-            self.Pi.hardware_PWM(FAN_GPIO_PWM, FAN_pulse_frequency, FAN_duty_time_us)
-            self.Pi.set_PWM_range(FAN_GPIO_PWM, FAN_PWN_range)
-            warnings.warn('fan control loaded')
         elif debug:
             warnings.warn('fan control disabled')
 
@@ -68,13 +54,6 @@ class UpTech:
             self.open_adc_io_update_thread()
         else:
             warnings.warn('NOT using sensors update thread')
-
-    def FAN_Set_Speed(self, speed: int = 0):
-        """
-        set the speed of the raspberry's fan
-
-        """
-        self.Pi.set_PWM_dutycycle(FAN_GPIO_PWM, speed)
 
     @staticmethod
     def ADC_IO_Open():

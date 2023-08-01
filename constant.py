@@ -21,11 +21,6 @@ def read_config() -> Dict:
 
 config: Dict = read_config()
 
-FAN_GPIO_PWM: int = 18
-FAN_pulse_frequency: int = 20000
-FAN_duty_time_us: int = 1000000
-FAN_PWN_range: int = 100
-
 ZEROS: Tuple[int, int, int, int] = (0, 0, 0, 0)
 
 DIR_CACHE: str = 'cache'
