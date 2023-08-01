@@ -18,7 +18,7 @@ CAMERA_RESOLUTION_MULTIPLIER = 0.4
 
 try:
     import cv2
-    from apriltag import Detector, DetectorOptions
+    from pyapriltags import Detector, Detection
 except ImportError:
     warnings.warn('failed to import vision deps')
 
@@ -37,16 +37,13 @@ def get_center_tag(frame_center: Tuple[int, int], tags: List):
 
 
 class TagDetector:
-    __tag_detector = Detector(DetectorOptions(families=TAG_GROUP,
-                                              border=1,
-                                              nthreads=4,
-                                              quad_decimate=1.0,
-                                              quad_blur=0.0,
-                                              refine_edges=True,
-                                              refine_decode=False,
-                                              refine_pose=False,
-                                              debug=False,
-                                              quad_contours=True)).detect
+    __tag_detector = Detector(families=TAG_GROUP,
+                              nthreads=1,
+                              quad_decimate=1.0,
+                              quad_sigma=0.0,
+                              refine_edges=1,
+                              decode_sharpening=0.25,
+                              debug=0).detect
 
     def __init__(self, camera: Camera,
                  team_color: Optional[str] = None,
