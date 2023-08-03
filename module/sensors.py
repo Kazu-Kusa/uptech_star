@@ -1,3 +1,4 @@
+from time import perf_counter_ns
 from typing import Callable, Tuple, List, Optional, Union, Dict, Sequence
 
 Updater = Callable[[], Sequence[Union[float, int]]]
@@ -38,3 +39,14 @@ class SensorHub(object):
             return [self[i] for i in sensor_ids]
 
         return updater
+
+
+def record_updater(updater: Updater, duration: int, interval: int):
+    from .timer import delay_us
+    from pandas import DataFrame
+    result = []
+    end_time = perf_counter_ns() + duration * 1e6
+    while perf_counter_ns() < end_time:
+        delay_us(interval)
+        result.append(updater())
+    return DataFrame(result)
