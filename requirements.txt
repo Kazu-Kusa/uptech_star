@@ -1,4 +1,7 @@
-numpy
-opencv-python
-apriltag
+pytest
 pyserial
+pyapriltags
+Cython
+opencv-python-headless==4.8.0.74
+numba
+numpy

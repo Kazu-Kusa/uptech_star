@@ -97,7 +97,7 @@ class UpTech:
         return UpTech._adc_all
 
     @staticmethod
-    def set_io_level(index: Union[ctypes.c_uint, int], level: Union[ctypes.c_char, int]):
+    def set_io_level(index: int, level: int):
         """
         int __fastcall adc_io_Set(unsigned int a1, char a2)
         {
@@ -116,7 +116,7 @@ class UpTech:
         UpTech.__lib.adc_io_Set(index, level)
 
     @staticmethod
-    def set_all_io_level(level: ctypes.c_uint):
+    def set_all_io_level(level: int):
         """
         int __fastcall adc_io_SetAll(unsigned int a1)
         {
@@ -141,7 +141,7 @@ class UpTech:
         UpTech.__lib.adc_io_SetAll(level)
 
     @staticmethod
-    def get_all_io_mode(buffer: ctypes.c_byte):
+    def get_all_io_mode(buffer: int):
         """
         int __fastcall adc_io_ModeGetAll(_BYTE *a1)
         {
@@ -159,7 +159,7 @@ class UpTech:
         return UpTech.__lib.adc_io_ModeGetAll(buffer)
 
     @staticmethod
-    def set_all_io_mode(mode: ctypes.c_int):
+    def set_all_io_mode(mode: int):
         """
         int __fastcall adc_io_ModeSetAll(char a1)
         {
@@ -176,7 +176,7 @@ class UpTech:
         UpTech.__lib.adc_io_ModeSetAll(mode)
 
     @staticmethod
-    def set_io_mode(index: ctypes.c_uint, mode: ctypes.c_int):
+    def set_io_mode(index: int, mode: int):
         """
         int __fastcall adc_io_ModeSet(unsigned int a1, int a2)
         {
@@ -223,7 +223,7 @@ class UpTech:
             sampling rate: 1kHz
         """
         if UpTech.__lib.mpu6500_dmp_init():
-            warnings.warn('#failed to initialize MPU6500', category=RuntimeWarning)
+            warnings.warn('#failed to initialize MPU6500')
         elif debug_info:
             warnings.warn('#MPU6500 successfully initialized')
 
