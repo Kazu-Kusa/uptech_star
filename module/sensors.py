@@ -43,11 +43,11 @@ class SensorHub(object):
         return updater
 
 
-def record_updater(updater: Updater, duration: int, interval: int) -> DataFrame:
+def record_updater(updater: Updater, duration: int, interval: int) -> Dict:
     result = []
     print(f"recording updaters: {updater}, duration: {duration} ms, interval: {interval} ms")
     end_time = perf_counter_ns() + duration * 1e6
     while perf_counter_ns() < end_time:
         delay_us(interval)
-        result.append(updater())
-    return DataFrame(result)
+        result.append(list(updater()))
+    return {f'{updater.__name__}-{duration}-{interval}': result}
