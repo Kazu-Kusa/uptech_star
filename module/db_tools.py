@@ -1,9 +1,10 @@
 import json
 import os
-import re
-from abc import ABCMeta, abstractmethod
-from functools import lru_cache, wraps, update_wrapper, singledispatch
 import pickle
+import re
+import warnings
+from abc import ABCMeta, abstractmethod
+from functools import wraps, singledispatch
 from typing import Optional, List, Dict, final, Any, Sequence
 
 
@@ -23,6 +24,11 @@ class CacheFILE:
             with open(self._cache_file_path, 'rb') as f:
                 return pickle.load(f)
         except FileNotFoundError:
+            warnings.warn('No existing CacheFile')
+            return {}
+        except EOFError:
+            warnings.warn("Bad CacheFile, executing removal")
+            os.remove(self._cache_file_path)
             return {}
 
     def save_cache(self) -> None:
