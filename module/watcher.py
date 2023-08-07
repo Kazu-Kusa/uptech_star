@@ -1,4 +1,5 @@
-from typing import Callable, Sequence, Any, Tuple, Optional, Dict
+from typing import Callable, Sequence, Any, Tuple, Optional, Dict, List
+from copy import copy
 from .uptech import UpTech
 from ..constant import EDGE_REAR_SENSOR_ID, EDGE_FRONT_SENSOR_ID, SIDES_SENSOR_ID, DEFAULT_EDGE_BASELINE, \
     START_MAX_LINE, \
@@ -53,6 +54,42 @@ def build_watcher(sensor_update: Callable[..., Sequence[Any]],
         def watcher() -> bool:
             return all((sensor_update(*args, **kwargs)[x] < max_line) for x in sensor_id)
 
+    return watcher
+
+
+__BUFFER_list: List[List] = []
+
+
+def build_delta_watcher(sensor_update: Callable[..., Sequence[Any]],
+                        sensor_id: Tuple[int, ...],
+                        max_line: Optional[int] = None,
+                        min_line: Optional[int] = None,
+                        args: Tuple = (),
+                        kwargs: Dict[str, Any] = {}) -> Callable[[], bool]:
+    __BUFFER_list.append([])
+    buffer = copy(__BUFFER_list[-1])
+    buffer[:] = sensor_update(*args, **kwargs)
+    if max_line and min_line:
+        def watcher() -> bool:
+            nonlocal buffer
+            update = sensor_update(*args, **kwargs)
+            b = all((max_line > update[x] - buffer[x] > min_line) for x in sensor_id)
+            buffer = update
+            return b
+    elif min_line:
+        def watcher() -> bool:
+            nonlocal buffer
+            update = sensor_update(*args, **kwargs)
+            b = all((update[x] - buffer[x] > min_line) for x in sensor_id)
+            buffer = update
+            return b
+    else:
+        def watcher() -> bool:
+            nonlocal buffer
+            update = sensor_update(*args, **kwargs)
+            b = all((update[x] - buffer[x] < max_line) for x in sensor_id)
+            buffer = update
+            return b
     return watcher
 
 
