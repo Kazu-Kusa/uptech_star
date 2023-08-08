@@ -1,3 +1,3 @@
 [submodule "hotConfigure"]
 	path = module/hotConfigure
-	url = https://github.com/Kazu-Kusa/Pi_hotconfigure.git
+	url = https://ghproxy.com/https://github.com/Kazu-Kusa/Pi_hotconfigure.git
