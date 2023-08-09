@@ -1,7 +1,8 @@
 import sys
 from abc import ABCMeta, abstractmethod
-from typing import List, Dict
 from ctypes import c_uint16
+from typing import List, Dict, Callable
+
 from .serial_helper import SerialHelper, serial_kwargs_factory
 
 """
@@ -32,6 +33,45 @@ CH341可以外接I2C接口的器件，例如常用的24系列串行非易失存�
 """
 DEFAULT_I2C_SERIAL_KWARGS = serial_kwargs_factory(baudrate=300)
 Hex = int | bytes
+
+
+class I2CBase(metaclass=ABCMeta):
+
+    @abstractmethod
+    def begin(self, slave_address: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def requestFrom(self, target_address: int, request_data_size: int, stop: bool):
+        raise NotImplementedError
+
+    @abstractmethod
+    def beginTransmission(self, target_address: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def endTransmission(self, stop: bool):
+        raise NotImplementedError
+
+    @abstractmethod
+    def write(self, data):
+        raise NotImplementedError
+
+    @abstractmethod
+    def available(self, length: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def read(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def onReceive(self, handler: Callable):
+        raise NotImplementedError
+
+    @abstractmethod
+    def onRequest(self, handler: Callable):
+        raise NotImplementedError
 
 
 class Ch341aApplication(object, metaclass=ABCMeta):
@@ -165,3 +205,9 @@ class SensorsExpansion(I2CReader, metaclass=ABCMeta):
 
     def get_all_adc_data(self) -> List[ADC_DATA_TYPE]:
         return [self.get_adc_data(i) for i in range(self.ADC_CHANNEL_COUNT)]
+
+
+class SimulateI2C(I2CBase):
+
+    def __init__(self, port: str, serial_config: Dict):
+        super().__init__(port=port, serial_config=serial_config)
