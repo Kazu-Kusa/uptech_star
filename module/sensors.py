@@ -1,7 +1,7 @@
 from time import perf_counter_ns
-from typing import Callable, Tuple, List, Optional, Union, Dict, Sequence
+from typing import Callable, Tuple, List, Union, Dict, Sequence
+
 from .timer import delay_us
-from pandas import DataFrame
 
 Updater = Callable[[], Sequence[Union[float, int]]]
 
@@ -33,7 +33,7 @@ class SensorHub(object):
         if isinstance(item, int):
             return self._analog_updaters[item]()
         elif isinstance(item, Tuple):
-            return self._analog_updaters[item[0]][item[1]]
+            return self._analog_updaters[item[0]]()[item[1]]
         raise IndexError('Invalid index!')
 
     def updater_constructor(self, sensor_ids: Tuple[Tuple[int, int], ...]) -> Updater:
