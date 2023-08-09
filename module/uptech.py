@@ -1,9 +1,10 @@
 import ctypes
 import os
-from ctypes import cdll, CDLL, Union
 import warnings
-from ..constant import ENV_LIB_SO_PATH
+from ctypes import cdll, CDLL
+
 from .db_tools import persistent_cache
+from ..constant import ENV_LIB_SO_PATH
 
 ld_library_path = os.environ.get(ENV_LIB_SO_PATH)
 
@@ -36,12 +37,9 @@ class UpTech:
                  debug: bool = False):
         self.debug = debug
 
-        if open_mpu:
-            self.MPU6500_Open()
-        if self.debug:
-            warnings.warn('Sensor data buffer loaded')
-
-            print(f"Sensor channel Init times: {self.adc_io_open()}")
+        self.MPU6500_Open() if open_mpu else None
+        success = self.adc_io_open()
+        print(f"Sensor channel Init times: {success}") if self.debug else None
 
     @staticmethod
     def adc_io_open():
@@ -249,6 +247,8 @@ class UpTech:
     def atti_all():
         """
         get attitude from MPU6500
+
+        :note the attitude data update every 10ms, so, high sampling-frequency may not be a good option
         """
 
         UpTech.__lib.mpu6500_Get_Attitude(UpTech._atti_all)
