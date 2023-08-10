@@ -1,6 +1,6 @@
 import warnings
 
-from .uptech import load_lib
+from .onboardsensors import load_lib
 
 
 class Screen(object):
