@@ -6,7 +6,7 @@ from typing import List, Dict, Callable
 from .db_tools import Configurable
 from .serial_helper import SerialHelper, serial_kwargs_factory
 from .timer import delay_us_constructor
-from .uptech import PinSetter, pin_setter_constructor, pin_getter_constructor, PinGetter
+from .uptech import PinSetter, pin_setter_constructor, pin_getter_constructor, PinGetter, HIGH, LOW
 
 """
 CH341可以外接I2C接口的器件，例如常用的24系列串行非易失存储器EEPROM，
@@ -229,6 +229,7 @@ class SimulateI2C(I2CBase):
 
     print(received_data)
     """
+
     __speed_delay_table = {
         100: 5,
         400: 2
@@ -241,38 +242,38 @@ class SimulateI2C(I2CBase):
         return 1
 
     def __nack(self):
-        self.set_SDA_PIN(1)  # cpu驱动SDA = 1
+        self.set_SDA_PIN(HIGH)  # cpu驱动SDA = 1
         self.delay()
-        self.set_SCL_PIN(1)  # 产生一个高电平时钟
+        self.set_SCL_PIN(HIGH)  # 产生一个高电平时钟
         self.delay()
-        self.set_SCL_PIN(0)
+        self.set_SCL_PIN(LOW)
         self.delay()
 
     def __ack(self):
-        self.set_SDA_PIN(0)  # cpu驱动SDA = 0
+        self.set_SDA_PIN(LOW)  # cpu驱动SDA = 0
         self.delay()
-        self.set_SCL_PIN(1)  # 产生一个高电平时钟
+        self.set_SCL_PIN(HIGH)  # 产生一个高电平时钟
         self.delay()
-        self.set_SCL_PIN(0)
+        self.set_SCL_PIN(LOW)
         self.delay()
-        self.set_SDA_PIN(1)  # cpu释放总线
+        self.set_SDA_PIN(HIGH)  # cpu释放总线
 
     def read(self):
         raise NotImplementedError
 
     def endTransmission(self, stop: bool):
-        self.set_SDA_PIN(0)
-        self.set_SCL_PIN(1)
+        self.set_SDA_PIN(LOW)
+        self.set_SCL_PIN(HIGH)
         self.delay()
-        self.set_SDA_PIN(1)
+        self.set_SDA_PIN(HIGH)
 
     def beginTransmission(self, target_address: int):
-        self.set_SDA_PIN(1)  # SDA线高电平，这里就是配置了对应的GPIO管脚输出高电平而已
-        self.set_SCL_PIN(1)
+        self.set_SDA_PIN(HIGH)  # SDA线高电平，这里就是配置了对应的GPIO管脚输出高电平而已
+        self.set_SCL_PIN(HIGH)
         self.delay()  # 需要保证你的SDA线高电平一段时间，如下面SDA = 0，这不延时的话，直接变成0
-        self.set_SDA_PIN(0)
+        self.set_SDA_PIN(LOW)
         self.delay()
-        self.set_SCL_PIN(0)
+        self.set_SCL_PIN(LOW)
         self.delay()
 
     def begin(self, slave_address: int):
