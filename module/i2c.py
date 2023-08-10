@@ -4,9 +4,9 @@ from ctypes import c_uint16
 from typing import List, Dict, Callable
 
 from .db_tools import Configurable
+from .onboardsensors import PinSetter, pin_setter_constructor, pin_getter_constructor, PinGetter, HIGH, LOW
 from .serial_helper import SerialHelper, serial_kwargs_factory
 from .timer import delay_us_constructor
-from .uptech import PinSetter, pin_setter_constructor, pin_getter_constructor, PinGetter, HIGH, LOW
 
 """
 CH341可以外接I2C接口的器件，例如常用的24系列串行非易失存储器EEPROM，
@@ -238,10 +238,28 @@ class SimulateI2C(I2CBase):
     __read_buffer = bytearray()
     __write_buffer = bytearray()
 
-    def read_byte(self):
-        return 1
+    # 发送一个字节的数据
 
-    def __nack(self):
+    # 读取一个字节的数据
+    def _write_byte(self, data):
+        for _ in range(8):
+            self.set_SDA_PIN(data & 0x80)
+            self.get_SCL_PIN(HIGH)
+            self.delay()
+            self.set_SCL_PIN(LOW)
+            self.set_SDA_PIN(LOW)
+            data = data << 1
+            self.delay()
+
+    def _read_byte(self):
+        received_data = 0x0
+        for _ in range(8):
+            while not self.get_SCL_PIN():
+                pass
+            received_data = (received_data << 1) | self.get_SDA_PIN()
+        return received_data
+
+    def _nack(self):
         self.set_SDA_PIN(HIGH)  # cpu驱动SDA = 1
         self.delay()
         self.set_SCL_PIN(HIGH)  # 产生一个高电平时钟
@@ -249,7 +267,7 @@ class SimulateI2C(I2CBase):
         self.set_SCL_PIN(LOW)
         self.delay()
 
-    def __ack(self):
+    def _ack(self):
         self.set_SDA_PIN(LOW)  # cpu驱动SDA = 0
         self.delay()
         self.set_SCL_PIN(HIGH)  # 产生一个高电平时钟
