@@ -137,11 +137,14 @@ class Configurable(metaclass=ABCMeta):
 
         self._config = make_config(self._config, config_registry_path_chain)
 
-    def export_config(self, config_body: Dict, config_registry_path: str) -> Optional[Any]:
+    @staticmethod
+    def export_config(config_body: Dict, config_registry_path: str) -> Optional[Any]:
         """
         Exports the value at the specified location in the nested dictionary _config.
 
-        :param config_registry_path: A list of keys representing the nested location in the dictionary.
+        Args:
+            config_body: the nested dictionary that contains the value.
+            config_registry_path: A list of keys representing the nested location in the dictionary.
         :return: The value at the specified location.
         """
         config_registry_path_chain: List[str] = re.split(pattern=CONFIG_PATH_PATTERN, string=config_registry_path)
