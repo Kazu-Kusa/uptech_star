@@ -3,8 +3,8 @@ from abc import ABCMeta, abstractmethod
 from ctypes import c_uint16
 from typing import List, Dict, Callable
 
-from .db_tools import Configurable
 from .onboardsensors import PinSetter, pin_setter_constructor, pin_getter_constructor, PinGetter, HIGH, LOW
+from .os_tools import Configurable
 from .serial_helper import SerialHelper, serial_kwargs_factory
 from .timer import delay_us_constructor
 

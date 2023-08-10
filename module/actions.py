@@ -2,17 +2,17 @@ import json
 import os
 import pickle
 import time
-from functools import singledispatch, lru_cache
-from typing import Callable, Tuple, Union, Optional, List, Dict, ByteString, Sequence, Type
+from functools import singledispatch
+from typing import Tuple, Union, Optional, List, Dict, ByteString, Sequence
 
-from .db_tools import persistent_cache
+from .algrithm_tools import multiply, factor_list_multiply
+from .close_loop_controller import CloseLoopController, is_list_all_zero
+from .os_tools import persistent_cache
+from .timer import delay_ms, calc_hang_time
+from .watcher import watchers, Watcher
 from ..constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_IDS, HALT_CMD, MOTOR_DIRS, DRIVER_DEBUG_MODE, \
     BREAK_ACTION_KEY, BREAKER_FUNC_KEY, ACTION_DURATION, ACTION_SPEED_KEY, HANG_DURING_ACTION_KEY, DRIVER_SERIAL_PORT
 from ..constant import HANG_TIME_MAX_ERROR
-from .algrithm_tools import multiply, factor_list_multiply
-from .timer import delay_ms, calc_hang_time
-from .close_loop_controller import CloseLoopController, is_list_all_zero
-from .watcher import watchers, Watcher
 
 CACHE_DIR = os.environ.get(ENV_CACHE_DIR_PATH)
 
@@ -303,7 +303,7 @@ def pre_build_action_frame(speed_range: Tuple[int, int, int], duration_range: Tu
                             action_duration=duration)
 
     print(f'time cost: {time.time() - start:.6f}s')
-    from .db_tools import CacheFILE
+    from .os_tools import CacheFILE
     CacheFILE.save_all_cache()
     ActionFrame.save_cache()
 

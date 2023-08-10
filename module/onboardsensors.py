@@ -1,13 +1,8 @@
 import ctypes
-import os
 import warnings
-from ctypes import cdll, CDLL
 from typing import Callable
 
-from .db_tools import persistent_cache
-from ..constant import ENV_LIB_SO_PATH
-
-ld_library_path = os.environ.get(ENV_LIB_SO_PATH)
+from .os_tools import load_lib
 
 PinModeSetter = Callable[[int], None]
 PinSetter = Callable[[int], None]
@@ -17,13 +12,6 @@ WRITE = 1
 READ = 0
 HIGH = 1
 LOW = 0
-
-
-@persistent_cache(f'{ld_library_path}/lb_cache')
-def load_lib(libname: str) -> CDLL:
-    lib_file_name = f'{ld_library_path}/{libname}'
-    print(f'Loading [{lib_file_name}]')
-    return cdll.LoadLibrary(lib_file_name)
 
 
 class OnBoardSensors:

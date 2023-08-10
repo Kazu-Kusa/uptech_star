@@ -4,8 +4,11 @@ import pickle
 import re
 import warnings
 from abc import ABCMeta, abstractmethod
+from ctypes import CDLL, cdll
 from functools import wraps, singledispatch
 from typing import Optional, List, Dict, final, Any, Sequence
+
+from ..constant import ENV_LIB_SO_PATH
 
 
 class CacheFILE:
@@ -210,3 +213,11 @@ class Configurable(metaclass=ABCMeta):
 
 
 CONFIG_PATH_PATTERN = '\\|/'
+ld_library_path = os.environ.get(ENV_LIB_SO_PATH)
+
+
+@persistent_cache(f'{ld_library_path}/lb_cache')
+def load_lib(libname: str) -> CDLL:
+    lib_file_name = f'{ld_library_path}/{libname}'
+    print(f'Loading [{lib_file_name}]')
+    return cdll.LoadLibrary(lib_file_name)

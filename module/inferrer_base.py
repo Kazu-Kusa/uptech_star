@@ -1,7 +1,8 @@
 from abc import abstractmethod
 from typing import Dict, Any, Hashable, final, Tuple, Optional, Callable, Union, Sequence
+
 from .actions import ActionFrame, ActionPlayer
-from .db_tools import Configurable
+from .os_tools import Configurable
 from .sensors import SensorHub
 
 DEFAULT_REACTION = tuple()

@@ -3,8 +3,8 @@ import time
 import warnings
 from typing import List
 
+from .os_tools import persistent_cache, CacheFILE
 from ..constant import ENV_CACHE_DIR_PATH
-from .db_tools import persistent_cache, CacheFILE
 
 ANGLE_RESOLUTION: int = 100
 FULL_ARC_ANGLE: int = 360 * ANGLE_RESOLUTION

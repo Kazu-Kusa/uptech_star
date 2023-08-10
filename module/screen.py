@@ -1,6 +1,6 @@
 import warnings
 
-from .onboardsensors import load_lib
+from .os_tools import load_lib
 
 
 class Screen(object):
