@@ -55,3 +55,16 @@ def calc_hang_time(milliseconds: int, hang_time_max_error: int) -> float:
     else:
         temp = 0
     return temp
+
+
+StdUsDelay = Callable[[], None]
+
+
+def delay_us_constructor(delay: int) -> StdUsDelay:
+    def delay_function() -> None:
+        end_time = perf_counter_ns() + delay * 1000
+        while perf_counter_ns() < end_time:
+            # to next check
+            pass
+
+    return delay_function
