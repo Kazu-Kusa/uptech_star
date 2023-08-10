@@ -2,6 +2,9 @@ import ctypes
 import os
 import warnings
 from ctypes import cdll, CDLL
+from typing import Callable
+
+PinGetter = Callable[[], int]
 
 from .db_tools import persistent_cache
 from ..constant import ENV_LIB_SO_PATH
@@ -139,6 +142,10 @@ class UpTech:
         UpTech.__lib.adc_io_SetAll(level)
 
     @staticmethod
+    def get_io_level(index: int) -> int:
+        return (UpTech.__lib.adc_io_InputGetAll() >> index) & 1
+
+    @staticmethod
     def get_all_io_mode(buffer: int):
         """
         int __fastcall adc_io_ModeGetAll(_BYTE *a1)
@@ -208,8 +215,7 @@ class UpTech:
 
         unsigned 8int
         """
-
-        return tuple(int(x) for x in f'{UpTech.__lib.adc_io_InputGetAll():08b}')
+        return tuple((UpTech.__lib.adc_io_InputGetAll() >> i) & 1 for i in range(7, -1, -1))
 
     @staticmethod
     def MPU6500_Open(debug_info: bool = False):
@@ -254,3 +260,43 @@ class UpTech:
         UpTech.__lib.mpu6500_Get_Attitude(UpTech._atti_all)
 
         return UpTech._atti_all
+
+    def get_handle(self, attr_name: str):
+        return getattr(self.__lib, attr_name)
+
+
+PinSetter = Callable[[int], None]
+
+
+def pin_setter_constructor(indexed_setter: Callable, pin: int) -> PinSetter:
+    """
+
+    Args:
+        indexed_setter: the function that
+        pin: the pin to be connected
+
+    Returns:
+
+    """
+
+    def set_pin_level(level: int):
+        indexed_setter(pin, level)
+
+    return set_pin_level
+
+
+def pin_getter_constructor(indexed_getter: Callable, pin: int) -> PinGetter:
+    """
+
+    Args:
+        indexed_getter:
+        pin:
+
+    Returns:
+
+    """
+
+    def get_pin_level() -> int:
+        return indexed_getter(pin)
+
+    return get_pin_level
