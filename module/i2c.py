@@ -3,7 +3,10 @@ from abc import ABCMeta, abstractmethod
 from ctypes import c_uint16
 from typing import List, Dict, Callable
 
+from .db_tools import Configurable
 from .serial_helper import SerialHelper, serial_kwargs_factory
+from .timer import delay_us_constructor
+from .uptech import PinSetter, pin_setter_constructor, pin_getter_constructor, PinGetter
 
 """
 CH341可以外接I2C接口的器件，例如常用的24系列串行非易失存储器EEPROM，
@@ -35,7 +38,7 @@ DEFAULT_I2C_SERIAL_KWARGS = serial_kwargs_factory(baudrate=300)
 Hex = int | bytes
 
 
-class I2CBase(metaclass=ABCMeta):
+class I2CBase(Configurable, metaclass=ABCMeta):
 
     @abstractmethod
     def begin(self, slave_address: int):
@@ -182,7 +185,7 @@ class I2CReader(Ch341aApplication):
                                      trunk=trunk[i]) for i in range(len(trunk))])
 
 
-class SensorsExpansion(I2CReader, metaclass=ABCMeta):
+class SensorsSerialExpansion(I2CReader, metaclass=ABCMeta):
     VENDOR_ID = '1a86'
     PRODUCT_ID = '5512'
     DEVICE_ID = f'{VENDOR_ID}:{PRODUCT_ID}'
@@ -208,6 +211,90 @@ class SensorsExpansion(I2CReader, metaclass=ABCMeta):
 
 
 class SimulateI2C(I2CBase):
+    """
+    # 假设要传输的数据为 0b10101010
+    data = 0b10101010
 
-    def __init__(self, port: str, serial_config: Dict):
-        super().__init__(port=port, serial_config=serial_config)
+    # 从高位开始传输数据
+    for i in range(7, -1, -1):
+        bit = (data >> i) & 1
+        # 在这里执行将 bit 发送到 I2C 总线的操作
+
+    # 从高位开始接收数据
+    received_data = 0
+    for i in range(7, -1, -1):
+        # 在这里执行从 I2C 总线接收一个 bit 的操作，并将其存储在 received_bit 中
+        received_bit = 1  # 假设这里的 received_bit 是从 I2C 总线接收到的数据位
+        received_data = (received_data << 1) | received_bit
+
+    print(received_data)
+    """
+    __speed_delay_table = {
+        100: 5,
+        400: 2
+    }
+
+    __read_buffer = bytearray()
+    __write_buffer = bytearray()
+
+    def read_byte(self):
+        return 1
+
+    def __nack(self):
+        self.set_SDA_PIN(1)  # cpu驱动SDA = 1
+        self.delay()
+        self.set_SCL_PIN(1)  # 产生一个高电平时钟
+        self.delay()
+        self.set_SCL_PIN(0)
+        self.delay()
+
+    def __ack(self):
+        self.set_SDA_PIN(0)  # cpu驱动SDA = 0
+        self.delay()
+        self.set_SCL_PIN(1)  # 产生一个高电平时钟
+        self.delay()
+        self.set_SCL_PIN(0)
+        self.delay()
+        self.set_SDA_PIN(1)  # cpu释放总线
+
+    def read(self):
+        raise NotImplementedError
+
+    def endTransmission(self, stop: bool):
+        self.set_SDA_PIN(0)
+        self.set_SCL_PIN(1)
+        self.delay()
+        self.set_SDA_PIN(1)
+
+    def beginTransmission(self, target_address: int):
+        self.set_SDA_PIN(1)  # SDA线高电平，这里就是配置了对应的GPIO管脚输出高电平而已
+        self.set_SCL_PIN(1)
+        self.delay()  # 需要保证你的SDA线高电平一段时间，如下面SDA = 0，这不延时的话，直接变成0
+        self.set_SDA_PIN(0)
+        self.delay()
+        self.set_SCL_PIN(0)
+        self.delay()
+
+    def begin(self, slave_address: int):
+        raise NotImplementedError
+
+    def register_all_config(self):
+        self.register_config(self.CONFIG_SCL_PIN_KEY, 2)
+        self.register_config(self.CONFIG_SDA_PIN_KEY, 3)
+        self.register_config(self.CONFIG_SPEED_KEY, 100)
+
+    CONFIG_SCL_PIN_KEY = 'SCL_PIN'
+    CONFIG_SDA_PIN_KEY = 'SDA_PIN'
+    CONFIG_SPEED_KEY = 'SPEED'
+
+    def __init__(self, config_path: str, indexed_setter: Callable, indexed_getter: Callable):
+        super().__init__(config_path=config_path)
+        assert getattr(self,
+                       self.CONFIG_SPEED_KEY) in self.__speed_delay_table, "Currently supported speed: [100,400]"
+        self._indexed_setter = indexed_setter
+        self._indexed_getter = indexed_getter
+        self.set_SCL_PIN: PinSetter = pin_setter_constructor(indexed_setter, getattr(self, self.CONFIG_SCL_PIN_KEY))
+        self.get_SCL_PIN: PinGetter = pin_getter_constructor(indexed_getter, getattr(self, self.CONFIG_SCL_PIN_KEY))
+        self.set_SDA_PIN: PinSetter = pin_setter_constructor(indexed_setter, getattr(self, self.CONFIG_SDA_PIN_KEY))
+        self.get_SDA_PIN: PinGetter = pin_getter_constructor(indexed_getter, getattr(self, self.CONFIG_SDA_PIN_KEY))
+        self.delay = delay_us_constructor(getattr(self, self.CONFIG_SPEED_KEY))
