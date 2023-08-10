@@ -4,12 +4,19 @@ import warnings
 from ctypes import cdll, CDLL
 from typing import Callable
 
-PinGetter = Callable[[], int]
-
 from .db_tools import persistent_cache
 from ..constant import ENV_LIB_SO_PATH
 
 ld_library_path = os.environ.get(ENV_LIB_SO_PATH)
+
+PinModeSetter = Callable[[int], None]
+PinSetter = Callable[[int], None]
+PinGetter = Callable[[], int]
+
+WRITE = 1
+READ = 0
+HIGH = 1
+LOW = 0
 
 
 @persistent_cache(f'{ld_library_path}/lb_cache')
@@ -183,6 +190,8 @@ class UpTech:
     @staticmethod
     def set_io_mode(index: int, mode: int):
         """
+        change the mode of the adc-io plug at index,mode 1 for output, 0 for input
+
         int __fastcall adc_io_ModeSet(unsigned int a1, int a2)
         {
           char v2; // r4
@@ -265,9 +274,6 @@ class UpTech:
         return getattr(self.__lib, attr_name)
 
 
-PinSetter = Callable[[int], None]
-
-
 def pin_setter_constructor(indexed_setter: Callable, pin: int) -> PinSetter:
     """
 
@@ -300,3 +306,21 @@ def pin_getter_constructor(indexed_getter: Callable, pin: int) -> PinGetter:
         return indexed_getter(pin)
 
     return get_pin_level
+
+
+def pin_mode_setter_constructor(indexed_mode_setter: Callable, pin: int) -> PinModeSetter:
+    """
+
+    Args:
+        indexed_mode_setter: the function that sets the pin mode
+        pin: the pin to be connected
+
+    Returns:
+        the function that sets the pin mode with built-in pin value
+
+    """
+
+    def set_pin_mode(mode: int):
+        indexed_mode_setter(pin, mode)
+
+    return set_pin_mode
