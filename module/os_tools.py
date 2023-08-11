@@ -8,7 +8,7 @@ from ctypes import CDLL, cdll
 from functools import wraps, singledispatch
 from typing import Optional, List, Dict, final, Any, Sequence
 
-from ..constant import ENV_LIB_SO_PATH
+from ..constant import CACHE_DIR_PATH, LIB_DIR_PATH
 
 
 class CacheFILE:
@@ -213,11 +213,10 @@ class Configurable(metaclass=ABCMeta):
 
 
 CONFIG_PATH_PATTERN = '\\|/'
-ld_library_path = os.environ.get(ENV_LIB_SO_PATH)
 
 
-@persistent_cache(f'{ld_library_path}/lb_cache')
+@persistent_cache(f'{CACHE_DIR_PATH}/lb_cache')
 def load_lib(libname: str) -> CDLL:
-    lib_file_name = f'{ld_library_path}/{libname}'
+    lib_file_name = f'{LIB_DIR_PATH}/{libname}'
     print(f'Loading [{lib_file_name}]')
     return cdll.LoadLibrary(lib_file_name)

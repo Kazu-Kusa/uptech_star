@@ -1,11 +1,5 @@
 import warnings
 
-from .constant import ENV_LIB_SO_PATH, ENV_CACHE_DIR_PATH, PATH_CACHE, PATH_LD
-from .module.os_tools import set_env_var
-
-set_env_var(ENV_CACHE_DIR_PATH, PATH_CACHE)
-set_env_var(ENV_LIB_SO_PATH, PATH_LD)
-
 from .module import *
 
 try:

@@ -1,5 +1,4 @@
 import json
-import os
 import pickle
 import time
 from functools import singledispatch
@@ -10,11 +9,9 @@ from .close_loop_controller import CloseLoopController, is_list_all_zero
 from .os_tools import persistent_cache
 from .timer import delay_ms, calc_hang_time
 from .watcher import watchers, Watcher
-from ..constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_IDS, HALT_CMD, MOTOR_DIRS, DRIVER_DEBUG_MODE, \
+from ..constant import CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_IDS, HALT_CMD, MOTOR_DIRS, DRIVER_DEBUG_MODE, \
     BREAK_ACTION_KEY, BREAKER_FUNC_KEY, ACTION_DURATION, ACTION_SPEED_KEY, HANG_DURING_ACTION_KEY, DRIVER_SERIAL_PORT
 from ..constant import HANG_TIME_MAX_ERROR
-
-CACHE_DIR = os.environ.get(ENV_CACHE_DIR_PATH)
 
 BreakActions = Tuple['ActionFrame', ...]
 
@@ -242,7 +239,7 @@ def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[s
     return data
 
 
-@persistent_cache(f'{CACHE_DIR}/new_action_frame_cache')
+@persistent_cache(f'{CACHE_DIR_PATH}/new_action_frame_cache')
 def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, int, int]] = 0,
                     action_speed_multiplier: float = 0,
                     action_duration: int = 0,
