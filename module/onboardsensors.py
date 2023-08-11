@@ -1,6 +1,6 @@
 import ctypes
 import warnings
-from typing import Callable
+from typing import Callable, Sequence
 
 from .os_tools import load_lib
 
@@ -8,8 +8,8 @@ PinModeSetter = Callable[[int], None]
 PinSetter = Callable[[int], None]
 PinGetter = Callable[[], int]
 
-WRITE = 1
-READ = 0
+OUTPUT = 1
+INPUT = 0
 HIGH = 1
 LOW = 0
 
@@ -320,5 +320,25 @@ def pin_mode_setter_constructor(indexed_mode_setter: Callable, pin: int) -> PinM
 
     def set_pin_mode(mode: int):
         indexed_mode_setter(pin, mode)
+
+    return set_pin_mode
+
+
+def multiple_pin_mode_setter_constructor(indexed_mode_setter: Callable, pins: Sequence[int]) -> PinModeSetter:
+    """
+
+    Args:
+        pins: the pin to be connected
+        indexed_mode_setter: the function that sets the pin mode
+
+
+    Returns:
+        the function that sets the pin mode with built-in pin value
+
+    """
+
+    def set_pin_mode(mode: int):
+        for pin in pins:
+            indexed_mode_setter(pin, mode)
 
     return set_pin_mode
