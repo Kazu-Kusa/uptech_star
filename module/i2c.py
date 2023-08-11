@@ -199,7 +199,11 @@ class SensorsSerialExpansion(I2CReader, metaclass=ABCMeta):
     ADC_DATA_TYPE = c_uint16
     ADC_DATA_SIZE = 2
     ADC_CHANNEL_COUNT = 8
-    ADC_CHANNEL_ADDR = [ADC_REGISTER + i * ADC_DATA_SIZE for i in range(ADC_CHANNEL_COUNT)]
+
+    ADC_CHANNEL_ADDR = []
+
+    def init_adc_channel_list(self):
+        self.ADC_CHANNEL_ADDR = [self.ADC_REGISTER + i * self.ADC_DATA_SIZE for i in range(self.ADC_CHANNEL_COUNT)]
 
     def get_adc_data(self, channel: int) -> ADC_DATA_TYPE:
         return c_uint16(int.from_bytes(
