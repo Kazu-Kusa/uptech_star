@@ -1,14 +1,13 @@
 import sys
 from abc import ABCMeta, abstractmethod
 from ctypes import c_uint16
-from typing import List, Dict, Callable, Optional
+from typing import List, Dict, Callable, Optional, Tuple
 
 from .onboardsensors import \
     PinSetter, pin_setter_constructor, \
     PinGetter, pin_getter_constructor, \
     PinModeSetter, pin_mode_setter_constructor, \
     HIGH, LOW, OUTPUT, INPUT, multiple_pin_mode_setter_constructor
-from .os_tools import Configurable
 from .serial_helper import SerialHelper, serial_kwargs_factory
 from .timer import delay_us_constructor
 
@@ -42,7 +41,7 @@ DEFAULT_I2C_SERIAL_KWARGS = serial_kwargs_factory(baudrate=300)
 Hex = int | bytes
 
 
-class I2CBase(Configurable, metaclass=ABCMeta):
+class I2CBase(metaclass=ABCMeta):
 
     @abstractmethod
     def begin(self, slave_address: int):
@@ -234,6 +233,12 @@ class SimulateI2C(I2CBase):
     print(received_data)
     """
 
+    def available(self, length: int):
+        pass
+
+    def write(self, data):
+        pass
+
     def onRequest(self, handler: Callable):
         self._sent_data_handler = handler
 
@@ -312,28 +317,16 @@ class SimulateI2C(I2CBase):
     def begin(self, slave_address: int):
         raise NotImplementedError
 
-    def register_all_config(self):
-        self.register_config(self.CONFIG_SCL_PIN_KEY, 2)
-        self.register_config(self.CONFIG_SDA_PIN_KEY, 3)
-        self.register_config(self.CONFIG_SPEED_KEY, 100)
-
-    CONFIG_SCL_PIN_KEY = 'SCL_PIN'
-    CONFIG_SDA_PIN_KEY = 'SDA_PIN'
-    CONFIG_SPEED_KEY = 'SPEED'
-
-    def __init__(self, config_path: str,
+    def __init__(self, SDA_PIN: int, SCL_PIN: int, speed: int,
                  indexed_setter: Callable,
                  indexed_getter: Callable,
                  indexed_mode_setter: Callable):
-        super().__init__(config_path=config_path)
-        SPEED = getattr(self, self.CONFIG_SPEED_KEY)
-        assert SPEED in self.__speed_delay_table, "Currently supported speed: [100,400]"
+        assert speed in self.__speed_delay_table, "Currently supported speed: [100,400]"
+        self._speed = speed
         self._indexed_setter = indexed_setter
         self._indexed_getter = indexed_getter
-        SCL_PIN = getattr(self, self.CONFIG_SCL_PIN_KEY)
         self.set_SCL_PIN: PinSetter = pin_setter_constructor(indexed_setter, SCL_PIN)
         self.get_SCL_PIN: PinGetter = pin_getter_constructor(indexed_getter, SCL_PIN)
-        SDA_PIN = getattr(self, self.CONFIG_SDA_PIN_KEY)
         self.set_SDA_PIN: PinSetter = pin_setter_constructor(indexed_setter, SDA_PIN)
         self.get_SDA_PIN: PinGetter = pin_getter_constructor(indexed_getter, SDA_PIN)
         self.set_SCL_PIN_MODE: PinModeSetter = pin_mode_setter_constructor(indexed_mode_setter,
@@ -342,7 +335,7 @@ class SimulateI2C(I2CBase):
                                                                            SDA_PIN)
         self.set_ALL_PINS_MODE: PinModeSetter = multiple_pin_mode_setter_constructor(indexed_mode_setter,
                                                                                      [SDA_PIN, SCL_PIN])
-        self.delay = delay_us_constructor(SPEED)
+        self.delay = delay_us_constructor(speed)
 
         self.pin_init()
         self._received_data_handler: Optional[Callable] = None
@@ -360,3 +353,21 @@ class SimulateI2C(I2CBase):
         self.set_SDA_PIN(HIGH)
         self.set_SCL_PIN(HIGH)
         self.set_ALL_PINS_MODE(INPUT)
+
+
+class SensorI2CExpansion(SimulateI2C):
+
+    def __init__(self, SDA_PIN: int, SCL_PIN: int, speed: int,
+                 indexed_setter: Callable,
+                 indexed_getter: Callable,
+                 indexed_mode_setter: Callable):
+        super().__init__(SDA_PIN=SDA_PIN, SCL_PIN=SCL_PIN, speed=speed,
+                         indexed_setter=indexed_setter,
+                         indexed_getter=indexed_getter,
+                         indexed_mode_setter=indexed_mode_setter)
+
+    def get_sensor_adc(self, index: int) -> int:
+        raise NotImplementedError
+
+    def get_all_sensor(self) -> Tuple[int, ...]:
+        raise NotImplementedError
