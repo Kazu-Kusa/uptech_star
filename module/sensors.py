@@ -18,11 +18,12 @@ class SensorHub(object):
                  expansion_adc_updater: Optional[Updater] = None,
                  expansion_io_updater: Optional[Updater] = None
                  ):
-        self._updaters = (on_board_adc_updater,
-                          on_board_io_updater,
-                          expansion_adc_updater,
-                          expansion_io_updater)
-        self._updaters_validity_check(self.updaters)
+        default_updater = lambda: [-1]
+        self._updaters = (on_board_adc_updater if on_board_adc_updater else default_updater,
+                          on_board_io_updater if on_board_io_updater else default_updater,
+                          expansion_adc_updater if expansion_adc_updater else default_updater,
+                          expansion_io_updater if expansion_io_updater else default_updater)
+        self._updaters_validity_check(self._updaters)
 
         self.on_board_adc_updater = on_board_adc_updater
         self.on_board_io_updater = on_board_io_updater
