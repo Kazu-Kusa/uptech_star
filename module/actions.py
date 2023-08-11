@@ -23,7 +23,7 @@ class ActionFrame:
     _PRE_COMPILE_CMD: bool = PRE_COMPILE_CMD
     # TODO: since the PRE_COMPILE_CMD is not stored inside of the instance so we should clean the cache on it changed
     CACHE_FILE_NAME: str = 'ActionFrame_cache'
-    _CACHE_FILE_PATH = f"{CACHE_DIR}\\{CACHE_FILE_NAME}"
+    _CACHE_FILE_PATH = f"{CACHE_DIR_PATH}\\{CACHE_FILE_NAME}"
     print(f'Action Frame caches at [{_CACHE_FILE_PATH}]')
 
     @classmethod
