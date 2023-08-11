@@ -1,6 +1,6 @@
 import warnings
 
-from .uptech import load_lib
+from .os_tools import load_lib
 
 
 class Screen(object):

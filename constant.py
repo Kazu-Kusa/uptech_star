@@ -23,11 +23,10 @@ config: Dict = read_config()
 
 ZEROS: Tuple[int, int, int, int] = (0, 0, 0, 0)
 
-DIR_CACHE: str = 'cache'
-DIR_LID_SO: str = 'lib'
-
-ENV_LIB_SO_PATH: str = 'LIB_SO_PATH'
-ENV_CACHE_DIR_PATH: str = 'CACHE_DIR_PATH'
+DIRNAME_CACHE: str = 'cache'
+DIRNAME_LIB_SO: str = 'lib'
+LIB_DIR_PATH: str = f'{PACKAGE_ROOT}/{DIRNAME_LIB_SO}'
+CACHE_DIR_PATH: str = f'{PACKAGE_ROOT}/{DIRNAME_CACHE}'
 
 CONFIG_PRE_COMPILE_CMD: str = 'PRE_COMPILE_CMD'
 CONFIG_DRIVER_DEBUG_MODE: str = 'DRIVER_DEBUG_MODE'
@@ -51,8 +50,8 @@ DEFAULT_NORMAL_BASELINE: int = config.get(CONFIG_DEFAULT_NORMAL_BASELINE, 1000)
 DEFAULT_GRAYS_BASELINE: int = config.get(CONFIG_DEFAULT_GRAYS_BASELINE, 1)
 DRIVER_SERIAL_PORT: str = config.get(CONFIG_DRIVER_SERIAL_PORT, None)
 
-PATH_CACHE: str = os.path.join(PACKAGE_ROOT, DIR_CACHE)
-PATH_LD: str = os.path.join(PACKAGE_ROOT, DIR_LID_SO)
+PATH_CACHE: str = os.path.join(PACKAGE_ROOT, DIRNAME_CACHE)
+PATH_LD: str = os.path.join(PACKAGE_ROOT, DIRNAME_LIB_SO)
 HALT_CMD: bytes = b'v0\r'
 BREAK_ACTION_KEY: str = 'break_action'
 BREAKER_FUNC_KEY: str = 'breaker_func'

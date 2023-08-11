@@ -1,21 +1,20 @@
 import ctypes
-import os
-from ctypes import cdll, CDLL, Union
 import warnings
-from ..constant import ENV_LIB_SO_PATH
-from .db_tools import persistent_cache
+from typing import Callable, Sequence
 
-ld_library_path = os.environ.get(ENV_LIB_SO_PATH)
+from .os_tools import load_lib
+
+PinModeSetter = Callable[[int], None]
+PinSetter = Callable[[int], None]
+PinGetter = Callable[[], int]
+
+OUTPUT = 1
+INPUT = 0
+HIGH = 1
+LOW = 0
 
 
-@persistent_cache(f'{ld_library_path}/lb_cache')
-def load_lib(libname: str) -> CDLL:
-    lib_file_name = f'{ld_library_path}/{libname}'
-    print(f'Loading [{lib_file_name}]')
-    return cdll.LoadLibrary(lib_file_name)
-
-
-class UpTech:
+class OnBoardSensors:
     """
     provides sealed methods accessing to the IOs and builtin sensors
     """
@@ -36,26 +35,23 @@ class UpTech:
                  debug: bool = False):
         self.debug = debug
 
-        if open_mpu:
-            self.MPU6500_Open()
-        if self.debug:
-            warnings.warn('Sensor data buffer loaded')
-
-            print(f"Sensor channel Init times: {self.adc_io_open()}")
+        self.MPU6500_Open() if open_mpu else None
+        success = self.adc_io_open()
+        print(f"Sensor channel Init times: {success}") if self.debug else None
 
     @staticmethod
     def adc_io_open():
         """
         open the  adc-io plug
         """
-        return UpTech.__lib.adc_io_open()
+        return OnBoardSensors.__lib.adc_io_open()
 
     @staticmethod
     def adc_io_close():
         """
         close the adc-io plug
         """
-        UpTech.__lib.adc_io_close()
+        OnBoardSensors.__lib.adc_io_close()
 
     @staticmethod
     def adc_all_channels():
@@ -93,8 +89,8 @@ class UpTech:
           return 0;                             // 返回0表示操作成功
         }
         """
-        UpTech.__lib.ADC_GetAll(UpTech._adc_all)
-        return UpTech._adc_all
+        OnBoardSensors.__lib.ADC_GetAll(OnBoardSensors._adc_all)
+        return OnBoardSensors._adc_all
 
     @staticmethod
     def set_io_level(index: int, level: int):
@@ -113,7 +109,7 @@ class UpTech:
           return 0;
         }
         """
-        UpTech.__lib.adc_io_Set(index, level)
+        OnBoardSensors.__lib.adc_io_Set(index, level)
 
     @staticmethod
     def set_all_io_level(level: int):
@@ -138,7 +134,11 @@ class UpTech:
           return 0;
         }
         """
-        UpTech.__lib.adc_io_SetAll(level)
+        OnBoardSensors.__lib.adc_io_SetAll(level)
+
+    @staticmethod
+    def get_io_level(index: int) -> int:
+        return (OnBoardSensors.__lib.adc_io_InputGetAll() >> index) & 1
 
     @staticmethod
     def get_all_io_mode(buffer: int):
@@ -156,7 +156,12 @@ class UpTech:
           return result;
         }
         """
-        return UpTech.__lib.adc_io_ModeGetAll(buffer)
+        return OnBoardSensors.__lib.adc_io_ModeGetAll(buffer)
+
+    @staticmethod
+    def get_io_level(index: int) -> int:
+
+        return (OnBoardSensors.__lib.adc_io_InputGetAll() >> index) & 1
 
     @staticmethod
     def set_all_io_mode(mode: int):
@@ -173,11 +178,13 @@ class UpTech:
           return 0;
         }
         """
-        UpTech.__lib.adc_io_ModeSetAll(mode)
+        OnBoardSensors.__lib.adc_io_ModeSetAll(mode)
 
     @staticmethod
     def set_io_mode(index: int, mode: int):
         """
+        change the mode of the adc-io plug at index,mode 1 for output, 0 for input
+
         int __fastcall adc_io_ModeSet(unsigned int a1, int a2)
         {
           char v2; // r4
@@ -201,7 +208,7 @@ class UpTech:
           return j_adc_io_ModeSetAll();
         }
         """
-        UpTech.__lib.adc_io_ModeSet(index, mode)
+        OnBoardSensors.__lib.adc_io_ModeSet(index, mode)
 
     @staticmethod
     def io_all_channels():
@@ -211,7 +218,7 @@ class UpTech:
         unsigned 8int
         """
 
-        return tuple(int(x) for x in f'{UpTech.__lib.adc_io_InputGetAll():08b}')
+        return tuple((OnBoardSensors.__lib.adc_io_InputGetAll() >> i) & 1 for i in range(7, -1, -1))
 
     @staticmethod
     def MPU6500_Open(debug_info: bool = False):
@@ -222,7 +229,7 @@ class UpTech:
             gyro: -+2000 degree/s
             sampling rate: 1kHz
         """
-        if UpTech.__lib.mpu6500_dmp_init():
+        if OnBoardSensors.__lib.mpu6500_dmp_init():
             warnings.warn('#failed to initialize MPU6500')
         elif debug_info:
             warnings.warn('#MPU6500 successfully initialized')
@@ -232,25 +239,106 @@ class UpTech:
         """
         get the acceleration from MPU6500
         """
-        UpTech.__lib.mpu6500_Get_Accel(UpTech._accel_all)
+        OnBoardSensors.__lib.mpu6500_Get_Accel(OnBoardSensors._accel_all)
 
-        return UpTech._accel_all
+        return OnBoardSensors._accel_all
 
     @staticmethod
     def gyro_all():
         """
         get gyro from MPU6500
         """
-        UpTech.__lib.mpu6500_Get_Gyro(UpTech._gyro_all)
+        OnBoardSensors.__lib.mpu6500_Get_Gyro(OnBoardSensors._gyro_all)
 
-        return UpTech._gyro_all
+        return OnBoardSensors._gyro_all
 
     @staticmethod
     def atti_all():
         """
         get attitude from MPU6500
+
+        :note the attitude data update every 10ms, so, high sampling-frequency may not be a good option
         """
 
-        UpTech.__lib.mpu6500_Get_Attitude(UpTech._atti_all)
+        OnBoardSensors.__lib.mpu6500_Get_Attitude(OnBoardSensors._atti_all)
 
-        return UpTech._atti_all
+        return OnBoardSensors._atti_all
+
+    @staticmethod
+    def get_handle(attr_name: str):
+        return getattr(OnBoardSensors.__lib, attr_name)
+
+    def get_handle(self, attr_name: str):
+        return getattr(self.__lib, attr_name)
+
+
+def pin_setter_constructor(indexed_setter: Callable, pin: int) -> PinSetter:
+    """
+
+    Args:
+        indexed_setter: the function that
+        pin: the pin to be connected
+
+    Returns:
+
+    """
+
+    def set_pin_level(level: int):
+        indexed_setter(pin, level)
+
+    return set_pin_level
+
+
+def pin_getter_constructor(indexed_getter: Callable, pin: int) -> PinGetter:
+    """
+
+    Args:
+        indexed_getter:
+        pin:
+
+    Returns:
+
+    """
+
+    def get_pin_level() -> int:
+        return indexed_getter(pin)
+
+    return get_pin_level
+
+
+def pin_mode_setter_constructor(indexed_mode_setter: Callable, pin: int) -> PinModeSetter:
+    """
+
+    Args:
+        indexed_mode_setter: the function that sets the pin mode
+        pin: the pin to be connected
+
+    Returns:
+        the function that sets the pin mode with built-in pin value
+
+    """
+
+    def set_pin_mode(mode: int):
+        indexed_mode_setter(pin, mode)
+
+    return set_pin_mode
+
+
+def multiple_pin_mode_setter_constructor(indexed_mode_setter: Callable, pins: Sequence[int]) -> PinModeSetter:
+    """
+
+    Args:
+        pins: the pin to be connected
+        indexed_mode_setter: the function that sets the pin mode
+
+
+    Returns:
+        the function that sets the pin mode with built-in pin value
+
+    """
+
+    def set_pin_mode(mode: int):
+        for pin in pins:
+            indexed_mode_setter(pin, mode)
+
+    return set_pin_mode

@@ -1,20 +1,17 @@
 import json
-import os
 import pickle
 import time
-from functools import singledispatch, lru_cache
-from typing import Callable, Tuple, Union, Optional, List, Dict, ByteString, Sequence, Type
+from functools import singledispatch
+from typing import Tuple, Union, Optional, List, Dict, ByteString, Sequence
 
-from .db_tools import persistent_cache
-from ..constant import ENV_CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_IDS, HALT_CMD, MOTOR_DIRS, DRIVER_DEBUG_MODE, \
+from .algrithm_tools import multiply, factor_list_multiply
+from .close_loop_controller import CloseLoopController, is_list_all_zero
+from .os_tools import persistent_cache
+from .timer import delay_ms, calc_hang_time
+from .watcher import watchers, Watcher
+from ..constant import CACHE_DIR_PATH, ZEROS, PRE_COMPILE_CMD, MOTOR_IDS, HALT_CMD, MOTOR_DIRS, DRIVER_DEBUG_MODE, \
     BREAK_ACTION_KEY, BREAKER_FUNC_KEY, ACTION_DURATION, ACTION_SPEED_KEY, HANG_DURING_ACTION_KEY, DRIVER_SERIAL_PORT
 from ..constant import HANG_TIME_MAX_ERROR
-from .algrithm_tools import multiply, factor_list_multiply
-from .timer import delay_ms, calc_hang_time
-from .close_loop_controller import CloseLoopController, is_list_all_zero
-from .watcher import watchers, Watcher
-
-CACHE_DIR = os.environ.get(ENV_CACHE_DIR_PATH)
 
 BreakActions = Tuple['ActionFrame', ...]
 
@@ -26,7 +23,7 @@ class ActionFrame:
     _PRE_COMPILE_CMD: bool = PRE_COMPILE_CMD
     # TODO: since the PRE_COMPILE_CMD is not stored inside of the instance so we should clean the cache on it changed
     CACHE_FILE_NAME: str = 'ActionFrame_cache'
-    _CACHE_FILE_PATH = f"{CACHE_DIR}\\{CACHE_FILE_NAME}"
+    _CACHE_FILE_PATH = f"{CACHE_DIR_PATH}\\{CACHE_FILE_NAME}"
     print(f'Action Frame caches at [{_CACHE_FILE_PATH}]')
 
     @classmethod
@@ -242,7 +239,7 @@ def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[s
     return data
 
 
-@persistent_cache(f'{CACHE_DIR}/new_action_frame_cache')
+@persistent_cache(f'{CACHE_DIR_PATH}/new_action_frame_cache')
 def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, int, int]] = 0,
                     action_speed_multiplier: float = 0,
                     action_duration: int = 0,
@@ -303,7 +300,7 @@ def pre_build_action_frame(speed_range: Tuple[int, int, int], duration_range: Tu
                             action_duration=duration)
 
     print(f'time cost: {time.time() - start:.6f}s')
-    from .db_tools import CacheFILE
+    from .os_tools import CacheFILE
     CacheFILE.save_all_cache()
     ActionFrame.save_cache()
 

@@ -1,10 +1,14 @@
 import json
 import os
-import re
-from abc import ABCMeta, abstractmethod
-from functools import lru_cache, wraps, update_wrapper, singledispatch
 import pickle
+import re
+import warnings
+from abc import ABCMeta, abstractmethod
+from ctypes import CDLL, cdll
+from functools import wraps, singledispatch
 from typing import Optional, List, Dict, final, Any, Sequence
+
+from ..constant import CACHE_DIR_PATH, LIB_DIR_PATH
 
 
 class CacheFILE:
@@ -23,6 +27,11 @@ class CacheFILE:
             with open(self._cache_file_path, 'rb') as f:
                 return pickle.load(f)
         except FileNotFoundError:
+            warnings.warn('No existing CacheFile')
+            return {}
+        except EOFError:
+            warnings.warn("Bad CacheFile, executing removal")
+            os.remove(self._cache_file_path)
             return {}
 
     def save_cache(self) -> None:
@@ -131,11 +140,14 @@ class Configurable(metaclass=ABCMeta):
 
         self._config = make_config(self._config, config_registry_path_chain)
 
-    def export_config(self, config_body: Dict, config_registry_path: str) -> Optional[Any]:
+    @staticmethod
+    def export_config(config_body: Dict, config_registry_path: str) -> Optional[Any]:
         """
         Exports the value at the specified location in the nested dictionary _config.
 
-        :param config_registry_path: A list of keys representing the nested location in the dictionary.
+        Args:
+            config_body: the nested dictionary that contains the value.
+            config_registry_path: A list of keys representing the nested location in the dictionary.
         :return: The value at the specified location.
         """
         config_registry_path_chain: List[str] = re.split(pattern=CONFIG_PATH_PATTERN, string=config_registry_path)
@@ -201,3 +213,10 @@ class Configurable(metaclass=ABCMeta):
 
 
 CONFIG_PATH_PATTERN = '\\|/'
+
+
+@persistent_cache(f'{CACHE_DIR_PATH}/lb_cache')
+def load_lib(libname: str) -> CDLL:
+    lib_file_name = f'{LIB_DIR_PATH}/{libname}'
+    print(f'Loading [{lib_file_name}]')
+    return cdll.LoadLibrary(lib_file_name)

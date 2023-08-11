@@ -1,8 +1,15 @@
 import sys
 from abc import ABCMeta, abstractmethod
-from typing import List, Dict
 from ctypes import c_uint16
+from typing import List, Dict, Callable, Optional, Tuple
+
+from .onboardsensors import \
+    PinSetter, pin_setter_constructor, \
+    PinGetter, pin_getter_constructor, \
+    PinModeSetter, pin_mode_setter_constructor, \
+    HIGH, LOW, OUTPUT, INPUT, multiple_pin_mode_setter_constructor
 from .serial_helper import SerialHelper, serial_kwargs_factory
+from .timer import delay_us_constructor
 
 """
 CH341可以外接I2C接口的器件，例如常用的24系列串行非易失存储器EEPROM，
@@ -32,6 +39,45 @@ CH341可以外接I2C接口的器件，例如常用的24系列串行非易失存�
 """
 DEFAULT_I2C_SERIAL_KWARGS = serial_kwargs_factory(baudrate=300)
 Hex = int | bytes
+
+
+class I2CBase(metaclass=ABCMeta):
+
+    @abstractmethod
+    def begin(self, slave_address: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def requestFrom(self, target_address: int, request_data_size: int, stop: bool):
+        raise NotImplementedError
+
+    @abstractmethod
+    def beginTransmission(self, target_address: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def endTransmission(self, stop: bool):
+        raise NotImplementedError
+
+    @abstractmethod
+    def write(self, data):
+        raise NotImplementedError
+
+    @abstractmethod
+    def available(self, length: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def read_byte(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def onReceive(self, handler: Callable):
+        raise NotImplementedError
+
+    @abstractmethod
+    def onRequest(self, handler: Callable):
+        raise NotImplementedError
 
 
 class Ch341aApplication(object, metaclass=ABCMeta):
@@ -142,7 +188,7 @@ class I2CReader(Ch341aApplication):
                                      trunk=trunk[i]) for i in range(len(trunk))])
 
 
-class SensorsExpansion(I2CReader, metaclass=ABCMeta):
+class SensorsSerialExpansion(I2CReader, metaclass=ABCMeta):
     VENDOR_ID = '1a86'
     PRODUCT_ID = '5512'
     DEVICE_ID = f'{VENDOR_ID}:{PRODUCT_ID}'
@@ -153,7 +199,11 @@ class SensorsExpansion(I2CReader, metaclass=ABCMeta):
     ADC_DATA_TYPE = c_uint16
     ADC_DATA_SIZE = 2
     ADC_CHANNEL_COUNT = 8
-    ADC_CHANNEL_ADDR = [ADC_REGISTER + i * ADC_DATA_SIZE for i in range(ADC_CHANNEL_COUNT)]
+
+    ADC_CHANNEL_ADDR = []
+
+    def init_adc_channel_list(self):
+        self.ADC_CHANNEL_ADDR = [self.ADC_REGISTER + i * self.ADC_DATA_SIZE for i in range(self.ADC_CHANNEL_COUNT)]
 
     def get_adc_data(self, channel: int) -> ADC_DATA_TYPE:
         return c_uint16(int.from_bytes(
@@ -165,3 +215,163 @@ class SensorsExpansion(I2CReader, metaclass=ABCMeta):
 
     def get_all_adc_data(self) -> List[ADC_DATA_TYPE]:
         return [self.get_adc_data(i) for i in range(self.ADC_CHANNEL_COUNT)]
+
+
+class SimulateI2C(I2CBase):
+    """
+    # 假设要传输的数据为 0b10101010
+    data = 0b10101010
+
+    # 从高位开始传输数据
+    for i in range(7, -1, -1):
+        bit = (data >> i) & 1
+        # 在这里执行将 bit 发送到 I2C 总线的操作
+
+    # 从高位开始接收数据
+    received_data = 0
+    for i in range(7, -1, -1):
+        # 在这里执行从 I2C 总线接收一个 bit 的操作，并将其存储在 received_bit 中
+        received_bit = 1  # 假设这里的 received_bit 是从 I2C 总线接收到的数据位
+        received_data = (received_data << 1) | received_bit
+
+    print(received_data)
+    """
+
+    def available(self, length: int):
+        pass
+
+    def write(self, data):
+        pass
+
+    def onRequest(self, handler: Callable):
+        self._sent_data_handler = handler
+
+    def onReceive(self, handler: Callable):
+        self._received_data_handler = handler
+
+    def requestFrom(self, target_address: int, request_data_size: int, stop: bool):
+        pass
+
+    __speed_delay_table = {
+        100: 5,
+        400: 2
+    }
+
+    # 发送一个字节的数据
+
+    # 读取一个字节的数据
+    def _write_byte(self, data):
+        for _ in range(8):
+            self.set_SDA_PIN(data & 0x80)
+            self.get_SCL_PIN(HIGH)
+            self.delay()
+            self.set_SCL_PIN(LOW)
+            self.set_SDA_PIN(LOW)
+            data = data << 1
+            self.delay()
+
+    def _read_byte(self):
+        """
+        be sure that the SDA is input output
+        Returns: 8-bit data
+
+        """
+        received_data = 0x0
+        for _ in range(8):
+            while not self.get_SCL_PIN():
+                pass
+            received_data = (received_data << 1) | self.get_SDA_PIN()
+        return received_data
+
+    def _nack(self):
+        self.set_SDA_PIN(HIGH)  # cpu驱动SDA = 1
+        self.delay()
+        self.set_SCL_PIN(HIGH)  # 产生一个高电平时钟
+        self.delay()
+        self.set_SCL_PIN(LOW)
+        self.delay()
+
+    def _ack(self):
+        self.set_SDA_PIN(LOW)  # cpu驱动SDA = 0
+        self.delay()
+        self.set_SCL_PIN(HIGH)  # 产生一个高电平时钟
+        self.delay()
+        self.set_SCL_PIN(LOW)
+        self.delay()
+        self.set_SDA_PIN(HIGH)  # cpu释放总线
+
+    def read_byte(self):
+        raise NotImplementedError
+
+    def endTransmission(self, stop: bool):
+        self.set_SDA_PIN(LOW)
+        self.set_SCL_PIN(HIGH)
+        self.delay()
+        self.set_SDA_PIN(HIGH)
+
+    def beginTransmission(self, target_address: int):
+        self.set_SDA_PIN(HIGH)  # SDA线高电平，这里就是配置了对应的GPIO管脚输出高电平而已
+        self.set_SCL_PIN(HIGH)
+        self.delay()  # 需要保证你的SDA线高电平一段时间，如下面SDA = 0，这不延时的话，直接变成0
+        self.set_SDA_PIN(LOW)
+        self.delay()
+        self.set_SCL_PIN(LOW)
+        self.delay()
+
+    def begin(self, slave_address: int):
+        raise NotImplementedError
+
+    def __init__(self, SDA_PIN: int, SCL_PIN: int, speed: int,
+                 indexed_setter: Callable,
+                 indexed_getter: Callable,
+                 indexed_mode_setter: Callable):
+        assert speed in self.__speed_delay_table, "Currently supported speed: [100,400]"
+        self._speed = speed
+        self._indexed_setter = indexed_setter
+        self._indexed_getter = indexed_getter
+        self.set_SCL_PIN: PinSetter = pin_setter_constructor(indexed_setter, SCL_PIN)
+        self.get_SCL_PIN: PinGetter = pin_getter_constructor(indexed_getter, SCL_PIN)
+        self.set_SDA_PIN: PinSetter = pin_setter_constructor(indexed_setter, SDA_PIN)
+        self.get_SDA_PIN: PinGetter = pin_getter_constructor(indexed_getter, SDA_PIN)
+        self.set_SCL_PIN_MODE: PinModeSetter = pin_mode_setter_constructor(indexed_mode_setter,
+                                                                           SCL_PIN)
+        self.set_SDA_PIN_MODE: PinModeSetter = pin_mode_setter_constructor(indexed_mode_setter,
+                                                                           SDA_PIN)
+        self.set_ALL_PINS_MODE: PinModeSetter = multiple_pin_mode_setter_constructor(indexed_mode_setter,
+                                                                                     [SDA_PIN, SCL_PIN])
+        self.delay = delay_us_constructor(speed)
+
+        self.pin_init()
+        self._received_data_handler: Optional[Callable] = None
+        self._sent_data_handler: Optional[Callable] = None
+        self._read_buffer = bytearray()
+        self._write_buffer = bytearray()
+
+    def pin_init(self):
+        """
+        init the i2c communication channel,switch two wire
+        Returns:
+
+        """
+        self.set_ALL_PINS_MODE(OUTPUT)
+        self.set_SDA_PIN(HIGH)
+        self.set_SCL_PIN(HIGH)
+        self.set_ALL_PINS_MODE(INPUT)
+
+
+class SensorI2CExpansion(SimulateI2C):
+
+    def __init__(self, SDA_PIN: int, SCL_PIN: int, speed: int,
+                 indexed_setter: Callable,
+                 indexed_getter: Callable,
+                 indexed_mode_setter: Callable):
+        super().__init__(SDA_PIN=SDA_PIN, SCL_PIN=SCL_PIN, speed=speed,
+                         indexed_setter=indexed_setter,
+                         indexed_getter=indexed_getter,
+                         indexed_mode_setter=indexed_mode_setter)
+
+    def get_sensor_adc(self, index: int) -> int:
+        raise NotImplementedError
+
+    def get_all_sensor(self) -> Tuple[int, ...]:
+        raise NotImplementedError

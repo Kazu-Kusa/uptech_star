@@ -1,13 +1,10 @@
-import os
+import time
 import warnings
 from threading import Thread
-import time
 from time import sleep
 from typing import List, Tuple, Optional, Sequence, ByteString
-from .serial_helper import SerialHelper
-from ..constant import ENV_CACHE_DIR_PATH
 
-cache_dir = os.environ.get(ENV_CACHE_DIR_PATH)
+from .serial_helper import SerialHelper
 
 
 class CloseLoopController:
