@@ -1,9 +1,13 @@
 import sys
 from abc import ABCMeta, abstractmethod
 from ctypes import c_uint16
-from typing import List, Dict, Callable
+from typing import List, Dict, Callable, Optional
 
-from .onboardsensors import PinSetter, pin_setter_constructor, pin_getter_constructor, PinGetter, HIGH, LOW
+from .onboardsensors import \
+    PinSetter, pin_setter_constructor, \
+    PinGetter, pin_getter_constructor, \
+    PinModeSetter, pin_mode_setter_constructor, \
+    HIGH, LOW, OUTPUT, INPUT, multiple_pin_mode_setter_constructor
 from .os_tools import Configurable
 from .serial_helper import SerialHelper, serial_kwargs_factory
 from .timer import delay_us_constructor
@@ -65,7 +69,7 @@ class I2CBase(Configurable, metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def read(self):
+    def read_byte(self):
         raise NotImplementedError
 
     @abstractmethod
@@ -230,13 +234,19 @@ class SimulateI2C(I2CBase):
     print(received_data)
     """
 
+    def onRequest(self, handler: Callable):
+        self._sent_data_handler = handler
+
+    def onReceive(self, handler: Callable):
+        self._received_data_handler = handler
+
+    def requestFrom(self, target_address: int, request_data_size: int, stop: bool):
+        pass
+
     __speed_delay_table = {
         100: 5,
         400: 2
     }
-
-    __read_buffer = bytearray()
-    __write_buffer = bytearray()
 
     # 发送一个字节的数据
 
@@ -252,6 +262,11 @@ class SimulateI2C(I2CBase):
             self.delay()
 
     def _read_byte(self):
+        """
+        be sure that the SDA is input output
+        Returns: 8-bit data
+
+        """
         received_data = 0x0
         for _ in range(8):
             while not self.get_SCL_PIN():
@@ -276,7 +291,7 @@ class SimulateI2C(I2CBase):
         self.delay()
         self.set_SDA_PIN(HIGH)  # cpu释放总线
 
-    def read(self):
+    def read_byte(self):
         raise NotImplementedError
 
     def endTransmission(self, stop: bool):
@@ -306,14 +321,42 @@ class SimulateI2C(I2CBase):
     CONFIG_SDA_PIN_KEY = 'SDA_PIN'
     CONFIG_SPEED_KEY = 'SPEED'
 
-    def __init__(self, config_path: str, indexed_setter: Callable, indexed_getter: Callable):
+    def __init__(self, config_path: str,
+                 indexed_setter: Callable,
+                 indexed_getter: Callable,
+                 indexed_mode_setter: Callable):
         super().__init__(config_path=config_path)
-        assert getattr(self,
-                       self.CONFIG_SPEED_KEY) in self.__speed_delay_table, "Currently supported speed: [100,400]"
+        SPEED = getattr(self, self.CONFIG_SPEED_KEY)
+        assert SPEED in self.__speed_delay_table, "Currently supported speed: [100,400]"
         self._indexed_setter = indexed_setter
         self._indexed_getter = indexed_getter
-        self.set_SCL_PIN: PinSetter = pin_setter_constructor(indexed_setter, getattr(self, self.CONFIG_SCL_PIN_KEY))
-        self.get_SCL_PIN: PinGetter = pin_getter_constructor(indexed_getter, getattr(self, self.CONFIG_SCL_PIN_KEY))
-        self.set_SDA_PIN: PinSetter = pin_setter_constructor(indexed_setter, getattr(self, self.CONFIG_SDA_PIN_KEY))
-        self.get_SDA_PIN: PinGetter = pin_getter_constructor(indexed_getter, getattr(self, self.CONFIG_SDA_PIN_KEY))
-        self.delay = delay_us_constructor(getattr(self, self.CONFIG_SPEED_KEY))
+        SCL_PIN = getattr(self, self.CONFIG_SCL_PIN_KEY)
+        self.set_SCL_PIN: PinSetter = pin_setter_constructor(indexed_setter, SCL_PIN)
+        self.get_SCL_PIN: PinGetter = pin_getter_constructor(indexed_getter, SCL_PIN)
+        SDA_PIN = getattr(self, self.CONFIG_SDA_PIN_KEY)
+        self.set_SDA_PIN: PinSetter = pin_setter_constructor(indexed_setter, SDA_PIN)
+        self.get_SDA_PIN: PinGetter = pin_getter_constructor(indexed_getter, SDA_PIN)
+        self.set_SCL_PIN_MODE: PinModeSetter = pin_mode_setter_constructor(indexed_mode_setter,
+                                                                           SCL_PIN)
+        self.set_SDA_PIN_MODE: PinModeSetter = pin_mode_setter_constructor(indexed_mode_setter,
+                                                                           SDA_PIN)
+        self.set_ALL_PINS_MODE: PinModeSetter = multiple_pin_mode_setter_constructor(indexed_mode_setter,
+                                                                                     [SDA_PIN, SCL_PIN])
+        self.delay = delay_us_constructor(SPEED)
+
+        self.pin_init()
+        self._received_data_handler: Optional[Callable] = None
+        self._sent_data_handler: Optional[Callable] = None
+        self._read_buffer = bytearray()
+        self._write_buffer = bytearray()
+
+    def pin_init(self):
+        """
+        init the i2c communication channel,switch two wire
+        Returns:
+
+        """
+        self.set_ALL_PINS_MODE(OUTPUT)
+        self.set_SDA_PIN(HIGH)
+        self.set_SCL_PIN(HIGH)
+        self.set_ALL_PINS_MODE(INPUT)
