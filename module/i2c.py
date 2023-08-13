@@ -246,8 +246,19 @@ class SimulateI2C(I2CBase):
     print(received_data)
     """
 
-    def available(self, length: int):
-        pass
+    def end(self):
+        """
+        set channel to low and end the i2c communication
+        Returns:
+
+        """
+        self.set_ALL_PINS_MODE(OUTPUT)
+        self.set_SDA_PIN(LOW)
+        self.set_SCL_PIN(LOW)
+        self.set_ALL_PINS_MODE(INPUT)
+
+    def available(self) -> int:
+        return self._read_buffer.__len__()
 
     def write(self, data):
         pass
