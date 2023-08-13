@@ -273,19 +273,6 @@ class SimulateI2C(I2CBase):
             data = data << 1
             self.delay()
 
-    def _read_byte(self):
-        """
-        be sure that the SDA is input output
-        Returns: 8-bit data
-
-        """
-        received_data = 0x0
-        for _ in range(8):
-            while not self.get_SCL_PIN():
-                pass
-            received_data = (received_data << 1) | self.get_SDA_PIN()
-        return received_data
-
     def _nack(self):
         self.set_SDA_PIN(HIGH)  # cpu驱动SDA = 1
         self.delay()
@@ -304,7 +291,17 @@ class SimulateI2C(I2CBase):
         self.set_SDA_PIN(HIGH)  # cpu释放总线
 
     def read_byte(self):
-        raise NotImplementedError
+        """
+        be sure that the SDA is input output
+        Returns: 8-bit data
+
+        """
+        received_data = 0x0
+        for _ in range(8):
+            while not self.get_SCL_PIN():
+                pass
+            received_data = (received_data << 1) | self.get_SDA_PIN()
+        return received_data
 
     def endTransmission(self, stop: bool):
         self.set_SDA_PIN(LOW)
