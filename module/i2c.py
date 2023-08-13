@@ -361,6 +361,8 @@ class SimulateI2C(I2CBase):
 
 
 
+def join_bytes_to_uint16(byte_array:bytearray)->int:
+    return int((byte_array[0] << 8) | byte_array[1])
 
 
 class SensorI2CExpansion(SimulateI2C):
