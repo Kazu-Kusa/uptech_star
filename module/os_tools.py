@@ -6,7 +6,7 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from ctypes import CDLL, cdll
 from functools import wraps, singledispatch
-from typing import Optional, List, Dict, final, Any, Sequence
+from typing import Optional, List, Dict, final, Any, Sequence, Set
 
 from ..constant import CACHE_DIR_PATH, LIB_DIR_PATH
 
@@ -92,7 +92,7 @@ def set_env_var(env_var: str, value: str):
 class Configurable(metaclass=ABCMeta):
     def __init__(self, config_path: str):
         self._config: Dict = {}
-        self._config_registry: List[str] = []
+        self._config_registry: Set[str] = set()
         self.register_all_config()
         self.load_config(config_path)
         self.inject_config()
@@ -114,7 +114,8 @@ class Configurable(metaclass=ABCMeta):
         :param value: The value to be registered.
         :return: None
         """
-        self._config_registry.append(config_registry_path)
+        self._config_registry.add(config_registry_path)
+        # TODO may refactor this chain maker to a named def
         config_registry_path_chain: List[str] = re.split(pattern=CONFIG_PATH_PATTERN, string=config_registry_path)
 
         @singledispatch
