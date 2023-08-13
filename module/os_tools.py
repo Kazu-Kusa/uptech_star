@@ -109,8 +109,8 @@ class Configurable(metaclass=ABCMeta):
     def register_config(self, config_registry_path: str, value: Optional[Any] = None) -> None:
         """
         Registers the value at the specified location in the nested dictionary _config.
-
-        :param config_registry_path: A list of keys representing the nested location in the dictionary.
+        The operation will override the original value
+        :param config_registry_path:  list of keys representing the nested location in the dictionary.
         :param value: The value to be registered.
         :return: None
         """
