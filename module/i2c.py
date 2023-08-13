@@ -277,9 +277,6 @@ class SimulateI2C(I2CBase):
         400: 2
     }
 
-    # 发送一个字节的数据
-
-    # 读取一个字节的数据
     def _write_byte(self, data):
         for _ in range(8):
             self.set_SDA_PIN(data & 0x80)
@@ -336,37 +333,35 @@ class SimulateI2C(I2CBase):
         return received_data
 
     def endTransmission(self, stop: bool):
-        self.set_SDA_PIN(LOW)
-        self.set_SCL_PIN(HIGH)
-        self.delay()
-        self.set_SDA_PIN(HIGH)
+        if stop:
+            self.end()
+        else:
+            self._start()
 
     def beginTransmission(self, target_address: int):
-        self.set_SDA_PIN(HIGH)  # SDA线高电平，这里就是配置了对应的GPIO管脚输出高电平而已
-        self.set_SCL_PIN(HIGH)
-        self.delay()  # 需要保证你的SDA线高电平一段时间，如下面SDA = 0，这不延时的话，直接变成0
-        self.set_SDA_PIN(LOW)
-        self.delay()
-        self.set_SCL_PIN(LOW)
-        self.delay()
+        self._target_address = target_address
 
-    def begin(self, slave_address: Optional[int]=None):
+    def begin(self, slave_address: Optional[int] = None):
         """
         init the i2c communication channel, switch two wire
         Returns:
 
         """
+        self._self_address = slave_address
         self.set_ALL_PINS_MODE(OUTPUT)
         self.set_SDA_PIN(HIGH)
         self.set_SCL_PIN(HIGH)
         self.set_ALL_PINS_MODE(INPUT)
 
-
     def __init__(self, SDA_PIN: int, SCL_PIN: int, speed: int,
                  indexed_setter: Callable,
                  indexed_getter: Callable,
                  indexed_mode_setter: Callable):
-        assert speed in self.__speed_delay_table, "Currently supported speed: [100,400]"
+        if speed not in self.__speed_delay_table:
+            raise IndexError(f'speed must in {list(self.__speed_delay_table.keys())}')
+
+        self._target_address: int = 0xFF
+        self._self_address: Optional[int] = None
         self._speed = speed
         self._indexed_setter = indexed_setter
         self._indexed_getter = indexed_getter
@@ -389,11 +384,7 @@ class SimulateI2C(I2CBase):
         self._write_buffer = bytearray()
 
 
-
-
-
-
-def join_bytes_to_uint16(byte_array:bytearray)->int:
+def join_bytes_to_uint16(byte_array: bytearray) -> int:
     return int((byte_array[0] << 8) | byte_array[1])
 
 
