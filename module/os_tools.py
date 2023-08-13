@@ -212,7 +212,7 @@ class Configurable(metaclass=ABCMeta):
                         self.export_config(config_body=self._config, config_registry_path=config_registry_path))
 
 
-CONFIG_PATH_PATTERN = '\\|/'
+CONFIG_PATH_PATTERN = '[\\\/]'
 
 
 def format_json_file(file_path):
