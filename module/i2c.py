@@ -48,6 +48,10 @@ class I2CBase(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
+    def end(self):
+        raise NotImplementedError
+
+    @abstractmethod
     def requestFrom(self, target_address: int, request_data_size: int, stop: bool):
         raise NotImplementedError
 
@@ -64,7 +68,12 @@ class I2CBase(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def available(self, length: int):
+    def available(self) -> int:
+        """
+        get the available data in the read buffer
+        Returns: the quantity of readable data in the read buffer
+
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -237,8 +246,19 @@ class SimulateI2C(I2CBase):
     print(received_data)
     """
 
-    def available(self, length: int):
-        pass
+    def end(self):
+        """
+        set channel to low and end the i2c communication
+        Returns:
+
+        """
+        self.set_ALL_PINS_MODE(OUTPUT)
+        self.set_SDA_PIN(LOW)
+        self.set_SCL_PIN(LOW)
+        self.set_ALL_PINS_MODE(INPUT)
+
+    def available(self) -> int:
+        return self._read_buffer.__len__()
 
     def write(self, data):
         pass
@@ -257,31 +277,30 @@ class SimulateI2C(I2CBase):
         400: 2
     }
 
-    # 发送一个字节的数据
-
-    # 读取一个字节的数据
     def _write_byte(self, data):
         for _ in range(8):
             self.set_SDA_PIN(data & 0x80)
-            self.get_SCL_PIN(HIGH)
+            self.set_SCL_PIN(HIGH)
             self.delay()
             self.set_SCL_PIN(LOW)
             self.set_SDA_PIN(LOW)
             data = data << 1
             self.delay()
 
-    def _read_byte(self):
-        """
-        be sure that the SDA is input output
-        Returns: 8-bit data
+    def _start(self):
+        self.set_SDA_PIN(HIGH)  # SDA线高电平，这里就是配置了对应的GPIO管脚输出高电平而已
+        self.set_SCL_PIN(HIGH)
+        self.delay()  # 需要保证你的SDA线高电平一段时间，如下面SDA = 0，这不延时的话，直接变成0
+        self.set_SDA_PIN(LOW)
+        self.delay()
+        self.set_SCL_PIN(LOW)
+        self.delay()
 
-        """
-        received_data = 0x0
-        for _ in range(8):
-            while not self.get_SCL_PIN():
-                pass
-            received_data = (received_data << 1) | self.get_SDA_PIN()
-        return received_data
+    def _stop(self):
+        self.set_SDA_PIN(LOW)
+        self.set_SCL_PIN(HIGH)
+        self.delay()
+        self.set_SDA_PIN(HIGH)
 
     def _nack(self):
         self.set_SDA_PIN(HIGH)  # cpu驱动SDA = 1
@@ -301,31 +320,48 @@ class SimulateI2C(I2CBase):
         self.set_SDA_PIN(HIGH)  # cpu释放总线
 
     def read_byte(self):
-        raise NotImplementedError
+        """
+        be sure that the SDA is input output
+        Returns: 8-bit data
+
+        """
+        received_data = 0x0
+        for _ in range(8):
+            while not self.get_SCL_PIN():
+                pass
+            received_data = (received_data << 1) | self.get_SDA_PIN()
+        return received_data
 
     def endTransmission(self, stop: bool):
-        self.set_SDA_PIN(LOW)
-        self.set_SCL_PIN(HIGH)
-        self.delay()
-        self.set_SDA_PIN(HIGH)
+        if stop:
+            self.end()
+        else:
+            self._start()
 
     def beginTransmission(self, target_address: int):
-        self.set_SDA_PIN(HIGH)  # SDA线高电平，这里就是配置了对应的GPIO管脚输出高电平而已
-        self.set_SCL_PIN(HIGH)
-        self.delay()  # 需要保证你的SDA线高电平一段时间，如下面SDA = 0，这不延时的话，直接变成0
-        self.set_SDA_PIN(LOW)
-        self.delay()
-        self.set_SCL_PIN(LOW)
-        self.delay()
+        self._target_address = target_address
 
-    def begin(self, slave_address: int):
-        raise NotImplementedError
+    def begin(self, slave_address: Optional[int] = None):
+        """
+        init the i2c communication channel, switch two wire
+        Returns:
+
+        """
+        self._self_address = slave_address
+        self.set_ALL_PINS_MODE(OUTPUT)
+        self.set_SDA_PIN(HIGH)
+        self.set_SCL_PIN(HIGH)
+        self.set_ALL_PINS_MODE(INPUT)
 
     def __init__(self, SDA_PIN: int, SCL_PIN: int, speed: int,
                  indexed_setter: Callable,
                  indexed_getter: Callable,
                  indexed_mode_setter: Callable):
-        assert speed in self.__speed_delay_table, "Currently supported speed: [100,400]"
+        if speed not in self.__speed_delay_table:
+            raise IndexError(f'speed must in {list(self.__speed_delay_table.keys())}')
+
+        self._target_address: int = 0xFF
+        self._self_address: Optional[int] = None
         self._speed = speed
         self._indexed_setter = indexed_setter
         self._indexed_getter = indexed_getter
@@ -341,22 +377,15 @@ class SimulateI2C(I2CBase):
                                                                                      [SDA_PIN, SCL_PIN])
         self.delay = delay_us_constructor(speed)
 
-        self.pin_init()
+        self.begin()
         self._received_data_handler: Optional[Callable] = None
         self._sent_data_handler: Optional[Callable] = None
         self._read_buffer = bytearray()
         self._write_buffer = bytearray()
 
-    def pin_init(self):
-        """
-        init the i2c communication channel,switch two wire
-        Returns:
 
-        """
-        self.set_ALL_PINS_MODE(OUTPUT)
-        self.set_SDA_PIN(HIGH)
-        self.set_SCL_PIN(HIGH)
-        self.set_ALL_PINS_MODE(INPUT)
+def join_bytes_to_uint16(byte_array: bytearray) -> int:
+    return int((byte_array[0] << 8) | byte_array[1])
 
 
 class SensorI2CExpansion(SimulateI2C):
