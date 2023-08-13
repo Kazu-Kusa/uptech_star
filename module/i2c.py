@@ -52,7 +52,8 @@ class I2CBase(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def requestFrom(self, target_address: int, request_data_size: int, stop: bool):
+    def requestFrom(self, target_address: int, request_data_size: int, stop: bool,
+                    register_address: Optional[int] = None):
         raise NotImplementedError
 
     @abstractmethod
@@ -245,6 +246,10 @@ class SimulateI2C(I2CBase):
 
     print(received_data)
     """
+    __speed_delay_table = {
+        100: 5,
+        400: 2
+    }
 
     def end(self):
         """
@@ -260,8 +265,10 @@ class SimulateI2C(I2CBase):
     def available(self) -> int:
         return self._read_buffer.__len__()
 
-    def write(self, data):
-        pass
+    def write(self, data: bytearray | bytes):
+        for byte in data:
+            self._write_byte(byte)
+            self.delay()
 
     def onRequest(self, handler: Callable):
         self._sent_data_handler = handler
@@ -269,13 +276,22 @@ class SimulateI2C(I2CBase):
     def onReceive(self, handler: Callable):
         self._received_data_handler = handler
 
-    def requestFrom(self, target_address: int, request_data_size: int, stop: bool):
-        pass
+    def requestFrom(self, target_address: int, request_data_size: int, stop: bool, register_address=None):
 
-    __speed_delay_table = {
-        100: 5,
-        400: 2
-    }
+        self._write_byte(target_address)
+        self._write_byte(register_address) if register_address else None
+
+        def receive_byte() -> int:
+            received_data = 0x0
+            for _ in range(8):
+                while not self.get_SCL_PIN():
+                    pass
+                received_data = (received_data << 1) | self.get_SDA_PIN()
+            return received_data
+
+        for _ in range(request_data_size):
+            self._read_buffer.append(receive_byte())
+            self._ack()
 
     def _write_byte(self, data):
         for _ in range(8):
@@ -325,12 +341,7 @@ class SimulateI2C(I2CBase):
         Returns: 8-bit data
 
         """
-        received_data = 0x0
-        for _ in range(8):
-            while not self.get_SCL_PIN():
-                pass
-            received_data = (received_data << 1) | self.get_SDA_PIN()
-        return received_data
+        return self._read_buffer.pop(0)
 
     def endTransmission(self, stop: bool):
         if stop:
