@@ -50,6 +50,7 @@ class I2CBase(metaclass=ABCMeta):
     @abstractmethod
     def end(self):
         raise NotImplementedError
+
     @abstractmethod
     def requestFrom(self, target_address: int, request_data_size: int, stop: bool):
         raise NotImplementedError
@@ -67,7 +68,12 @@ class I2CBase(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def available(self, length: int):
+    def available(self) -> int:
+        """
+        get the available data in the read buffer
+        Returns: the quantity of readable data in the read buffer
+
+        """
         raise NotImplementedError
 
     @abstractmethod
