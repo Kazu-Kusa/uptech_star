@@ -48,6 +48,9 @@ class I2CBase(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
+    def end(self):
+        raise NotImplementedError
+    @abstractmethod
     def requestFrom(self, target_address: int, request_data_size: int, stop: bool):
         raise NotImplementedError
 
