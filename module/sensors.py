@@ -3,7 +3,19 @@ from typing import Callable, Tuple, Union, Dict, Sequence, Optional
 
 from .timer import delay_us
 
-Updater = Callable[[], Sequence[Union[float, int]]]
+FullUpdater = Callable[[], Sequence[Union[float, int]]]
+IndexedUpdater = Callable[[int], Union[float, int]]
+SensorUpdaters = Tuple[Optional[FullUpdater], Optional[IndexedUpdater]]
+FU_INDEX = 0
+IU_INDEX = 1
+
+
+def default_full_updater() -> Sequence[Union[float, int]]:
+    return [-1]
+
+
+def default_indexed_updater(index: int) -> Union[float, int]:
+    return -1
 
 
 class SensorHub(object):
@@ -13,18 +25,25 @@ class SensorHub(object):
     EXPANSION_IO_ID = 3
 
     def __init__(self,
-                 on_board_adc_updater: Optional[Updater] = None,
-                 on_board_io_updater: Optional[Updater] = None,
-                 expansion_adc_updater: Optional[Updater] = None,
-                 expansion_io_updater: Optional[Updater] = None
+                 on_board_adc_updater: Optional[SensorUpdaters] = None,
+                 on_board_io_updater: Optional[SensorUpdaters] = None,
+                 expansion_adc_updater: Optional[SensorUpdaters] = None,
+                 expansion_io_updater: Optional[SensorUpdaters] = None
                  ):
-        default_updater = lambda: [-1]
-        self._updaters = (on_board_adc_updater if on_board_adc_updater else default_updater,
-                          on_board_io_updater if on_board_io_updater else default_updater,
-                          expansion_adc_updater if expansion_adc_updater else default_updater,
-                          expansion_io_updater if expansion_io_updater else default_updater)
-        self._updaters_validity_check(self._updaters)
 
+        self._full_updaters = (
+            on_board_adc_updater[FU_INDEX] if on_board_adc_updater[FU_INDEX] else default_full_updater,
+            on_board_io_updater[FU_INDEX] if on_board_io_updater[FU_INDEX] else default_full_updater,
+            expansion_adc_updater[FU_INDEX] if expansion_adc_updater[FU_INDEX] else default_full_updater,
+            expansion_io_updater[FU_INDEX] if expansion_io_updater[FU_INDEX] else default_full_updater)
+        self._updaters_validity_check(self._full_updaters)
+
+        self._indexed_updaters = (
+            on_board_adc_updater[IU_INDEX] if on_board_adc_updater[IU_INDEX] else default_indexed_updater,
+            on_board_io_updater[IU_INDEX] if on_board_io_updater[IU_INDEX] else default_indexed_updater,
+            expansion_adc_updater[IU_INDEX] if expansion_adc_updater[IU_INDEX] else default_indexed_updater,
+            expansion_io_updater[IU_INDEX] if expansion_io_updater[IU_INDEX] else default_indexed_updater
+        )
         self.on_board_adc_updater = on_board_adc_updater
         self.on_board_io_updater = on_board_io_updater
         self.expansion_adc_updater = expansion_adc_updater
@@ -32,7 +51,7 @@ class SensorHub(object):
 
     def __str__(self):
         temp = 'Updaters:\n'
-        for updater in self._updaters:
+        for updater in self._full_updaters:
             temp += f'{updater}\n' \
                     f'\t\tSequenceLength: {len(updater())}\n' \
                     f'\t\tSequenceType: {type(updater()[0])}\n\n'
@@ -40,21 +59,21 @@ class SensorHub(object):
 
     @property
     def updaters(self):
-        return self._updaters
+        return self._full_updaters, self._indexed_updaters
 
     @staticmethod
-    def _updaters_validity_check(updaters: Sequence[Updater]):
+    def _updaters_validity_check(updaters: Sequence[FullUpdater]):
         if not all(updater() for updater in updaters):
             raise IndexError('Some of existing updaters are invalid, please check!')
 
-    def updater_constructor(self, sensor_ids: Tuple[Tuple[int, int], ...]) -> Updater:
+    def updater_constructor(self, sensor_ids: Tuple[Tuple[int, int], ...]) -> FullUpdater:
         def updater() -> Sequence[Union[float, int]]:
-            return [self._updaters[sensor_id[0]]()[sensor_id[1]] for sensor_id in sensor_ids]
+            return [self._full_updaters[sensor_id[0]]()[sensor_id[1]] for sensor_id in sensor_ids]
 
         return updater
 
 
-def record_updater(updater: Updater, duration: int, interval: int) -> Dict:
+def record_updater(updater: FullUpdater, duration: int, interval: int) -> Dict:
     result = []
     print(f"recording updaters: {updater}, duration: {duration} ms, interval: {interval} ms")
     end_time = perf_counter_ns() + duration * 1e6
