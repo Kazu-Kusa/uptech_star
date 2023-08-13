@@ -318,8 +318,17 @@ class SimulateI2C(I2CBase):
         self.set_SCL_PIN(LOW)
         self.delay()
 
-    def begin(self, slave_address: int):
-        raise NotImplementedError
+    def begin(self, slave_address: Optional[int]=None):
+        """
+        init the i2c communication channel, switch two wire
+        Returns:
+
+        """
+        self.set_ALL_PINS_MODE(OUTPUT)
+        self.set_SDA_PIN(HIGH)
+        self.set_SCL_PIN(HIGH)
+        self.set_ALL_PINS_MODE(INPUT)
+
 
     def __init__(self, SDA_PIN: int, SCL_PIN: int, speed: int,
                  indexed_setter: Callable,
@@ -341,22 +350,17 @@ class SimulateI2C(I2CBase):
                                                                                      [SDA_PIN, SCL_PIN])
         self.delay = delay_us_constructor(speed)
 
-        self.pin_init()
+        self.begin()
         self._received_data_handler: Optional[Callable] = None
         self._sent_data_handler: Optional[Callable] = None
         self._read_buffer = bytearray()
         self._write_buffer = bytearray()
 
-    def pin_init(self):
-        """
-        init the i2c communication channel,switch two wire
-        Returns:
 
-        """
-        self.set_ALL_PINS_MODE(OUTPUT)
-        self.set_SDA_PIN(HIGH)
-        self.set_SCL_PIN(HIGH)
-        self.set_ALL_PINS_MODE(INPUT)
+
+
+
+
 
 
 class SensorI2CExpansion(SimulateI2C):
