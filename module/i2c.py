@@ -266,7 +266,7 @@ class SimulateI2C(I2CBase):
     def _write_byte(self, data):
         for _ in range(8):
             self.set_SDA_PIN(data & 0x80)
-            self.get_SCL_PIN(HIGH)
+            self.set_SCL_PIN(HIGH)
             self.delay()
             self.set_SCL_PIN(LOW)
             self.set_SDA_PIN(LOW)
