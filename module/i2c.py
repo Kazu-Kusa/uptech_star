@@ -279,6 +279,21 @@ class SimulateI2C(I2CBase):
             data = data << 1
             self.delay()
 
+    def _start(self):
+        self.set_SDA_PIN(HIGH)  # SDA线高电平，这里就是配置了对应的GPIO管脚输出高电平而已
+        self.set_SCL_PIN(HIGH)
+        self.delay()  # 需要保证你的SDA线高电平一段时间，如下面SDA = 0，这不延时的话，直接变成0
+        self.set_SDA_PIN(LOW)
+        self.delay()
+        self.set_SCL_PIN(LOW)
+        self.delay()
+
+    def _stop(self):
+        self.set_SDA_PIN(LOW)
+        self.set_SCL_PIN(HIGH)
+        self.delay()
+        self.set_SDA_PIN(HIGH)
+
     def _nack(self):
         self.set_SDA_PIN(HIGH)  # cpu驱动SDA = 1
         self.delay()
