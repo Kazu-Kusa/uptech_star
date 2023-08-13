@@ -10,6 +10,8 @@ from typing import Optional, List, Dict, final, Any, Sequence, Set
 
 from ..constant import CACHE_DIR_PATH, LIB_DIR_PATH
 
+CONFIG_PATH_PATTERN = r'[\\/]'
+
 
 class CacheFILE:
     __cache_file_register: List[str] = []
@@ -209,13 +211,11 @@ class Configurable(metaclass=ABCMeta):
         :return:
         """
         for config_registry_path in self._config_registry:
-            formatted_path = re.sub(pattern=CONFIG_PATH_PATTERN, repl='_', string=config_registry_path)
-            if not hasattr(self, formatted_path):
-                setattr(self, formatted_path,
-                        self.export_config(config_body=self._config, config_registry_path=config_registry_path))
-
-
-CONFIG_PATH_PATTERN = '[\\\/]'
+            if hasattr(self, config_registry_path):
+                raise AttributeError(f'CONF: {config_registry_path} is already in the instance')
+            setattr(self, config_registry_path,
+                    self.export_config(config_body=self._config,
+                                       config_registry_path=config_registry_path))
 
 
 def format_json_file(file_path):
