@@ -6,9 +6,11 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from ctypes import CDLL, cdll
 from functools import wraps, singledispatch
-from typing import Optional, List, Dict, final, Any, Sequence
+from typing import Optional, List, Dict, final, Any, Sequence, Set
 
 from ..constant import CACHE_DIR_PATH, LIB_DIR_PATH
+
+CONFIG_PATH_PATTERN = r'[\\/]'
 
 
 class CacheFILE:
@@ -92,7 +94,7 @@ def set_env_var(env_var: str, value: str):
 class Configurable(metaclass=ABCMeta):
     def __init__(self, config_path: str):
         self._config: Dict = {}
-        self._config_registry: List[str] = []
+        self._config_registry: Set[str] = set()
         self.register_all_config()
         self.load_config(config_path)
         self.inject_config()
@@ -109,13 +111,14 @@ class Configurable(metaclass=ABCMeta):
     def register_config(self, config_registry_path: str, value: Optional[Any] = None) -> None:
         """
         Registers the value at the specified location in the nested dictionary _config.
-
-        :param config_registry_path: A list of keys representing the nested location in the dictionary.
+        The operation will override the original value
+        :param config_registry_path:  list of keys representing the nested location in the dictionary.
         :param value: The value to be registered.
         :return: None
         """
-        self._config_registry.append(config_registry_path)
-        config_registry_path_chain: List[str] = re.split(pattern='\\|/', string=config_registry_path)
+        self._config_registry.add(config_registry_path)
+        # TODO may refactor this chain maker to a named def
+        config_registry_path_chain: List[str] = re.split(pattern=CONFIG_PATH_PATTERN, string=config_registry_path)
 
         @singledispatch
         def make_config(body, chain: Sequence[str]) -> Dict:
@@ -128,14 +131,17 @@ class Configurable(metaclass=ABCMeta):
                 body[chain[0]] = value
                 return body
             else:
+                # recursive call util the chain is empty
                 body[chain[0]] = make_config(body[chain[0]], chain[1:])
                 return body
 
         @make_config.register(type(None))
         def _(body, chain: Sequence[str]) -> Dict:
             if len(chain) == 1:
+                # Store the value
                 return {chain[0]: value}
             else:
+                # recursive call util the chain is empty
                 return {chain[0]: make_config(None, chain[1:])}
 
         self._config = make_config(self._config, config_registry_path_chain)
@@ -196,8 +202,7 @@ class Configurable(metaclass=ABCMeta):
             temp_config = json.load(f)
         for config_registry_path in self._config_registry:
             config = self.export_config(temp_config, config_registry_path)
-            if config is not None:
-                self.register_config(config_registry_path, config)
+            self.register_config(config_registry_path, config) if config else None
 
     @final
     def inject_config(self):
@@ -206,13 +211,21 @@ class Configurable(metaclass=ABCMeta):
         :return:
         """
         for config_registry_path in self._config_registry:
-            formatted_path = re.sub(pattern=CONFIG_PATH_PATTERN, repl='_', string=config_registry_path)
-            if not hasattr(self, formatted_path):
-                setattr(self, formatted_path,
-                        self.export_config(config_body=self._config, config_registry_path=config_registry_path))
+            if hasattr(self, config_registry_path):
+                raise AttributeError(f'CONF: {config_registry_path} is already in the instance')
+            setattr(self, config_registry_path,
+                    self.export_config(config_body=self._config,
+                                       config_registry_path=config_registry_path))
 
 
-CONFIG_PATH_PATTERN = '\\|/'
+def format_json_file(file_path):
+    with open(file_path) as file:
+        try:
+            json_data = json.load(file)
+            formatted_json = json.dumps(json_data, indent=4, ensure_ascii=False)
+            return formatted_json
+        except json.JSONDecodeError as e:
+            return f"Failed to parse JSON: {e}"
 
 
 @persistent_cache(f'{CACHE_DIR_PATH}/lb_cache')
