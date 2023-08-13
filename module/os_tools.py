@@ -115,7 +115,7 @@ class Configurable(metaclass=ABCMeta):
         :return: None
         """
         self._config_registry.append(config_registry_path)
-        config_registry_path_chain: List[str] = re.split(pattern='\\|/', string=config_registry_path)
+        config_registry_path_chain: List[str] = re.split(pattern=CONFIG_PATH_PATTERN, string=config_registry_path)
 
         @singledispatch
         def make_config(body, chain: Sequence[str]) -> Dict:
@@ -128,14 +128,17 @@ class Configurable(metaclass=ABCMeta):
                 body[chain[0]] = value
                 return body
             else:
+                # recursive call util the chain is empty
                 body[chain[0]] = make_config(body[chain[0]], chain[1:])
                 return body
 
         @make_config.register(type(None))
         def _(body, chain: Sequence[str]) -> Dict:
             if len(chain) == 1:
+                # Store the value
                 return {chain[0]: value}
             else:
+                # recursive call util the chain is empty
                 return {chain[0]: make_config(None, chain[1:])}
 
         self._config = make_config(self._config, config_registry_path_chain)
@@ -196,8 +199,7 @@ class Configurable(metaclass=ABCMeta):
             temp_config = json.load(f)
         for config_registry_path in self._config_registry:
             config = self.export_config(temp_config, config_registry_path)
-            if config is not None:
-                self.register_config(config_registry_path, config)
+            self.register_config(config_registry_path, config) if config else None
 
     @final
     def inject_config(self):
