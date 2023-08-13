@@ -25,10 +25,10 @@ class SensorHub(object):
     EXPANSION_IO_ID = 3
 
     def __init__(self,
-                 on_board_adc_updater: Optional[SensorUpdaters] = None,
-                 on_board_io_updater: Optional[SensorUpdaters] = None,
-                 expansion_adc_updater: Optional[SensorUpdaters] = None,
-                 expansion_io_updater: Optional[SensorUpdaters] = None
+                 on_board_adc_updater: SensorUpdaters,
+                 on_board_io_updater: SensorUpdaters,
+                 expansion_adc_updater: SensorUpdaters,
+                 expansion_io_updater: SensorUpdaters
                  ):
 
         self._full_updaters = (
