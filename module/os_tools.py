@@ -116,12 +116,15 @@ class Configurable(metaclass=ABCMeta):
         :param value: The value to be registered.
         :return: None
         """
+
         self._config_registry.add(config_registry_path)
         # TODO may refactor this chain maker to a named def
         config_registry_path_chain: List[str] = re.split(pattern=CONFIG_PATH_PATTERN, string=config_registry_path)
 
         @singledispatch
         def make_config(body, chain: Sequence[str]) -> Dict:
+            # indicating the given chain will override some other value in the config
+            # normally, re-register a config value is allowed
             raise KeyError('The chain is conflicting')
 
         @make_config.register(dict)
@@ -132,7 +135,17 @@ class Configurable(metaclass=ABCMeta):
                 return body
             else:
                 # recursive call util the chain is empty
-                body[chain[0]] = make_config(body[chain[0]], chain[1:])
+
+                # here is to deal with two different situations
+                # first is the situation,
+                # in which the body doesn't contain the key named chain[0],indicating that
+                # there is no existed nested Dict.For that here parse a None as the body,
+                # which prevents body[chain[0]] raise the KeyError
+
+                # second is the situation, in which the body does contain the key named chain[0],indicating that
+                # there should be a nested Dict.For that here parse the nested Dict as the Body,
+                # which may contain other configurations
+                body[chain[0]] = make_config(body[chain[0]] if chain[0] in body else None, chain[1:])
                 return body
 
         @make_config.register(type(None))
