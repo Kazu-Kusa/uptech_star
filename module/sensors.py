@@ -66,9 +66,20 @@ class SensorHub(object):
         if not all(updater() for updater in updaters):
             raise IndexError('Some of existing updaters are invalid, please check!')
 
-    def updater_constructor(self, sensor_ids: Tuple[Tuple[int, int], ...]) -> FullUpdater:
+
+class LocalFullUpdaterConstructor(object):
+
+    @staticmethod
+    def from_full_updater(full_updater: FullUpdater, sensor_ids: Sequence[int]) -> FullUpdater:
         def updater() -> Sequence[Union[float, int]]:
-            return [self._full_updaters[sensor_id[0]]()[sensor_id[1]] for sensor_id in sensor_ids]
+            return tuple(full_updater()[sensor_id] for sensor_id in sensor_ids)
+
+        return updater
+
+    @staticmethod
+    def from_indexed_updater(indexed_updater: IndexedUpdater, sensor_ids: Sequence[int]) -> FullUpdater:
+        def updater() -> Sequence[Union[float, int]]:
+            return tuple(indexed_updater(sensor_id) for sensor_id in sensor_ids)
 
         return updater
 
