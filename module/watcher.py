@@ -60,8 +60,8 @@ def build_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
 
 def build_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
                             sensor_id: Tuple[int, ...],
-                            min_line: Sequence[int] = None,
-                            max_line: Sequence[int] = None,
+                            min_line: Sequence[Optional[int]] = None,
+                            max_line: Sequence[Optional[int]] = None,
                             args: Tuple = (),
                             kwargs: Dict[str, Any] = {}) -> Watcher:
     """
@@ -70,13 +70,14 @@ def build_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
     Args:
         sensor_update: 一个可调用对象，接受一个可选参数并返回一个序列。
         sensor_id: 传感器的ID，为整数的元组。
-        min_line: 最小阈值，为整数。
-        max_line: 最大阈值，为整数，默认为None。
+        min_line: 最小阈值
+        max_line: 最大阈值
         args: 可选参数的元组，默认为空元组。
         kwargs: 可选关键字参数的字典，默认为空字典。
 
     Returns:
         返回一个没有参数且返回布尔值的可调用对象，用于监视传感器数据是否在阈值范围内。
+
     Raises:
         无异常抛出。
 
@@ -92,26 +93,32 @@ def build_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
 
         print(result)  # 输出：True
     """
+    high_pass_sensors = []
+    low_pass_sensors = []
+    belt_pass_sensors = []
+
+    for sensor_id, max_l, min_l in zip(sensor_id, max_line, min_line):
+        if max_l and min_l :
+            belt_pass_sensors.append((sensor_id, min_l, max_l))
+        elif min_l:
+            high_pass_sensors.append((sensor_id, min_l))
+        elif max_l:
+            low_pass_sensors.append((sensor_id, max_l))
+
     parts = []
-    for y1, x, y2 in zip(max_line, sensor_id, min_line):
-        if max_line[y1] != 0 and min_line[y2] != 0:
-            def watcher() -> bool:
-                return all(max_line[y1] > sensor_update(*args, **kwargs)[x] > min_line[y2])
 
-            parts.append(watcher)
-        elif min_line[y2] != 0:
-            def watcher() -> bool:
-                return all((sensor_update(*args, **kwargs)[x] > min_line[y2]))
+    if belt_pass_sensors:
+        parts.append(lambda update: all(x[1] < update[x[0]] < x[2] for x in belt_pass_sensors))
 
-            parts.append(watcher)
-        else:
-            def watcher() -> bool:
-                return all((sensor_update(*args, **kwargs)[x] < max_line[y1]))
+    if high_pass_sensors:
+        parts.append(lambda update: all(x[1] < update[x[0]] for x in high_pass_sensors))
 
-            parts.append(watcher)
+    if low_pass_sensors:
+        parts.append(lambda update: all(x[1] > update[x[0]] for x in low_pass_sensors))
 
     def watcher() -> bool:
-        return all(part() for part in parts)
+        update = sensor_update(*args, **kwargs)
+        return all(part(update) for part in parts)
 
     return watcher
 
