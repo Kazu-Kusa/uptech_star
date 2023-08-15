@@ -47,13 +47,16 @@ def build_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
     """
     if max_line and min_line:
         def watcher() -> bool:
-            return all((max_line > sensor_update(*args, **kwargs)[x] > min_line) for x in sensor_id)
+            update = sensor_update(*args, **kwargs)
+            return all((max_line > update[x] > min_line) for x in sensor_id)
     elif min_line:
         def watcher() -> bool:
-            return all((sensor_update(*args, **kwargs)[x] > min_line) for x in sensor_id)
+            update = sensor_update(*args, **kwargs)
+            return all((update[x] > min_line) for x in sensor_id)
     else:
         def watcher() -> bool:
-            return all((sensor_update(*args, **kwargs)[x] < max_line) for x in sensor_id)
+            update = sensor_update(*args, **kwargs)
+            return all((update[x] < max_line) for x in sensor_id)
 
     return watcher
 
