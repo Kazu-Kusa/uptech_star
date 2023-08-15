@@ -3,7 +3,7 @@ from typing import Callable, Sequence, Any, Tuple, Optional, Dict, List
 
 from .onboardsensors import OnBoardSensors
 from ..constant import EDGE_REAR_SENSOR_ID, EDGE_FRONT_SENSOR_ID, SIDES_SENSOR_ID, DEFAULT_EDGE_BASELINE, \
-    START_MAX_LINE, \
+    START_MIN_LINE, \
     EDGE_REAR_WATCHER_NAME, EDGE_FRONT_WATCHER_NAME, SIDES_WATCHER_NAME, GRAYS_WATCHER_NAME, DEFAULT_GRAYS_BASELINE, \
     GRAYS_SENSOR_ID, FRONT_SENSOR_ID, REAR_SENSOR_ID, DEFAULT_NORMAL_BASELINE, FRONT_WATCHER_NAME, REAR_WATCHER_NAME
 
@@ -111,7 +111,7 @@ default_front_watcher: Watcher = build_watcher(sensor_update=OnBoardSensors.adc_
 
 default_sides_watcher: Watcher = build_watcher(sensor_update=OnBoardSensors.adc_all_channels,
                                                sensor_id=SIDES_SENSOR_ID,
-                                               max_line=START_MAX_LINE)
+                                               max_line=START_MIN_LINE)
 
 default_grays_watcher: Watcher = build_watcher(sensor_update=OnBoardSensors.io_all_channels,
                                                sensor_id=GRAYS_SENSOR_ID,
