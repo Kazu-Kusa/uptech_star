@@ -60,6 +60,54 @@ class WindowPredictorBase(ABC):
 
         # init the window that contains the last window_size data
         self.window: List[Sequence[Union[float, int]]] = [[]] * window_size
+        self._time_sequence = list(range(1, self.window_size + 1))
+
+
+class Math(WindowPredictorBase):
+
+    def predict(self, data: List[Union[float, int]]) -> List[Union[float, int]]:
+        def start_math():
+            # TODO data要更改为数据更新器
+            self.window.append([random.randint(0, 1000) for i in range(6)])
+            self.window.pop(0)
+            if self.window[0]:
+                return
+            else:
+                start_math()
+
+        def math_get_y():
+            start_math()
+            return_a_b = []
+            # 下列代码是将windo的列表转置
+            list_y = [[self.window[j][i] for j in range(len(self.window))] for i in range(len(self.window[0]))]
+
+            for i in range(len(data)):
+                return_a_b.append(compute(list_y[i]))
+            return return_a_b
+
+        def compute(list_y: List[Union[float, int]]) -> int:
+            time_x = self._time_sequence
+            self.list_y = list_y
+            all_x = 0  # 所有x相加
+            all_y = 0  # 所有y相加
+            xx = 0  # 所有x的平方相加
+            xy = 0  # 所有x*y相加
+            for x, y in zip(time_x, list_y):
+                xx = x * x + xx
+                xy = x * y + xy
+                all_x = x + all_x
+                all_y = y + all_y
+
+            time_x_ = (all_x / len(time_x))  # 平均x
+            time_y_ = (all_y / len(list_y))  # 平均y
+            nxy_ = time_x_ * time_y_ * len(time_x)  # 平均数x与平均y相乘后乘以n
+            nxx_ = time_x_ * time_x_ * len(time_x)  # 平均数x与平均x相乘后乘以n
+            b = (xy - nxy_) / (xx - nxx_)  # 斜率
+            a = all_y / len(list_y) - b * time_x_  # 差值
+            infer_y = a + b * (len(time_x) + 1)
+            return infer_y
+
+        return math_get_y()
 
 
 def list_multiply(list1: Sequence[Union[float, int]],
