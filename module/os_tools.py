@@ -1,6 +1,5 @@
 import json
 import os
-import pickle
 import re
 import warnings
 from abc import ABCMeta, abstractmethod
@@ -8,11 +7,14 @@ from ctypes import CDLL, cdll
 from functools import wraps, singledispatch
 from typing import Optional, List, Dict, final, Any, Sequence, Set
 
+from dill import dump, load
+
 from ..constant import LIB_DIR_PATH
 
 CONFIG_PATH_PATTERN = r'[\\/]'
 
 
+# TODO to deal with object that may not support serializing, consider add a save rule to remove those
 class CacheFILE:
     __cache_file_register: List[str] = []
     __instance_list: List[object] = []
@@ -27,7 +29,7 @@ class CacheFILE:
         # 从文件中加载缓存，如果文件不存在则返回空字典
         try:
             with open(self._cache_file_path, 'rb') as f:
-                return pickle.load(f)
+                return load(f)
         except FileNotFoundError:
             warnings.warn('No existing CacheFile', stacklevel=4)
             return {}
@@ -39,7 +41,7 @@ class CacheFILE:
     def save_cache(self) -> None:
         # 保存缓存到文件
         with open(self._cache_file_path, 'wb') as f:
-            pickle.dump(self.content, f)
+            dump(self.content, f)
 
     @classmethod
     def save_all_cache(cls):
