@@ -92,10 +92,15 @@ def set_env_var(env_var: str, value: str):
 
 
 class Configurable(metaclass=ABCMeta):
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: Optional[str]):
+        self._config_path = config_path
         self._config: Dict = {}
         self._config_registry: Set[str] = set()
         self.register_all_config()
+        if config_path:
+            warnings.warn(f'\nLoading config at: {config_path}', stacklevel=3)
+        else:
+            warnings.warn('\nConfig path is not specified, default config will be applied', stacklevel=3)
         self.load_config(config_path)
         self.inject_config()
 
@@ -190,29 +195,31 @@ class Configurable(metaclass=ABCMeta):
         return get_config(config_body, config_registry_path_chain)
 
     @final
-    def save_config(self, config_path: str) -> None:
+    def save_config(self, save_path: Optional[str] = None) -> None:
         """
         Saves the configuration to a file.
+        Will execute override save on origin file when the config path is not specified
 
-        :param config_path: The path to the file.
+        :param save_path: The path to the file.
         :return: None
         """
-        if os.path.exists(config_path):
-            os.remove(config_path)
-        with open(config_path, mode='w') as f:
+
+        with open(save_path if save_path else self._config_path, mode='w') as f:
             json.dump(self._config, f, indent=4)
 
     @final
-    def load_config(self, config_path: str) -> None:
+    def load_config(self, config_path: Optional[str]) -> None:
         """
         used to load the important configurations.
         will override the default configuration in the self._config.
         :param config_path:
         :return:
         """
-
-        with open(config_path, mode='r') as f:
-            temp_config = json.load(f)
+        if config_path:
+            with open(config_path, mode='r') as f:
+                temp_config = json.load(f)
+        else:
+            temp_config = {}
         for config_registry_path in self._config_registry:
             config = self.export_config(temp_config, config_registry_path)
             self.register_config(config_registry_path, config) if config else None
