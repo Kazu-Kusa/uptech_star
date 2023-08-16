@@ -93,7 +93,7 @@ def set_env_var(env_var: str, value: str):
 
 class Configurable(metaclass=ABCMeta):
     def __init__(self, config_path: Optional[str]):
-
+        self._config_path = config_path
         self._config: Dict = {}
         self._config_registry: Set[str] = set()
         self.register_all_config()
@@ -195,16 +195,16 @@ class Configurable(metaclass=ABCMeta):
         return get_config(config_body, config_registry_path_chain)
 
     @final
-    def save_config(self, config_path: str) -> None:
+    def save_config(self, save_path: Optional[str] = None) -> None:
         """
         Saves the configuration to a file.
+        Will execute override save on origin file when the config path is not specified
 
-        :param config_path: The path to the file.
+        :param save_path: The path to the file.
         :return: None
         """
-        if os.path.exists(config_path):
-            os.remove(config_path)
-        with open(config_path, mode='w') as f:
+
+        with open(save_path if save_path else self._config_path, mode='w') as f:
             json.dump(self._config, f, indent=4)
 
     @final
