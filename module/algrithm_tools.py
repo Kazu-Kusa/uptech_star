@@ -1,7 +1,8 @@
-from random import choice
-from typing import Union, Sequence, Tuple
-import numpy as np
 from abc import ABC, abstractmethod
+from random import choice
+from typing import Union, Sequence, Tuple, List
+
+from numpy import zeros, average
 
 
 class BaseFilter(ABC):
@@ -17,10 +18,48 @@ class MovingAverage(BaseFilter):
         self.queue[:-1] = self.queue[1:]  # 将队列往前移动
         self.queue[-1] = value  # 将最新的值添加到队列中
         # 计算滑动窗口范围内的平均值
-        return np.average(self.queue)
+        return average(self.queue)
 
     def __init__(self, size: int):
-        self.queue = np.zeros(size)  # 定义队列
+        self.queue = zeros(size)  # 定义队列
+
+
+class AmplitudeLimitFilter(BaseFilter):
+    def __init__(self, origin_filter: BaseFilter, limit: float):
+        self.filter = origin_filter
+        self.limit = limit
+
+    def apply(self, value: float) -> float:
+        filtered_value = self.filter.apply(value)
+        return max(min(filtered_value, self.limit), -self.limit)
+
+
+class WindowPredictorBase(ABC):
+
+    @abstractmethod
+    def predict(self, data: List[Union[float, int]]) -> List[Union[float, int]]:
+        """
+        Use the new input data to update the window
+        then use all the data in the window to predict the next frame of data
+        Args:
+            data: the given data, which is a list, meaning a bunch of data read at the same time
+
+        Returns:
+            List[Union[float, int]]: the predicted data
+
+        """
+        pass
+
+    def __init__(self, window_size: int):
+        """
+        Initialize the WindowPredictor.
+        Args:
+            window_size: the size of the window
+        """
+        self.window_size = window_size
+
+        # init the window that contains the last window_size data
+        self.window: List[Sequence[Union[float, int]]] = [[]] * window_size
 
 
 def list_multiply(list1: Sequence[Union[float, int]],
