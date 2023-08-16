@@ -62,9 +62,9 @@ def build_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
 
 
 def build_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
-                            sensor_id: Tuple[int, ...],
-                            min_line: Sequence[Optional[int]] = None,
-                            max_line: Sequence[Optional[int]] = None,
+                            sensor_ids: Tuple[int, ...],
+                            min_lines: Sequence[Optional[int]] = None,
+                            max_lines: Sequence[Optional[int]] = None,
                             args: Tuple = (),
                             kwargs: Dict[str, Any] = {}) -> Watcher:
     """
@@ -72,9 +72,9 @@ def build_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
 
     Args:
         sensor_update: 一个可调用对象，接受一个可选参数并返回一个序列。
-        sensor_id: 传感器的ID，为整数的元组。
-        min_line: 最小阈值
-        max_line: 最大阈值
+        sensor_ids: 传感器的ID，为整数的元组。
+        min_lines: 最小阈值
+        max_lines: 最大阈值
         args: 可选参数的元组，默认为空元组。
         kwargs: 可选关键字参数的字典，默认为空字典。
 
@@ -96,18 +96,10 @@ def build_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
 
         print(result)  # 输出：True
     """
-    high_pass_sensors = []
-    low_pass_sensors = []
-    belt_pass_sensors = []
 
-    for sensor_id, max_l, min_l in zip(sensor_id, max_line, min_line):
-        if max_l and min_l :
-            belt_pass_sensors.append((sensor_id, min_l, max_l))
-        elif min_l:
-            high_pass_sensors.append((sensor_id, min_l))
-        elif max_l:
-            low_pass_sensors.append((sensor_id, max_l))
+    belt_pass_sensors, high_pass_sensors, low_pass_sensors = sort_with_mode(max_lines, min_lines, sensor_ids)
 
+    # build the watcher components
     parts = []
 
     if belt_pass_sensors:
@@ -120,24 +112,73 @@ def build_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
         parts.append(lambda update: all(x[1] > update[x[0]] for x in low_pass_sensors))
 
     def watcher() -> bool:
+        f"""
+        Assemble the watcher with all the parts.
+        Returns: True if all the parts return True
+
+        Notes:
+            parts parameters are as follows
+        
+            sensor_id: {sensor_ids}
+            min_line: {min_lines}
+            max_line: {max_lines}
+        
+        """
         update = sensor_update(*args, **kwargs)
         return all(part(update) for part in parts)
 
     return watcher
 
 
+def sort_with_mode(max_lines, min_lines, sensor_ids):
+    if not len(min_lines) == len(max_lines) == len(sensor_ids):
+        raise ValueError("min_line and max_line should have the same length as sensor_id does")
+    # sort the sensors according to their mode, which defined by min_line and max_line
+    high_pass_sensors = []
+    low_pass_sensors = []
+    belt_pass_sensors = []
+    for sensor_ids, max_l, min_l in zip(sensor_ids, max_lines, min_lines):
+        if max_l and min_l:
+            belt_pass_sensors.append((sensor_ids, min_l, max_l))
+        elif min_l:
+            high_pass_sensors.append((sensor_ids, min_l))
+        elif max_l:
+            low_pass_sensors.append((sensor_ids, max_l))
+    return belt_pass_sensors, high_pass_sensors, low_pass_sensors
+
+
+# Buffer to store the previous sensor updates
 __BUFFER_list: List[List] = []
 
 
-def build_delta_watcher(sensor_update: Callable[..., Sequence[Any]],
-                        sensor_id: Tuple[int, ...],
-                        max_line: Optional[int] = None,
-                        min_line: Optional[int] = None,
-                        args: Tuple = (),
-                        kwargs: Dict[str, Any] = {}) -> Callable[[], bool]:
+def build_delta_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
+                               sensor_id: Tuple[int, ...],
+                               max_line: Optional[int] = None,
+                               min_line: Optional[int] = None,
+                               args: Tuple = (),
+                               kwargs: Dict[str, Any] = {}) -> Watcher:
+    """
+    Build a delta watcher function that checks for changes in sensor readings.
+
+    Args:
+    - sensor_update: A function that retrieves the latest sensor readings.
+    - sensor_id: A tuple of indices representing the sensor values to monitor for changes.
+    - max_line: The maximum difference allowed between the current and previous sensor readings.
+    - min_line: The minimum difference required between the current and previous sensor readings.
+    - args: Additional positional arguments to pass to the sensor_update function.
+    - kwargs: Additional keyword arguments to pass to the sensor_update function.
+
+    Returns:
+    - A watcher function that returns True if the sensor readings have changed within the specified limits,
+    False otherwise.
+    """
+
+    # Create a new buffer for the current sensor updates
     __BUFFER_list.append([])
     buffer = copy(__BUFFER_list[-1])
     buffer[:] = sensor_update(*args, **kwargs)
+
+    # Define the watcher function based on the provided limits
     if max_line and min_line:
         def watcher() -> bool:
             nonlocal buffer
@@ -159,7 +200,65 @@ def build_delta_watcher(sensor_update: Callable[..., Sequence[Any]],
             b = all((update[x] - buffer[x] < max_line) for x in sensor_id)
             buffer = update
             return b
+
     return watcher
+
+
+def build_delta_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
+                                  sensor_ids: Tuple[int, ...],
+                                  min_lines: Sequence[Optional[int]] = None,
+                                  max_lines: Sequence[Optional[int]] = None,
+                                  args: Tuple = (),
+                                  kwargs: Dict[str, Any] = {}) -> Watcher:
+    """
+      Build a delta watcher function that checks for changes in sensor readings.
+
+      Args:
+      - sensor_update: A function that retrieves the latest sensor readings.
+      - sensor_ids: A tuple of indices representing the sensor values to monitor for changes.
+      - min_lines: A sequence of minimum difference required between the current and previous sensor readings.
+      - max_lines: A sequence of maximum difference allowed between the current and previous sensor readings.
+      - args: Additional positional arguments to pass to the sensor_update function.
+      - kwargs: Additional keyword arguments to pass to the sensor_update function.
+
+      Returns:
+      - A watcher function that returns True if the sensor readings have changed within the specified limits,
+      False otherwise.
+      """
+    # Create a new buffer for the current sensor updates
+    __BUFFER_list.append([])
+    buffer = copy(__BUFFER_list[-1])
+    buffer[:] = sensor_update(*args, **kwargs)
+
+    belt_pass_sensors, high_pass_sensors, low_pass_sensors = sort_with_mode(max_lines, min_lines, sensor_ids)
+
+    parts = []
+    if belt_pass_sensors:
+        parts.append(lambda update, history: all(x[1] < update[x[0]] - history[x[0]] < x[2] for x in belt_pass_sensors))
+    if high_pass_sensors:
+        parts.append(lambda update, history: all(x[1] < update[x[0]] - history[x[0]] for x in high_pass_sensors))
+    if low_pass_sensors:
+        parts.append(lambda update, history: all(x[1] > update[x[0]] - history[x[0]] for x in low_pass_sensors))
+
+    def assembly_watcher() -> bool:
+        f"""
+        a delta watcher function that checks for changes in sensor readings.
+        Returns: True if the sensor readings have changed within the specified limits, False otherwise.
+        
+        Notes: 
+            parts parameters are as follows
+            
+            sensor_id: {sensor_ids}
+            min_line: {min_lines}
+            max_line: {max_lines}
+        """
+        nonlocal buffer
+        update = sensor_update(*args, **kwargs)
+        b = all(part(update, buffer) for part in parts)
+        buffer = update
+        return b
+
+    return assembly_watcher
 
 
 default_edge_rear_watcher: Watcher = build_watcher_simple(sensor_update=OnBoardSensors.adc_all_channels,

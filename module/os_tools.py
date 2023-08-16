@@ -1,6 +1,5 @@
 import json
 import os
-import pickle
 import re
 import warnings
 from abc import ABCMeta, abstractmethod
@@ -8,11 +7,14 @@ from ctypes import CDLL, cdll
 from functools import wraps, singledispatch
 from typing import Optional, List, Dict, final, Any, Sequence, Set
 
-from ..constant import CACHE_DIR_PATH, LIB_DIR_PATH
+from dill import dump, load
+
+from ..constant import LIB_DIR_PATH
 
 CONFIG_PATH_PATTERN = r'[\\/]'
 
 
+# TODO to deal with object that may not support serializing, consider add a save rule to remove those
 class CacheFILE:
     __cache_file_register: List[str] = []
     __instance_list: List[object] = []
@@ -27,19 +29,19 @@ class CacheFILE:
         # 从文件中加载缓存，如果文件不存在则返回空字典
         try:
             with open(self._cache_file_path, 'rb') as f:
-                return pickle.load(f)
+                return load(f)
         except FileNotFoundError:
-            warnings.warn('No existing CacheFile')
+            warnings.warn('No existing CacheFile', stacklevel=4)
             return {}
         except EOFError:
-            warnings.warn("Bad CacheFile, executing removal")
+            warnings.warn("Bad CacheFile, executing removal", stacklevel=4)
             os.remove(self._cache_file_path)
             return {}
 
     def save_cache(self) -> None:
         # 保存缓存到文件
         with open(self._cache_file_path, 'wb') as f:
-            pickle.dump(self.content, f)
+            dump(self.content, f)
 
     @classmethod
     def save_all_cache(cls):
@@ -92,10 +94,15 @@ def set_env_var(env_var: str, value: str):
 
 
 class Configurable(metaclass=ABCMeta):
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: Optional[str]):
+        self._config_path = config_path
         self._config: Dict = {}
         self._config_registry: Set[str] = set()
         self.register_all_config()
+        if config_path:
+            warnings.warn(f'\nLoading config at: {config_path}', stacklevel=3)
+        else:
+            warnings.warn('\nConfig path is not specified, default config will be applied', stacklevel=3)
         self.load_config(config_path)
         self.inject_config()
 
@@ -190,29 +197,31 @@ class Configurable(metaclass=ABCMeta):
         return get_config(config_body, config_registry_path_chain)
 
     @final
-    def save_config(self, config_path: str) -> None:
+    def save_config(self, save_path: Optional[str] = None) -> None:
         """
         Saves the configuration to a file.
+        Will execute override save on origin file when the config path is not specified
 
-        :param config_path: The path to the file.
+        :param save_path: The path to the file.
         :return: None
         """
-        if os.path.exists(config_path):
-            os.remove(config_path)
-        with open(config_path, mode='w') as f:
-            json.dump(self._config, f, indent=4)
+
+        with open(save_path if save_path else self._config_path, mode='w') as f:
+            json.dump(self._config, f, indent=2)
 
     @final
-    def load_config(self, config_path: str) -> None:
+    def load_config(self, config_path: Optional[str]) -> None:
         """
         used to load the important configurations.
         will override the default configuration in the self._config.
         :param config_path:
         :return:
         """
-
-        with open(config_path, mode='r') as f:
-            temp_config = json.load(f)
+        if config_path:
+            with open(config_path, mode='r') as f:
+                temp_config = json.load(f)
+        else:
+            temp_config = {}
         for config_registry_path in self._config_registry:
             config = self.export_config(temp_config, config_registry_path)
             self.register_config(config_registry_path, config) if config else None
@@ -241,7 +250,6 @@ def format_json_file(file_path):
             return f"Failed to parse JSON: {e}"
 
 
-@persistent_cache(f'{CACHE_DIR_PATH}/lb_cache')
 def load_lib(libname: str) -> CDLL:
     lib_file_name = f'{LIB_DIR_PATH}/{libname}'
     print(f'Loading [{lib_file_name}]')
