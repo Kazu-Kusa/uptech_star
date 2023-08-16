@@ -8,7 +8,7 @@ from ctypes import CDLL, cdll
 from functools import wraps, singledispatch
 from typing import Optional, List, Dict, final, Any, Sequence, Set
 
-from ..constant import CACHE_DIR_PATH, LIB_DIR_PATH
+from ..constant import LIB_DIR_PATH
 
 CONFIG_PATH_PATTERN = r'[\\/]'
 
@@ -29,10 +29,10 @@ class CacheFILE:
             with open(self._cache_file_path, 'rb') as f:
                 return pickle.load(f)
         except FileNotFoundError:
-            warnings.warn('No existing CacheFile')
+            warnings.warn('No existing CacheFile', stacklevel=4)
             return {}
         except EOFError:
-            warnings.warn("Bad CacheFile, executing removal")
+            warnings.warn("Bad CacheFile, executing removal", stacklevel=4)
             os.remove(self._cache_file_path)
             return {}
 
@@ -248,7 +248,6 @@ def format_json_file(file_path):
             return f"Failed to parse JSON: {e}"
 
 
-@persistent_cache(f'{CACHE_DIR_PATH}/lb_cache')
 def load_lib(libname: str) -> CDLL:
     lib_file_name = f'{LIB_DIR_PATH}/{libname}'
     print(f'Loading [{lib_file_name}]')
