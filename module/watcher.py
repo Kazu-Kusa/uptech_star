@@ -143,18 +143,38 @@ def build_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
     return watcher
 
 
+# Buffer to store the previous sensor updates
 __BUFFER_list: List[List] = []
 
 
-def build_delta_watcher(sensor_update: Callable[..., Sequence[Any]],
-                        sensor_id: Tuple[int, ...],
-                        max_line: Optional[int] = None,
-                        min_line: Optional[int] = None,
-                        args: Tuple = (),
-                        kwargs: Dict[str, Any] = {}) -> Callable[[], bool]:
+def build_delta_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
+                               sensor_id: Tuple[int, ...],
+                               max_line: Optional[int] = None,
+                               min_line: Optional[int] = None,
+                               args: Tuple = (),
+                               kwargs: Dict[str, Any] = {}) -> Callable[[], bool]:
+    """
+    Build a delta watcher function that checks for changes in sensor readings.
+
+    Args:
+    - sensor_update: A function that retrieves the latest sensor readings.
+    - sensor_id: A tuple of indices representing the sensor values to monitor for changes.
+    - max_line: The maximum difference allowed between the current and previous sensor readings.
+    - min_line: The minimum difference required between the current and previous sensor readings.
+    - args: Additional positional arguments to pass to the sensor_update function.
+    - kwargs: Additional keyword arguments to pass to the sensor_update function.
+
+    Returns:
+    - A watcher function that returns True if the sensor readings have changed within the specified limits,
+    False otherwise.
+    """
+
+    # Create a new buffer for the current sensor updates
     __BUFFER_list.append([])
     buffer = copy(__BUFFER_list[-1])
     buffer[:] = sensor_update(*args, **kwargs)
+
+    # Define the watcher function based on the provided limits
     if max_line and min_line:
         def watcher() -> bool:
             nonlocal buffer
@@ -176,6 +196,7 @@ def build_delta_watcher(sensor_update: Callable[..., Sequence[Any]],
             b = all((update[x] - buffer[x] < max_line) for x in sensor_id)
             buffer = update
             return b
+
     return watcher
 
 
