@@ -1,8 +1,9 @@
 import json
-import pickle
 import time
 from functools import singledispatch
 from typing import Tuple, Union, Optional, List, Dict, ByteString, Sequence
+
+from dill import load, dump
 
 from .algrithm_tools import multiply, factor_list_multiply
 from .close_loop_controller import CloseLoopController, is_list_all_zero
@@ -37,26 +38,26 @@ class ActionFrame:
     @classmethod
     def load_cache(cls) -> None:
         """
-        load the action frame cache to class variable, using pickle
+        load the action frame cache to class variable, using dill
         :return: None
         """
         try:
             with open(cls._CACHE_FILE_PATH, "rb") as file:
-                cls._instance_cache = pickle.load(file)
+                cls._instance_cache = load(file)
         except FileNotFoundError:
             pass
 
     @classmethod
     def save_cache(cls) -> None:
         """
-        save the action frame cache to the file,using pickle
+        save the action frame cache to the file,using dill
         :return: None
         """
         print(f'##Saving Action Frame instance cache: \n'
               f'\tCache Size: {len(cls._instance_cache.items())}')
 
         with open(cls._CACHE_FILE_PATH, "wb") as file:
-            pickle.dump(cls._instance_cache, file)
+            dump(cls._instance_cache, file)
 
     def __new__(cls, *args, **kwargs):
         """
