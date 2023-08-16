@@ -205,7 +205,7 @@ class Configurable(metaclass=ABCMeta):
         """
 
         with open(save_path if save_path else self._config_path, mode='w') as f:
-            json.dump(self._config, f, indent=4)
+            json.dump(self._config, f, indent=2)
 
     @final
     def load_config(self, config_path: Optional[str]) -> None:
