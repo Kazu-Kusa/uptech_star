@@ -44,6 +44,10 @@ Hex = int | bytes
 class I2CBase(metaclass=ABCMeta):
 
     def __init__(self):
+        self._target_address: Optional[int] = 0xFF
+        self._self_address: Optional[int] = None
+        self._is_transmitting: bool = False
+
         self._received_data_handler: Optional[Callable] = None
         self._sent_data_handler: Optional[Callable] = None
         self._read_buffer = bytearray()
@@ -64,6 +68,7 @@ class I2CBase(metaclass=ABCMeta):
     @abstractmethod
     def end(self):
         """
+        Set SCL low and SDA low.
         End the I2C communication.
 
         Returns:
@@ -86,7 +91,7 @@ class I2CBase(metaclass=ABCMeta):
             None
         """
 
-    @abstractmethod
+    @final
     def beginTransmission(self, target_address: int):
         """
         Start sending data to the target address.
@@ -97,6 +102,8 @@ class I2CBase(metaclass=ABCMeta):
         Returns:
             None
         """
+        self._target_address = target_address
+        self._is_transmitting = True
 
     @abstractmethod
     def endTransmission(self, stop: bool):
@@ -170,6 +177,7 @@ class I2CBase(metaclass=ABCMeta):
         self._sent_data_handler = handler
 
 
+# region CH341
 class Ch341aApplication(object, metaclass=ABCMeta):
     def __init__(self, port: str, serial_config: Dict):
         self._serial: SerialHelper = SerialHelper(port=port, serial_config=serial_config)
@@ -307,6 +315,9 @@ class SensorsSerialExpansion(I2CReader, metaclass=ABCMeta):
         return [self.get_adc_data(i) for i in range(self.ADC_CHANNEL_COUNT)]
 
 
+# endregion
+
+
 class SimulateI2C(I2CBase):
     """
     # 假设要传输的数据为 0b10101010
@@ -331,12 +342,8 @@ class SimulateI2C(I2CBase):
         400: 2
     }
 
+    @final
     def end(self):
-        """
-        set channel to low and end the i2c communication
-        Returns:
-
-        """
         self.set_ALL_PINS_MODE(OUTPUT)
         self.set_SDA_PIN(LOW)
         self.set_SCL_PIN(LOW)
@@ -407,13 +414,8 @@ class SimulateI2C(I2CBase):
         self.set_SDA_PIN(HIGH)  # cpu释放总线
 
     def endTransmission(self, stop: bool):
-        if stop:
-            self.end()
-        else:
-            self._start()
 
-    def beginTransmission(self, target_address: int):
-        self._target_address = target_address
+        self.end() if stop else self._start()
 
     def begin(self, slave_address: Optional[int] = None):
         """
@@ -433,8 +435,6 @@ class SimulateI2C(I2CBase):
             raise IndexError(f'speed must in {list(self.__speed_delay_table.keys())}')
         super().__init__()
 
-        self._target_address: int = 0xFF
-        self._self_address: Optional[int] = None
         self._speed = speed
         self._indexed_setter = indexed_setter
         self._indexed_getter = indexed_getter
