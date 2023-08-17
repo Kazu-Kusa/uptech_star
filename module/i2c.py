@@ -51,49 +51,122 @@ class I2CBase(metaclass=ABCMeta):
 
     @abstractmethod
     def begin(self, slave_address: int):
-        raise NotImplementedError
+        """
+        Initialize I2C communication and set the slave address.
+
+        Args:
+            slave_address: The slave address to communicate with.
+
+        Returns:
+            None
+        """
 
     @abstractmethod
     def end(self):
-        raise NotImplementedError
+        """
+        End the I2C communication.
+
+        Returns:
+            None
+        """
 
     @abstractmethod
     def requestFrom(self, target_address: int, request_data_size: int, stop: bool,
                     register_address: Optional[int] = None):
-        raise NotImplementedError
+        """
+        Read a specified number of data from the target address.
+
+        Args:
+            target_address: The target address to read from.
+            request_data_size: The number of data to read.
+            stop: Whether to send a stop signal after reading.
+            register_address: The register address, optional.
+
+        Returns:
+            None
+        """
 
     @abstractmethod
     def beginTransmission(self, target_address: int):
-        raise NotImplementedError
+        """
+        Start sending data to the target address.
+
+        Args:
+            target_address: The target address to send data to.
+
+        Returns:
+            None
+        """
 
     @abstractmethod
     def endTransmission(self, stop: bool):
-        raise NotImplementedError
+        """
+        End sending data to the target address.
+
+        Args:
+            stop: Whether to send a stop signal after sending data.
+
+        Returns:
+            None
+        """
 
     @abstractmethod
     def write(self, data):
-        raise NotImplementedError
+        """
+        Write data to the target address.
+
+        Args:
+            data: The data to write.
+
+        Returns:
+            None
+        """
 
     @final
     @property
     def available(self) -> int:
         """
-        get the available data in the read buffer
-        Returns: the quantity of readable data in the read buffer
+        Get the available data in the read buffer.
 
+        Returns:
+            The quantity of readable data in the read buffer.
         """
         return self._read_buffer.__len__()
 
     @final
     def read_byte(self):
+        """
+        Read a byte of data from the read buffer.
+
+        Returns:
+            The read byte of data.
+        """
         return self._read_buffer.pop(0)
 
     @final
     def onReceive(self, handler: Callable):
+        """
+        Set the callback function for receiving data.
+
+        Args:
+            handler: The callback function for receiving data.
+
+        Returns:
+            None
+        """
         self._received_data_handler = handler
 
     @final
     def onRequest(self, handler: Callable):
+        """
+        Set the callback function for requesting data.
+
+        Args:
+            handler: The callback function for requesting data.
+
+        Returns:
+            None
+        """
         self._sent_data_handler = handler
 
 
