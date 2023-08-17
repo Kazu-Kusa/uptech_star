@@ -1,4 +1,4 @@
-#     import sys
+import sys
 from abc import ABCMeta, abstractmethod
 from ctypes import c_uint16
 from typing import List, Dict, Callable, Optional, Tuple, final
@@ -7,7 +7,7 @@ from .onboardsensors import \
     PinSetter, pin_setter_constructor, \
     PinGetter, pin_getter_constructor, \
     PinModeSetter, pin_mode_setter_constructor, \
-    HIGH, LOW, OUTPUT, INPUT, multiple_pin_mode_setter_constructor
+    HIGH, LOW, OUTPUT, INPUT, multiple_pin_mode_setter_constructor, IndexedGetter, IndexedSetter
 from .serial_helper import SerialHelper, serial_kwargs_factory
 from .timer import delay_us_constructor
 
@@ -43,9 +43,9 @@ Hex = int | bytes
 
 class I2CBase(metaclass=ABCMeta):
 
-    def __init__(self):
+    def __init__(self, self_address: Optional[int] = None):
         self._target_address: Optional[int] = 0xFF
-        self._self_address: Optional[int] = None
+        self._self_address: Optional[int] = self_address
         self._is_transmitting: bool = False
 
         self._received_data_handler: Optional[Callable] = None
@@ -429,11 +429,15 @@ class SimulateI2C(I2CBase):
         self.set_SCL_PIN(HIGH)
         self.set_ALL_PINS_MODE(INPUT)
 
-    def __init__(self, SDA_PIN: int, SCL_PIN: int, speed: int, indexed_setter: Callable, indexed_getter: Callable,
-                 indexed_mode_setter: Callable):
+    def __init__(self, SDA_PIN: int, SCL_PIN: int,
+                 speed: int,
+                 indexed_setter: IndexedSetter,
+                 indexed_getter: IndexedGetter,
+                 indexed_mode_setter: IndexedSetter,
+                 self_address: Optional[int] = None):
         if speed not in self.__speed_delay_table:
             raise IndexError(f'speed must in {list(self.__speed_delay_table.keys())}')
-        super().__init__()
+        super().__init__(self_address)
 
         self._speed = speed
         self._indexed_setter = indexed_setter
