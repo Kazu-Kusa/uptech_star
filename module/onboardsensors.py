@@ -8,6 +8,9 @@ PinModeSetter = Callable[[int], None]
 PinSetter = Callable[[int], None]
 PinGetter = Callable[[], int]
 
+IndexedGetter = Callable[[int], int]
+IndexedSetter = Callable[[int, int], None]
+
 OUTPUT = 1
 INPUT = 0
 HIGH = 1
@@ -42,7 +45,7 @@ class OnBoardSensors:
     @staticmethod
     def adc_io_open():
         """
-        open the  adc-io plug
+        open the adc-io plug
         """
         return OnBoardSensors.__lib.adc_io_open()
 
@@ -135,10 +138,6 @@ class OnBoardSensors:
         }
         """
         OnBoardSensors.__lib.adc_io_SetAll(level)
-
-    @staticmethod
-    def get_io_level(index: int) -> int:
-        return (OnBoardSensors.__lib.adc_io_InputGetAll() >> index) & 1
 
     @staticmethod
     def get_all_io_mode(buffer: int):
@@ -255,9 +254,11 @@ class OnBoardSensors:
     @staticmethod
     def atti_all():
         """
-        get attitude from MPU6500
+        Get attitude from MPU6500
 
-        :note the attitude data update every 10ms, so, high sampling-frequency may not be a good option
+        NOTE:
+            the sampling frequency of the attitude data updates every 10ms.
+            So, high sampling-frequency may not be a good option
         """
 
         OnBoardSensors.__lib.mpu6500_Get_Attitude(OnBoardSensors._atti_all)
@@ -268,11 +269,8 @@ class OnBoardSensors:
     def get_handle(attr_name: str):
         return getattr(OnBoardSensors.__lib, attr_name)
 
-    def get_handle(self, attr_name: str):
-        return getattr(self.__lib, attr_name)
 
-
-def pin_setter_constructor(indexed_setter: Callable, pin: int) -> PinSetter:
+def pin_setter_constructor(indexed_setter: IndexedSetter, pin: int) -> PinSetter:
     """
 
     Args:
@@ -289,7 +287,7 @@ def pin_setter_constructor(indexed_setter: Callable, pin: int) -> PinSetter:
     return set_pin_level
 
 
-def pin_getter_constructor(indexed_getter: Callable, pin: int) -> PinGetter:
+def pin_getter_constructor(indexed_getter: IndexedGetter, pin: int) -> PinGetter:
     """
 
     Args:
@@ -306,7 +304,7 @@ def pin_getter_constructor(indexed_getter: Callable, pin: int) -> PinGetter:
     return get_pin_level
 
 
-def pin_mode_setter_constructor(indexed_mode_setter: Callable, pin: int) -> PinModeSetter:
+def pin_mode_setter_constructor(indexed_mode_setter: IndexedSetter, pin: int) -> PinModeSetter:
     """
 
     Args:
@@ -324,7 +322,7 @@ def pin_mode_setter_constructor(indexed_mode_setter: Callable, pin: int) -> PinM
     return set_pin_mode
 
 
-def multiple_pin_mode_setter_constructor(indexed_mode_setter: Callable, pins: Sequence[int]) -> PinModeSetter:
+def multiple_pin_mode_setter_constructor(indexed_mode_setter: IndexedSetter, pins: Sequence[int]) -> PinModeSetter:
     """
 
     Args:

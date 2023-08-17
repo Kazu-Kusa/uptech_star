@@ -1,13 +1,13 @@
 import sys
 from abc import ABCMeta, abstractmethod
 from ctypes import c_uint16
-from typing import List, Dict, Callable, Optional, Tuple
+from typing import List, Dict, Callable, Optional, Tuple, final
 
 from .onboardsensors import \
     PinSetter, pin_setter_constructor, \
     PinGetter, pin_getter_constructor, \
     PinModeSetter, pin_mode_setter_constructor, \
-    HIGH, LOW, OUTPUT, INPUT, multiple_pin_mode_setter_constructor
+    HIGH, LOW, OUTPUT, INPUT, multiple_pin_mode_setter_constructor, IndexedGetter, IndexedSetter
 from .serial_helper import SerialHelper, serial_kwargs_factory
 from .timer import delay_us_constructor
 
@@ -43,53 +43,141 @@ Hex = int | bytes
 
 class I2CBase(metaclass=ABCMeta):
 
+    def __init__(self, self_address: Optional[int] = None):
+        self._target_address: Optional[int] = 0xFF
+        self._self_address: Optional[int] = self_address
+        self._is_transmitting: bool = False
+
+        self._received_data_handler: Optional[Callable] = None
+        self._sent_data_handler: Optional[Callable] = None
+        self._read_buffer = bytearray()
+        self._write_buffer = bytearray()
+
     @abstractmethod
     def begin(self, slave_address: int):
-        raise NotImplementedError
+        """
+        Initialize I2C communication and set the slave address.
+
+        Args:
+            slave_address: The slave address to communicate with.
+
+        Returns:
+            None
+        """
 
     @abstractmethod
     def end(self):
-        raise NotImplementedError
+        """
+        Set SCL low and SDA low.
+        End the I2C communication.
+
+        Returns:
+            None
+        """
 
     @abstractmethod
     def requestFrom(self, target_address: int, request_data_size: int, stop: bool,
                     register_address: Optional[int] = None):
-        raise NotImplementedError
+        """
+        Read a specified number of data from the target address.
 
-    @abstractmethod
+        Args:
+            target_address: The target address to read from.
+            request_data_size: The number of data to read.
+            stop: Whether to send a stop signal after reading.
+            register_address: The register address, optional.
+
+        Returns:
+            None
+        """
+
+    @final
     def beginTransmission(self, target_address: int):
-        raise NotImplementedError
+        """
+        Start sending data to the target address.
+
+        Args:
+            target_address: The target address to send data to.
+
+        Returns:
+            None
+        """
+        self._target_address = target_address
+        self._is_transmitting = True
 
     @abstractmethod
     def endTransmission(self, stop: bool):
-        raise NotImplementedError
+        """
+        End sending data to the target address.
+
+        Args:
+            stop: Whether to send a stop signal after sending data.
+
+        Returns:
+            None
+        """
 
     @abstractmethod
     def write(self, data):
-        raise NotImplementedError
+        """
+        Write data to the target address.
 
-    @abstractmethod
+        Args:
+            data: The data to write.
+
+        Returns:
+            None
+        """
+
+    @final
+    @property
     def available(self) -> int:
         """
-        get the available data in the read buffer
-        Returns: the quantity of readable data in the read buffer
+        Get the available data in the read buffer.
 
+        Returns:
+            The quantity of readable data in the read buffer.
         """
-        raise NotImplementedError
+        return self._read_buffer.__len__()
 
-    @abstractmethod
+    @final
     def read_byte(self):
-        raise NotImplementedError
+        """
+        Read a byte of data from the read buffer.
 
-    @abstractmethod
+        Returns:
+            The read byte of data.
+        """
+        return self._read_buffer.pop(0)
+
+    @final
     def onReceive(self, handler: Callable):
-        raise NotImplementedError
+        """
+        Set the callback function for receiving data.
 
-    @abstractmethod
+        Args:
+            handler: The callback function for receiving data.
+
+        Returns:
+            None
+        """
+        self._received_data_handler = handler
+
+    @final
     def onRequest(self, handler: Callable):
-        raise NotImplementedError
+        """
+        Set the callback function for requesting data.
+
+        Args:
+            handler: The callback function for requesting data.
+
+        Returns:
+            None
+        """
+        self._sent_data_handler = handler
 
 
+# region CH341
 class Ch341aApplication(object, metaclass=ABCMeta):
     def __init__(self, port: str, serial_config: Dict):
         self._serial: SerialHelper = SerialHelper(port=port, serial_config=serial_config)
@@ -227,6 +315,9 @@ class SensorsSerialExpansion(I2CReader, metaclass=ABCMeta):
         return [self.get_adc_data(i) for i in range(self.ADC_CHANNEL_COUNT)]
 
 
+# endregion
+
+
 class SimulateI2C(I2CBase):
     """
     # 假设要传输的数据为 0b10101010
@@ -251,30 +342,17 @@ class SimulateI2C(I2CBase):
         400: 2
     }
 
+    @final
     def end(self):
-        """
-        set channel to low and end the i2c communication
-        Returns:
-
-        """
         self.set_ALL_PINS_MODE(OUTPUT)
         self.set_SDA_PIN(LOW)
         self.set_SCL_PIN(LOW)
         self.set_ALL_PINS_MODE(INPUT)
 
-    def available(self) -> int:
-        return self._read_buffer.__len__()
-
     def write(self, data: bytearray | bytes):
         for byte in data:
             self._write_byte(byte)
             self.delay()
-
-    def onRequest(self, handler: Callable):
-        self._sent_data_handler = handler
-
-    def onReceive(self, handler: Callable):
-        self._received_data_handler = handler
 
     def requestFrom(self, target_address: int, request_data_size: int, stop: bool, register_address=None):
 
@@ -304,9 +382,9 @@ class SimulateI2C(I2CBase):
             self.delay()
 
     def _start(self):
-        self.set_SDA_PIN(HIGH)  # SDA线高电平，这里就是配置了对应的GPIO管脚输出高电平而已
+        self.set_SDA_PIN(HIGH)
         self.set_SCL_PIN(HIGH)
-        self.delay()  # 需要保证你的SDA线高电平一段时间，如下面SDA = 0，这不延时的话，直接变成0
+        self.delay()
         self.set_SDA_PIN(LOW)
         self.delay()
         self.set_SCL_PIN(LOW)
@@ -319,38 +397,25 @@ class SimulateI2C(I2CBase):
         self.set_SDA_PIN(HIGH)
 
     def _nack(self):
-        self.set_SDA_PIN(HIGH)  # cpu驱动SDA = 1
+        self.set_SDA_PIN(HIGH)
         self.delay()
-        self.set_SCL_PIN(HIGH)  # 产生一个高电平时钟
+        self.set_SCL_PIN(HIGH)
         self.delay()
         self.set_SCL_PIN(LOW)
         self.delay()
 
     def _ack(self):
-        self.set_SDA_PIN(LOW)  # cpu驱动SDA = 0
+        self.set_SDA_PIN(LOW)
         self.delay()
-        self.set_SCL_PIN(HIGH)  # 产生一个高电平时钟
+        self.set_SCL_PIN(HIGH)
         self.delay()
         self.set_SCL_PIN(LOW)
         self.delay()
-        self.set_SDA_PIN(HIGH)  # cpu释放总线
-
-    def read_byte(self):
-        """
-        be sure that the SDA is input output
-        Returns: 8-bit data
-
-        """
-        return self._read_buffer.pop(0)
+        self.set_SDA_PIN(HIGH)
 
     def endTransmission(self, stop: bool):
-        if stop:
-            self.end()
-        else:
-            self._start()
-
-    def beginTransmission(self, target_address: int):
-        self._target_address = target_address
+        # TODO : should check if the data in the send buffer are all sent
+        self.end() if stop else self._start()
 
     def begin(self, slave_address: Optional[int] = None):
         """
@@ -364,15 +429,16 @@ class SimulateI2C(I2CBase):
         self.set_SCL_PIN(HIGH)
         self.set_ALL_PINS_MODE(INPUT)
 
-    def __init__(self, SDA_PIN: int, SCL_PIN: int, speed: int,
-                 indexed_setter: Callable,
-                 indexed_getter: Callable,
-                 indexed_mode_setter: Callable):
+    def __init__(self, SDA_PIN: int, SCL_PIN: int,
+                 speed: int,
+                 indexed_setter: IndexedSetter,
+                 indexed_getter: IndexedGetter,
+                 indexed_mode_setter: IndexedSetter,
+                 self_address: Optional[int] = None):
         if speed not in self.__speed_delay_table:
             raise IndexError(f'speed must in {list(self.__speed_delay_table.keys())}')
+        super().__init__(self_address)
 
-        self._target_address: int = 0xFF
-        self._self_address: Optional[int] = None
         self._speed = speed
         self._indexed_setter = indexed_setter
         self._indexed_getter = indexed_getter
@@ -389,10 +455,6 @@ class SimulateI2C(I2CBase):
         self.delay = delay_us_constructor(speed)
 
         self.begin()
-        self._received_data_handler: Optional[Callable] = None
-        self._sent_data_handler: Optional[Callable] = None
-        self._read_buffer = bytearray()
-        self._write_buffer = bytearray()
 
 
 def join_bytes_to_uint16(byte_array: bytearray) -> int:
