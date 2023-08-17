@@ -1,7 +1,7 @@
 import sys
 from abc import ABCMeta, abstractmethod
 from ctypes import c_uint16
-from typing import List, Dict, Callable, Optional, Tuple
+from typing import List, Dict, Callable, Optional, Tuple, final
 
 from .onboardsensors import \
     PinSetter, pin_setter_constructor, \
@@ -43,6 +43,12 @@ Hex = int | bytes
 
 class I2CBase(metaclass=ABCMeta):
 
+    def __init__(self):
+        self._received_data_handler: Optional[Callable] = None
+        self._sent_data_handler: Optional[Callable] = None
+        self._read_buffer = bytearray()
+        self._write_buffer = bytearray()
+
     @abstractmethod
     def begin(self, slave_address: int):
         raise NotImplementedError
@@ -68,26 +74,27 @@ class I2CBase(metaclass=ABCMeta):
     def write(self, data):
         raise NotImplementedError
 
-    @abstractmethod
+    @final
+    @property
     def available(self) -> int:
         """
         get the available data in the read buffer
         Returns: the quantity of readable data in the read buffer
 
         """
-        raise NotImplementedError
+        return self._read_buffer.__len__()
 
-    @abstractmethod
+    @final
     def read_byte(self):
-        raise NotImplementedError
+        return self._read_buffer.pop(0)
 
-    @abstractmethod
+    @final
     def onReceive(self, handler: Callable):
-        raise NotImplementedError
+        self._received_data_handler = handler
 
-    @abstractmethod
+    @final
     def onRequest(self, handler: Callable):
-        raise NotImplementedError
+        self._sent_data_handler = handler
 
 
 class Ch341aApplication(object, metaclass=ABCMeta):
@@ -262,19 +269,10 @@ class SimulateI2C(I2CBase):
         self.set_SCL_PIN(LOW)
         self.set_ALL_PINS_MODE(INPUT)
 
-    def available(self) -> int:
-        return self._read_buffer.__len__()
-
     def write(self, data: bytearray | bytes):
         for byte in data:
             self._write_byte(byte)
             self.delay()
-
-    def onRequest(self, handler: Callable):
-        self._sent_data_handler = handler
-
-    def onReceive(self, handler: Callable):
-        self._received_data_handler = handler
 
     def requestFrom(self, target_address: int, request_data_size: int, stop: bool, register_address=None):
 
@@ -335,14 +333,6 @@ class SimulateI2C(I2CBase):
         self.delay()
         self.set_SDA_PIN(HIGH)  # cpu释放总线
 
-    def read_byte(self):
-        """
-        be sure that the SDA is input output
-        Returns: 8-bit data
-
-        """
-        return self._read_buffer.pop(0)
-
     def endTransmission(self, stop: bool):
         if stop:
             self.end()
@@ -364,12 +354,11 @@ class SimulateI2C(I2CBase):
         self.set_SCL_PIN(HIGH)
         self.set_ALL_PINS_MODE(INPUT)
 
-    def __init__(self, SDA_PIN: int, SCL_PIN: int, speed: int,
-                 indexed_setter: Callable,
-                 indexed_getter: Callable,
+    def __init__(self, SDA_PIN: int, SCL_PIN: int, speed: int, indexed_setter: Callable, indexed_getter: Callable,
                  indexed_mode_setter: Callable):
         if speed not in self.__speed_delay_table:
             raise IndexError(f'speed must in {list(self.__speed_delay_table.keys())}')
+        super().__init__()
 
         self._target_address: int = 0xFF
         self._self_address: Optional[int] = None
@@ -389,10 +378,6 @@ class SimulateI2C(I2CBase):
         self.delay = delay_us_constructor(speed)
 
         self.begin()
-        self._received_data_handler: Optional[Callable] = None
-        self._sent_data_handler: Optional[Callable] = None
-        self._read_buffer = bytearray()
-        self._write_buffer = bytearray()
 
 
 def join_bytes_to_uint16(byte_array: bytearray) -> int:
