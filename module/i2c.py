@@ -1,4 +1,4 @@
-import sys
+#     import sys
 from abc import ABCMeta, abstractmethod
 from ctypes import c_uint16
 from typing import List, Dict, Callable, Optional, Tuple, final
@@ -382,9 +382,9 @@ class SimulateI2C(I2CBase):
             self.delay()
 
     def _start(self):
-        self.set_SDA_PIN(HIGH)  # SDA线高电平，这里就是配置了对应的GPIO管脚输出高电平而已
+        self.set_SDA_PIN(HIGH)
         self.set_SCL_PIN(HIGH)
-        self.delay()  # 需要保证你的SDA线高电平一段时间，如下面SDA = 0，这不延时的话，直接变成0
+        self.delay()
         self.set_SDA_PIN(LOW)
         self.delay()
         self.set_SCL_PIN(LOW)
@@ -397,24 +397,24 @@ class SimulateI2C(I2CBase):
         self.set_SDA_PIN(HIGH)
 
     def _nack(self):
-        self.set_SDA_PIN(HIGH)  # cpu驱动SDA = 1
+        self.set_SDA_PIN(HIGH)
         self.delay()
-        self.set_SCL_PIN(HIGH)  # 产生一个高电平时钟
+        self.set_SCL_PIN(HIGH)
         self.delay()
         self.set_SCL_PIN(LOW)
         self.delay()
 
     def _ack(self):
-        self.set_SDA_PIN(LOW)  # cpu驱动SDA = 0
+        self.set_SDA_PIN(LOW)
         self.delay()
-        self.set_SCL_PIN(HIGH)  # 产生一个高电平时钟
+        self.set_SCL_PIN(HIGH)
         self.delay()
         self.set_SCL_PIN(LOW)
         self.delay()
-        self.set_SDA_PIN(HIGH)  # cpu释放总线
+        self.set_SDA_PIN(HIGH)
 
     def endTransmission(self, stop: bool):
-
+        # TODO : should check if the data in the send buffer are all sent
         self.end() if stop else self._start()
 
     def begin(self, slave_address: Optional[int] = None):
