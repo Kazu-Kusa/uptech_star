@@ -66,17 +66,13 @@ class WindowPredictorBase(ABC):
 class Math(WindowPredictorBase):
 
     def predict(self, data: List[Union[float, int]]) -> List[Union[float, int]]:
-        def start_math():
-            # TODO data要更改为数据更新器
-            self.window.append([random.randint(0, 1000) for i in range(6)])
-            self.window.pop(0)
-            if self.window[0]:
-                return
-            else:
-                start_math()
+
+        self.window.append(data)
+        self.window.pop(0)
+        if not self.window[0]:
+            return data
 
         def math_get_y():
-            start_math()
             return_a_b = []
             # 下列代码是将windo的列表转置
             list_y = [[self.window[j][i] for j in range(len(self.window))] for i in range(len(self.window[0]))]
