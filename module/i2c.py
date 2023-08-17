@@ -46,7 +46,7 @@ class I2CBase(metaclass=ABCMeta):
     def __init__(self, self_address: Optional[int] = None):
         self._target_address: Optional[int] = 0xFF
         self._self_address: Optional[int] = self_address
-        self._is_transmitting: bool = False
+        self._is_idle: bool = True
 
         self._received_data_handler: Optional[Callable] = None
         self._sent_data_handler: Optional[Callable] = None
@@ -103,7 +103,7 @@ class I2CBase(metaclass=ABCMeta):
             None
         """
         self._target_address = target_address
-        self._is_transmitting = True
+        self._is_idle = False
 
     @abstractmethod
     def endTransmission(self, stop: bool):
@@ -356,22 +356,27 @@ class SimulateI2C(I2CBase):
 
     def requestFrom(self, target_address: int, request_data_size: int, stop: bool, register_address=None):
 
-        self._write_byte(target_address)
+        self.set_ALL_PINS_MODE(OUTPUT)
+        self._write_byte((target_address << 1) + 1)
         self._write_byte(register_address) if register_address else None
 
         def receive_byte() -> int:
-            received_data = 0x0
+            received_data = 0xFF
             for _ in range(8):
                 while not self.get_SCL_PIN():
-                    pass
+                    _ += 1
                 received_data = (received_data << 1) | self.get_SDA_PIN()
             return received_data
 
         for _ in range(request_data_size):
+            self.set_ALL_PINS_MODE(INPUT)
             self._read_buffer.append(receive_byte())
+            self.set_ALL_PINS_MODE(OUTPUT)
             self._ack()
 
     def _write_byte(self, data):
+        if self._is_idle:
+            raise ConnectionError('I2C is not transmitting')
         for _ in range(8):
             self.set_SDA_PIN(data & 0x80)
             self.set_SCL_PIN(HIGH)
