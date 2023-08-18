@@ -22,7 +22,7 @@ BreakActions = Tuple['ActionFrame', ...]
 class ActionFrame(object):
     _controller: CloseLoopController = CloseLoopController(motor_ids=MOTOR_IDS, motor_dirs=MOTOR_DIRS,
                                                            debug=DRIVER_DEBUG_MODE, port=DRIVER_SERIAL_PORT)
-    _instance_cache: Dict[Tuple, object] = {}
+    _instance_cache: Dict[Tuple, 'ActionFrame'] = {}
     _PRE_COMPILE_CMD: bool = PRE_COMPILE_CMD
     # TODO: since the PRE_COMPILE_CMD is not stored inside of the instance so we should clean the cache on it changed
     CACHE_FILE_NAME: str = 'ActionFrame_cache'
@@ -61,7 +61,7 @@ class ActionFrame(object):
             None
 
         """
-        temp: Dict[Tuple, object] = {}
+        temp: Dict[Tuple, 'ActionFrame'] = {}
         if filter_breaker:
             warnings.warn('\nFiltering the breaker action out of cache before saving it\n'
                           'all deletions will be done on the DEEPCOPY of instance table')
@@ -408,7 +408,7 @@ class ActionPlayer(object):
                     # the break action will be added to the ActionFrames queue at the beginning of the queue
                     self.insert_sequence(break_action_data[0])
 
-    def insert_sequence(self, actions: Sequence[ActionFrame, ...]):
+    def insert_sequence(self, actions: Sequence[ActionFrame]):
         """
         insert a sequence of ActionFrames to the ActionFrames queue at the
         beginning of the queue
