@@ -109,7 +109,7 @@ class I2CBase(metaclass=ABCMeta):
         return self._read_buffer.__len__()
 
     @final
-    def read_byte(self):
+    def read_byte(self) -> int:
         """
         Read a byte of data from the read buffer.
 
@@ -294,8 +294,8 @@ class SimulateI2C(I2CBase):
         self.begin()
 
 
-def join_bytes_to_uint16(byte_array: bytearray) -> int:
-    return int((byte_array[0] << 8) | byte_array[1])
+def join_bytes_to_uint16(byte_high, byte_low) -> int:
+    return int((byte_high << 8) | byte_low)
 
 
 class SensorI2CExpansion(SimulateI2C):
@@ -317,9 +317,15 @@ class SensorI2CExpansion(SimulateI2C):
                          indexed_setter=indexed_setter,
                          indexed_getter=indexed_getter,
                          indexed_mode_setter=indexed_mode_setter)
+        self._expansion_device_addr = expansion_device_addr
+        self._register_addr = register_addr
+        self.begin()
 
     def get_sensor_adc(self, index: int) -> int:
-        raise NotImplementedError
+        self.beginTransmission(self._expansion_device_addr)
+        self.requestFrom(self._expansion_device_addr, 2, True, self._register_addr + index * 2)
+        self.endTransmission(stop=True)
+        return join_bytes_to_uint16(self.read_byte(), self.read_byte())
 
     def get_all_sensor(self) -> Tuple[int, ...]:
         raise NotImplementedError
