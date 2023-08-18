@@ -180,11 +180,14 @@ class SimulateI2C(I2CBase):
         for byte in data:
             self._write_byte(byte)
             self.delay()
+            # TODO should have a ack/nack receiver
 
     def requestFrom(self, target_address: int, request_data_size: int, stop: bool, register_address=None):
 
         self.set_ALL_PINS_MODE(OUTPUT)
+        self._start()
         self._write_byte((target_address << 1) + 1)
+        self.delay()
         self._write_byte(register_address) if register_address else None
 
         def receive_byte() -> int:
@@ -200,6 +203,8 @@ class SimulateI2C(I2CBase):
             self._read_buffer.append(receive_byte())
             self.set_ALL_PINS_MODE(OUTPUT)
             self._ack()
+
+        self._stop() if stop else None
 
     def _write_byte(self, data):
         if self._is_idle:
@@ -247,7 +252,7 @@ class SimulateI2C(I2CBase):
 
     def endTransmission(self, stop: bool):
         # TODO : should check if the data in the send buffer are all sent
-        self.end() if stop else self._start()
+        self._stop() if stop else self._start()
 
     def begin(self, slave_address: Optional[int] = None):
         """
