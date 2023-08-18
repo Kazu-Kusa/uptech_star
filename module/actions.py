@@ -53,8 +53,13 @@ class ActionFrame(object):
     @classmethod
     def save_cache(cls, filter_breaker: bool = True) -> None:
         """
-        save the action frame cache to the file,using dill
-        :return: None
+        Save the action frame cache to class variable, using dill
+        Args:
+            filter_breaker: whether to filter out the breaker action
+
+        Returns:
+            None
+
         """
         temp: Dict[Tuple, object] = {}
         if filter_breaker:
