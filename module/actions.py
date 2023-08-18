@@ -1,5 +1,7 @@
 import json
 import time
+import warnings
+from copy import deepcopy
 from functools import singledispatch
 from typing import Tuple, Union, Optional, List, Dict, ByteString, Sequence
 
@@ -17,14 +19,15 @@ from ..constant import HANG_TIME_MAX_ERROR
 BreakActions = Tuple['ActionFrame', ...]
 
 
-class ActionFrame:
+class ActionFrame(object):
     _controller: CloseLoopController = CloseLoopController(motor_ids=MOTOR_IDS, motor_dirs=MOTOR_DIRS,
                                                            debug=DRIVER_DEBUG_MODE, port=DRIVER_SERIAL_PORT)
-    _instance_cache: Dict = {}
+    _instance_cache: Dict[Tuple, object] = {}
     _PRE_COMPILE_CMD: bool = PRE_COMPILE_CMD
     # TODO: since the PRE_COMPILE_CMD is not stored inside of the instance so we should clean the cache on it changed
     CACHE_FILE_NAME: str = 'ActionFrame_cache'
     _CACHE_FILE_PATH = f"{CACHE_DIR_PATH}\\{CACHE_FILE_NAME}"
+    __is_break_action_verified_flag: str = 'is_break_action'
     print(f'Action Frame caches at [{_CACHE_FILE_PATH}]')
 
     @classmethod
@@ -48,17 +51,27 @@ class ActionFrame:
             pass
 
     @classmethod
-    def save_cache(cls) -> None:
+    def save_cache(cls, filter_breaker: bool = True) -> None:
         """
         save the action frame cache to the file,using dill
         :return: None
         """
-        print(f'##Saving Action Frame instance cache: \n'
-              f'\tCache Size: {len(cls._instance_cache.items())}')
-        # TODO: should add a cache rule, filter out the cache that contains breaker,
-        #  since the serialized breaker breaks everything
+        temp: Dict[Tuple, object] = {}
+        if filter_breaker:
+            warnings.warn('\nFiltering the breaker action out of cache before saving it\n'
+                          'all deletions will be done on the DEEPCOPY of instance table')
+            temp = deepcopy(cls._instance_cache)
+            size_of_cache = len(temp.keys())
+            for key in temp.items():
+                # remove  frames with breaker flag
+                if hasattr(key[1], cls.__is_break_action_verified_flag):
+                    del temp[key[0]]
+            warnings.warn(f'\nFiltered out {size_of_cache - len(temp.keys())} action frames from cache\n\n')
+
+        warnings.warn(f'\n##Saving Action Frame instance cache: \n'
+                      f'\tCache Size: {len((temp if filter_breaker else cls._instance_cache).items())}')
         with open(cls._CACHE_FILE_PATH, "wb") as file:
-            dump(cls._instance_cache, file)
+            dump((temp if filter_breaker else cls._instance_cache), file)
 
     def __new__(cls, *args, **kwargs):
         """
@@ -129,6 +142,11 @@ class ActionFrame:
         self._break_action: BreakActions = break_action
         self._is_override_action: bool = is_override_action
         self._hang_time: float = hang_time
+
+        if breaker_func:
+            # inject the flag to verify if this action is an action with break
+            # which will be used in the caching section, because the breaker_func usually can't be cached
+            setattr(self, self.__is_break_action_verified_flag, None)
 
     def action_start(self) -> Tuple[Optional[BreakActions], bool]:
         """
