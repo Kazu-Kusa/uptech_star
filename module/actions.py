@@ -72,11 +72,11 @@ class ActionFrame(object):
                 if hasattr(key[1], cls.__is_break_action_verified_flag):
                     del temp[key[0]]
             warnings.warn(f'\nFiltered out {size_of_cache - len(temp.keys())} action frames from cache\n\n')
-
+        save_data = (temp if filter_breaker else cls._instance_cache)
         warnings.warn(f'\n##Saving Action Frame instance cache: \n'
-                      f'\tCache Size: {len((temp if filter_breaker else cls._instance_cache).items())}')
+                      f'\tCache Size: {len(save_data.keys())}')
         with open(cls._CACHE_FILE_PATH, "wb") as file:
-            dump((temp if filter_breaker else cls._instance_cache), file)
+            dump(save_data, file)
 
     def __new__(cls, *args, **kwargs):
         """
