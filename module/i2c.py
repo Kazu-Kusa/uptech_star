@@ -299,8 +299,17 @@ def join_bytes_to_uint16(byte_array: bytearray) -> int:
 
 
 class SensorI2CExpansion(SimulateI2C):
+    """
+    this class is specifically for emakefun i2c expansion board,
 
-    def __init__(self, SDA_PIN: int, SCL_PIN: int, speed: int,
+    only exposed the adc related api
+
+    the expansion board has a default address of 0x24
+
+    the default register address is 0x10
+    """
+
+    def __init__(self, expansion_device_addr: int, register_addr: int, SDA_PIN: int, SCL_PIN: int, speed: int,
                  indexed_setter: Callable,
                  indexed_getter: Callable,
                  indexed_mode_setter: Callable):
