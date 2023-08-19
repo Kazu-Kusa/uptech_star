@@ -9,6 +9,8 @@ DEFAULT_REACTION = tuple()
 
 ComplexAction = Sequence[Optional[ActionFrame]]
 ActionFactory = Callable[[Any, ...], ComplexAction]
+FlexActionFactory = Callable[[int], ComplexAction]
+
 Reaction = Union[ComplexAction, ActionFactory, Any]
 
 
