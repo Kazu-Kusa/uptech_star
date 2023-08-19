@@ -1,5 +1,7 @@
 import json
 import time
+import warnings
+from copy import deepcopy
 from functools import singledispatch
 from typing import Tuple, Union, Optional, List, Dict, ByteString, Sequence
 
@@ -17,14 +19,15 @@ from ..constant import HANG_TIME_MAX_ERROR
 BreakActions = Tuple['ActionFrame', ...]
 
 
-class ActionFrame:
+class ActionFrame(object):
     _controller: CloseLoopController = CloseLoopController(motor_ids=MOTOR_IDS, motor_dirs=MOTOR_DIRS,
                                                            debug=DRIVER_DEBUG_MODE, port=DRIVER_SERIAL_PORT)
-    _instance_cache: Dict = {}
+    _instance_cache: Dict[Tuple, 'ActionFrame'] = {}
     _PRE_COMPILE_CMD: bool = PRE_COMPILE_CMD
     # TODO: since the PRE_COMPILE_CMD is not stored inside of the instance so we should clean the cache on it changed
     CACHE_FILE_NAME: str = 'ActionFrame_cache'
     _CACHE_FILE_PATH = f"{CACHE_DIR_PATH}\\{CACHE_FILE_NAME}"
+    __is_break_action_verified_flag: str = 'is_break_action'
     print(f'Action Frame caches at [{_CACHE_FILE_PATH}]')
 
     @classmethod
@@ -48,16 +51,32 @@ class ActionFrame:
             pass
 
     @classmethod
-    def save_cache(cls) -> None:
+    def save_cache(cls, filter_breaker: bool = True) -> None:
         """
-        save the action frame cache to the file,using dill
-        :return: None
-        """
-        print(f'##Saving Action Frame instance cache: \n'
-              f'\tCache Size: {len(cls._instance_cache.items())}')
+        Save the action frame cache to class variable, using dill
+        Args:
+            filter_breaker: whether to filter out the breaker action
 
+        Returns:
+            None
+
+        """
+        temp: Dict[Tuple, 'ActionFrame'] = {}
+        if filter_breaker:
+            warnings.warn('\nFiltering the breaker action out of cache before saving it\n'
+                          'all deletions will be done on the DEEPCOPY of instance table')
+            temp = deepcopy(cls._instance_cache)
+            size_of_cache = len(temp.keys())
+            for key in temp.items():
+                # remove  frames with breaker flag
+                if hasattr(key[1], cls.__is_break_action_verified_flag):
+                    del temp[key[0]]
+            warnings.warn(f'\nFiltered out {size_of_cache - len(temp.keys())} action frames from cache\n\n')
+        save_data = (temp if filter_breaker else cls._instance_cache)
+        warnings.warn(f'\n##Saving Action Frame instance cache: \n'
+                      f'\tCache Size: {len(save_data.keys())}')
         with open(cls._CACHE_FILE_PATH, "wb") as file:
-            dump(cls._instance_cache, file)
+            dump(save_data, file)
 
     def __new__(cls, *args, **kwargs):
         """
@@ -84,6 +103,7 @@ class ActionFrame:
                  action_duration: int = 0,
                  breaker_func: Optional[Watcher] = None,
                  break_action: Optional[BreakActions] = None,
+                 is_override_action: bool = True,
                  hang_time: float = 0.):
         """
         The minimal action unit that could be customized and glue together to be a chain movement,
@@ -106,9 +126,9 @@ class ActionFrame:
             it should override all frames that haven't been executed, this logic is implemented in the ActionPlayer
         :param hang_time: the time during which the serial channel will be hanging up,to save the cpu time. Unit is s.
         """
-        if break_action:
+        if break_action and not bool(breaker_func):
             # breaker_func can not be None as the break action is specified
-            assert bool(breaker_func), "breaker_func can not be None"
+            raise ValueError("breaker_func can not be None as the break action is specified")
         if self._PRE_COMPILE_CMD:
             # pre-compile the cmd to save the time in string encoding in the future
             if is_list_all_zero(action_speed):
@@ -125,9 +145,15 @@ class ActionFrame:
         self._action_duration: int = action_duration
         self._breaker_func: Watcher = breaker_func
         self._break_action: BreakActions = break_action
+        self._is_override_action: bool = is_override_action
         self._hang_time: float = hang_time
 
-    def action_start(self) -> Optional[BreakActions]:
+        if breaker_func:
+            # inject the flag to verify if this action is an action with break
+            # which will be used in the caching section, because the breaker_func usually can't be cached
+            setattr(self, self.__is_break_action_verified_flag, None)
+
+    def action_start(self) -> Tuple[Optional[BreakActions], bool]:
         """
         execute the ActionFrame
         :return: the breaker action(s),the detailed implementation is at the ActionPlayer
@@ -141,7 +167,7 @@ class ActionFrame:
         if delay_ms(milliseconds=self._action_duration, breaker_func=self._breaker_func) and self._action_duration:
             # if the breaker is activated, will return the break action with None check, which will be executed in
             # the ActionPlayer
-            return self._break_action
+            return self._break_action, self._is_override_action
 
 
 def load_chain_actions_from_json(file_path: str, logging: bool = True) -> Dict[str, List]:
@@ -247,6 +273,7 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
                     action_duration_multiplier: float = 0,
                     breaker_func: Optional[Watcher] = None,
                     break_action: Optional[BreakActions] = None,
+                    is_override_action: bool = True,
                     hang_during_action: Optional[bool] = None) -> ActionFrame:
     """
     an ActionFrame factory that generates a new action frame, with caching
@@ -284,7 +311,7 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
         # apply the multiplier
         action_duration = multiply(action_duration, action_duration_multiplier)
     return ActionFrame(action_speed=action_speed_list, action_duration=action_duration,
-                       breaker_func=breaker_func, break_action=break_action,
+                       breaker_func=breaker_func, break_action=break_action, is_override_action=is_override_action,
                        hang_time=calc_hang_time(action_duration,
                                                 HANG_TIME_MAX_ERROR)  # will be 0 if breaker is specified
                        if hang_during_action or breaker_func is None else 0)
@@ -317,7 +344,6 @@ class ActionPlayer(object):
     def action_frame_queue(self) -> List[ActionFrame]:
         return self._action_frame_queue
 
-    # TODO: should add a parse check feature
     def append(self, action: ActionFrame, play_now: bool = True) -> None:
         """
         append new ActionFrame to the ActionFrame stack
@@ -370,7 +396,25 @@ class ActionPlayer(object):
         :return: None
         """
         while self._action_frame_queue:
-            # if action exit because breaker then it should return the break action or None
-            break_action: Optional[BreakActions] = self._action_frame_queue.pop(0).action_start()
-            # the break action will override those ActionFrames that haven't been executed yet
-            self.override(break_action) if break_action else None
+            # if action exit because breaker then it should return the break action or None and the override flag
+            break_action_data: Tuple[Optional[BreakActions], bool] = self._action_frame_queue.pop(0).action_start()
+
+            if break_action_data[0]:
+                if break_action_data[1]:
+                    # the break action will override those ActionFrames that haven't been executed yet
+                    self.override(break_action_data[0])
+                else:
+                    # the break action will not override those ActionFrames that haven't been executed
+                    # the break action will be added to the ActionFrames queue at the beginning of the queue
+                    self.insert_sequence(break_action_data[0])
+
+    def insert_sequence(self, actions: Sequence[ActionFrame]):
+        """
+        insert a sequence of ActionFrames to the ActionFrames queue at the
+        beginning of the queue
+        :param actions: Sequence of ActionFrames to insert
+        :return:
+        """
+        for action_frame in actions[::-1]:
+            # reverse the sequence of ActionFrames to insert them in the correct order
+            self._action_frame_queue.insert(0, action_frame)
