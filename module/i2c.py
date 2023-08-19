@@ -10,6 +10,10 @@ from .timer import delay_us_constructor
 
 
 class I2CBase(metaclass=ABCMeta):
+    """
+    this class is a base class for I2C communication,
+    the syntax is similar to the Arduino I2C library
+    """
 
     def __init__(self, self_address: Optional[int] = None):
         self._target_address: Optional[int] = 0xFF
@@ -191,6 +195,11 @@ class SimulateI2C(I2CBase):
         self._write_byte(register_address) if register_address else None
 
         def receive_byte() -> int:
+            """
+            Receive a byte from the slave device.
+            Returns: the 8bit byte received from the slave device
+
+            """
             received_data = 0xFF
             for _ in range(8):
                 while not self.get_SCL_PIN():
@@ -215,7 +224,7 @@ class SimulateI2C(I2CBase):
             self.delay()
             self.set_SCL_PIN(LOW)
             self.set_SDA_PIN(LOW)
-            data = data << 1
+            data <<= 1
             self.delay()
 
     def _start(self):
@@ -295,12 +304,21 @@ class SimulateI2C(I2CBase):
 
 
 def join_bytes_to_uint16(byte_high, byte_low) -> int:
+    """
+
+    Args:
+        byte_high:
+        byte_low:
+
+    Returns:
+
+    """
     return int((byte_high << 8) | byte_low)
 
 
 class SensorI2CExpansion(SimulateI2C):
     """
-    this class is specifically for emakefun i2c expansion board,
+    this class is specifically for emakefun i2c expansion board.
 
     only exposed the adc related api
 
@@ -313,6 +331,18 @@ class SensorI2CExpansion(SimulateI2C):
                  indexed_setter: Callable,
                  indexed_getter: Callable,
                  indexed_mode_setter: Callable):
+        """
+
+        Args:
+            expansion_device_addr: the address of the expansion board
+            register_addr: the address of the register
+            SDA_PIN: the pin of the sda pin
+            SCL_PIN: the pin of the scl pin
+            speed: the speed of the i2c bus
+            indexed_setter: the setter that will be called to set the pin level,
+            indexed_getter: the getter that will be called to get the pin level,
+            indexed_mode_setter: the mode setter that will be called to set the pin mode,input or output
+        """
         super().__init__(SDA_PIN=SDA_PIN, SCL_PIN=SCL_PIN, speed=speed,
                          indexed_setter=indexed_setter,
                          indexed_getter=indexed_getter,
@@ -322,10 +352,23 @@ class SensorI2CExpansion(SimulateI2C):
         self.begin()
 
     def get_sensor_adc(self, index: int) -> int:
+        """
+
+        Args:
+            index: the index of the sensor
+
+        Returns: the adc value of the sensor, resolution is 1024
+
+        """
         self.beginTransmission(self._expansion_device_addr)
         self.requestFrom(self._expansion_device_addr, 2, True, self._register_addr + index * 2)
         self.endTransmission(stop=True)
         return join_bytes_to_uint16(self.read_byte(), self.read_byte())
 
     def get_all_sensor(self) -> Tuple[int, ...]:
+        """
+
+        Returns:
+
+        """
         raise NotImplementedError
