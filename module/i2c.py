@@ -181,18 +181,29 @@ class SimulateI2C(I2CBase):
         self.set_ALL_PINS_MODE(INPUT)
 
     def write(self, data: bytearray | bytes):
+        write_byte = self._write_byte
+        set_mode = self.set_ALL_PINS_MODE
+        delay = self.delay
         for byte in data:
-            self._write_byte(byte)
-            self.delay()
-            # TODO should have a ack/nack receiver
+            set_mode(OUTPUT)
+            write_byte(byte)
+            set_mode(INPUT)
+            delay()
+
+        # TODO should have a ack/nack receiver
 
     def requestFrom(self, target_address: int, request_data_size: int, stop: bool, register_address=None):
 
-        self.set_ALL_PINS_MODE(OUTPUT)
+        set_all_pins_mode = self.set_ALL_PINS_MODE
+        set_all_pins_mode(OUTPUT)
+        ack = self._ack
+        buffer_append = self._read_buffer.append
+        get_scl_pin = self.get_SCL_PIN
+        get_sda_pin = self.get_SDA_PIN
+        delay = self.delay
         self._start()
         self._write_byte((target_address << 1) + 1)
-        self.delay()
-        self._write_byte(register_address) if register_address else None
+        delay()
 
         def receive_byte() -> int:
             """
@@ -200,63 +211,72 @@ class SimulateI2C(I2CBase):
             Returns: the 8bit byte received from the slave device
 
             """
-            received_data = 0xFF
+            received_data = 0x00
             for _ in range(8):
-                while not self.get_SCL_PIN():
+                while not get_scl_pin():
                     _ += 1
-                received_data = (received_data << 1) | self.get_SDA_PIN()
+                received_data = (received_data << 1) | get_sda_pin()
             return received_data
 
+        self._write_byte(register_address) if register_address else None
+        delay()
         for _ in range(request_data_size):
-            self.set_ALL_PINS_MODE(INPUT)
-            self._read_buffer.append(receive_byte())
-            self.set_ALL_PINS_MODE(OUTPUT)
-            self._ack()
+            set_all_pins_mode(INPUT)
+            buffer_append(receive_byte())
+            set_all_pins_mode(OUTPUT)
+            ack()
 
         self._stop() if stop else None
 
     def _write_byte(self, data):
         if self._is_idle:
             raise ConnectionError('I2C is not transmitting')
+        set_sda_pin = self.set_SDA_PIN
+        set_scl_pin = self.set_SCL_PIN
+        delay = self.delay
         for _ in range(8):
-            self.set_SDA_PIN(data & 0x80)
-            self.set_SCL_PIN(HIGH)
-            self.delay()
-            self.set_SCL_PIN(LOW)
-            self.set_SDA_PIN(LOW)
+            set_sda_pin(data & 0x80)
+            set_scl_pin(HIGH)
+            delay()
+            set_scl_pin(LOW)
+            set_sda_pin(LOW)
             data <<= 1
-            self.delay()
+            delay()
 
     def _start(self):
+        delay = self.delay
         self.set_SDA_PIN(HIGH)
         self.set_SCL_PIN(HIGH)
-        self.delay()
+        delay()
         self.set_SDA_PIN(LOW)
-        self.delay()
+        delay()
         self.set_SCL_PIN(LOW)
-        self.delay()
+        delay()
 
     def _stop(self):
+        delay = self.delay
         self.set_SDA_PIN(LOW)
         self.set_SCL_PIN(HIGH)
-        self.delay()
+        delay()
         self.set_SDA_PIN(HIGH)
 
     def _nack(self):
+        delay = self.delay
         self.set_SDA_PIN(HIGH)
-        self.delay()
+        delay()
         self.set_SCL_PIN(HIGH)
-        self.delay()
+        delay()
         self.set_SCL_PIN(LOW)
-        self.delay()
+        delay()
 
     def _ack(self):
+        delay = self.delay
         self.set_SDA_PIN(LOW)
-        self.delay()
+        delay()
         self.set_SCL_PIN(HIGH)
-        self.delay()
+        delay()
         self.set_SCL_PIN(LOW)
-        self.delay()
+        delay()
         self.set_SDA_PIN(HIGH)
 
     def endTransmission(self, stop: bool):
