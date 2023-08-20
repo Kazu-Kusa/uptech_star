@@ -4,7 +4,7 @@ import re
 import warnings
 from abc import ABCMeta, abstractmethod
 from ctypes import CDLL, cdll
-from functools import wraps, singledispatch
+from functools import wraps, singledispatch, lru_cache
 from typing import Optional, List, Dict, final, Any, Sequence, Set
 
 from dill import dump, load
@@ -250,7 +250,9 @@ def format_json_file(file_path):
             return f"Failed to parse JSON: {e}"
 
 
+@lru_cache(maxsize=None)
 def load_lib(libname: str) -> CDLL:
+    """Load a shared library, with caching"""
     lib_file_name = f'{LIB_DIR_PATH}/{libname}'
     print(f'Loading [{lib_file_name}]')
     return cdll.LoadLibrary(lib_file_name)
