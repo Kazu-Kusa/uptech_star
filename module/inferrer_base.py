@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Dict, Any, Hashable, final, Tuple, Optional, Callable, Union, Sequence
+from typing import Dict, Any, Hashable, final, Optional, Callable, Union, Sequence
 
 from .actions import ActionFrame, ActionPlayer
 from .os_tools import Configurable
@@ -9,10 +9,15 @@ DEFAULT_REACTION = tuple()
 
 ComplexAction = Sequence[Optional[ActionFrame]]
 ActionFactory = Callable[[Any, ...], ComplexAction]
+FlexActionFactory = Callable[[int], ComplexAction]
+
 Reaction = Union[ComplexAction, ActionFactory, Any]
 
 
 class InferrerBase(Configurable):
+    """
+    this class provides a way to build a key-value-based robot reacting system
+    """
     __action_table: Dict[Hashable, Reaction] = {}
 
     def __init__(self, sensor_hub: SensorHub, player: ActionPlayer, config_path: str):
@@ -38,10 +43,28 @@ class InferrerBase(Configurable):
 
     @abstractmethod
     def exc_action(self, *args, **kwargs) -> Any:
+        """
+        execute the action in the action table
+        Args:
+            *args:
+            **kwargs:
+
+        Returns:
+
+        """
         raise NotImplementedError
 
     @abstractmethod
-    def infer(self, *args, **kwargs) -> Tuple[Hashable, ...]:
+    def infer(self, *args, **kwargs) -> Hashable:
+        """
+        infer form the environment to get a key, which corresponds to the action in the action table
+        Args:
+            *args:
+            **kwargs:
+
+        Returns:
+
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -56,13 +79,24 @@ class InferrerBase(Configurable):
 
     @final
     def register_action(self, case: Hashable, complex_action: Reaction) -> None:
-        self.__action_table[case] = complex_action
+        """
+        Register the action in the action table
+        Args:
+            case: the case that the action is for
+            complex_action: the action to be registered
 
-    @final
-    def get_action(self, case: Hashable) -> Reaction:
-        return self.__action_table.get(case, DEFAULT_REACTION)
+        Returns:
+            None
+
+        """
+        self.__action_table[case] = complex_action
 
     @final
     @property
     def action_table(self) -> Dict:
+        """
+        action table that contains all case and actions
+        Returns:
+
+        """
         return self.__action_table

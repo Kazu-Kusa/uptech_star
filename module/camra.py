@@ -1,6 +1,6 @@
 import warnings
 from time import time
-from typing import Tuple, Optional, List, Any
+from typing import Tuple, Optional, List
 
 import cv2
 
@@ -53,12 +53,12 @@ class Camera(object):
         self._frame_center = (int(width / 2), int(height / 2))
 
     def set_cam_resolution(self, new_width: Optional[int] = None, new_height: Optional[int] = None,
-                           multiplier: Optional[float] = None) -> None:
+                           resolution_multiplier: Optional[float] = None) -> None:
         assert (new_width is not None and new_height is not None) or (
-                multiplier is not None), 'Please specify the resolution params'
-        if multiplier:
-            self._camera.set(cv2.CAP_PROP_FRAME_WIDTH, int(multiplier * self._origin_width))
-            self._camera.set(cv2.CAP_PROP_FRAME_HEIGHT, int(multiplier * self._origin_height))
+                resolution_multiplier is not None), 'Please specify the resolution params'
+        if resolution_multiplier:
+            self._camera.set(cv2.CAP_PROP_FRAME_WIDTH, int(resolution_multiplier * self._origin_width))
+            self._camera.set(cv2.CAP_PROP_FRAME_HEIGHT, int(resolution_multiplier * self._origin_height))
         else:
             self._camera.set(cv2.CAP_PROP_FRAME_WIDTH, new_width)
             self._camera.set(cv2.CAP_PROP_FRAME_HEIGHT, new_height)
