@@ -62,7 +62,7 @@ def build_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
 
 
 def build_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
-                            sensor_ids: Tuple[int, ...],
+                            sensor_ids: Sequence[int],
                             min_lines: Sequence[Optional[int]] = None,
                             max_lines: Sequence[Optional[int]] = None,
                             args: Tuple = (),
