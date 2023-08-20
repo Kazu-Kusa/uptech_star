@@ -67,7 +67,7 @@ class ActionFrame(object):
                           'all deletions will be done on the DEEPCOPY of instance table')
             temp = deepcopy(cls._instance_cache)
             size_of_cache = len(temp.keys())
-            for key in cls._instance_cache.keys():
+            for key in list(cls._instance_cache.keys()):
                 # remove  frames with breaker flag
                 if hasattr(temp.get(key), cls.__is_break_action_verified_flag):
                     del temp[key]
