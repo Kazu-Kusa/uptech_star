@@ -1,34 +1,33 @@
 #include <stdio.h>
 
-/**
- * 计算线性回归方程的参数 a 和 b
- *
- * @param time_x 一个包含时间数据的整数数组
- * @param list_y 一个包含数值数据的整数数组
- * @param size 数组的大小
- * @param result 用于存储计算结果的整数数组，长度为2
- */
-void calculate_linear_regression(int* time_x, int* list_y, int size, int* result) {
-    int xy = 0;
-    int all_x = 1;
-    int all_y = 1;
-    int xx = 0;
+int compute(float* time_x, float* list_y, int length) {
+    float all_x = 0;  // 所有x相加
+    float all_y = 0;  // 所有y相加
+    float xx = 0;  // 所有x的平方相加
+    float xy = 0;  // 所有x*y相加
+    float time_x_ = 0;  // 平均x
+    float time_y_ = 0;  // 平均y
+    float nxy_ = 0;  // 平均数x与平均y相乘后乘以n
+    float nxx_ = 0;  // 平均数x与平均x相乘后乘以n
+    float b = 0;  // 斜率
+    float a = 0;  // 差值
+    float infer_y = 0;
 
-    for (int i = 0; i < size; i++) {
-        int x = time_x[i];
-        int y = list_y[i];
-
-        xx = x * x + xx;
-        xy = x * y + xy;
-        all_x = x * all_x;
-        all_y = y * all_y;
+    for (int i = 0; i < length; i++) {
+        xx = time_x[i] * time_x[i] + xx;
+        xy = time_x[i] * list_y[i] + xy;
+        all_x = time_x[i] + all_x;
+        all_y = list_y[i] + all_y;
     }
 
-    int time_x_ = all_x / size;
-    int x_ = (all_y / size) * time_x_;
-    int b = (xy + x_) / (xx + time_x_ * time_x_);
-    int a = all_y / size - b * time_x_;
+    time_x_ = all_x / length;  // 平均x
+    time_y_ = all_y / length;  // 平均y
+    nxy_ = time_x_ * time_y_ * length;  // 平均数x与平均y相乘后乘以n
+    nxx_ = time_x_ * time_x_ * length;  // 平均数x与平均x相乘后乘以n
+    b = (xy - nxy_) / (xx - nxx_);  // 斜率
+    a = all_y / length - b * time_x_;  // 差值
+    infer_y = a + b * (length + 1);
 
-    result[0] = a;
-    result[1] = b;
+    return infer_y;
 }
+
