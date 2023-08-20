@@ -1,7 +1,6 @@
 import json
 import time
 import warnings
-from copy import deepcopy
 from functools import singledispatch
 from typing import Tuple, Union, Optional, List, Dict, ByteString, Sequence
 
@@ -61,17 +60,17 @@ class ActionFrame(object):
             None
 
         """
+
         temp: Dict[Tuple, 'ActionFrame'] = {}
         if filter_breaker:
             warnings.warn('\nFiltering the breaker action out of cache before saving it\n'
                           'all deletions will be done on the DEEPCOPY of instance table')
-            temp = deepcopy(cls._instance_cache)
-            size_of_cache = len(temp.keys())
-            for key in list(cls._instance_cache.keys()):
+            for item in cls._instance_cache.items():
                 # remove  frames with breaker flag
-                if hasattr(temp.get(key), cls.__is_break_action_verified_flag):
-                    del temp[key]
-            warnings.warn(f'\nFiltered out {size_of_cache - len(temp.keys())} action frames from cache\n\n')
+                if not hasattr(item[1], cls.__is_break_action_verified_flag):
+                    temp[item[0]] = item[1]
+            warnings.warn(
+                f'\nFiltered out {len(cls._instance_cache.keys()) - len(temp.keys())} action frames from cache\n\n')
         save_data = (temp if filter_breaker else cls._instance_cache)
         warnings.warn(f'\n##Saving Action Frame instance cache: \n'
                       f'\tCache Size: {len(save_data.keys())}')
