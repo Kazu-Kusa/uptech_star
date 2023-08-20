@@ -237,6 +237,15 @@ def float_multiplier_lower() -> float:
     return choice(FLOAT_SET_LOWER)
 
 
+def float_multiplier_upper() -> float:
+    """
+    Generate a float multiplier in an upper range.
+    Returns:
+        float: The randomly generated float multiplier in the upper range.
+    """
+    return choice(FLOAT_SET_UPPER)
+
+
 def calc_p2p_dst(point_1: Tuple[int | float, int | float], point_2: Tuple[int | float, int | float]) -> float:
     return ((point_1[0] - point_2[0]) ** 2 + (
             point_1[1] - point_2[1]) ** 2) ** 0.5
