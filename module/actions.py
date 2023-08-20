@@ -403,7 +403,7 @@ class ActionPlayer(object):
             if break_action_data:
                 if break_action_data[1]:
                     # the break action will override those ActionFrames that haven't been executed yet
-                    self.override(break_action_data[0])
+                    self.override(break_action_data[0]) if break_action_data[0] else None
                 else:
                     # the break action will not override those ActionFrames that haven't been executed
                     # the break action will be added to the ActionFrames queue at the beginning of the queue
