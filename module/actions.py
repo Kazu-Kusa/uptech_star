@@ -397,9 +397,10 @@ class ActionPlayer(object):
         """
         while self._action_frame_queue:
             # if action exit because breaker then it should return the break action or None and the override flag
-            break_action_data: Tuple[Optional[BreakActions], bool] = self._action_frame_queue.pop(0).action_start()
+            break_action_data: Optional[Tuple[Optional[BreakActions], bool]] = self._action_frame_queue.pop(
+                0).action_start()
 
-            if break_action_data[0]:
+            if break_action_data:
                 if break_action_data[1]:
                     # the break action will override those ActionFrames that haven't been executed yet
                     self.override(break_action_data[0])
