@@ -3,7 +3,6 @@ from time import time
 from typing import Tuple, Optional, List
 
 import cv2
-from cv2 import Mat
 
 
 class Camera(object):
@@ -14,8 +13,6 @@ class Camera(object):
         self._origin_fps: Optional[int] = None
         self._origin_height: Optional[float] = None
         self._origin_width: Optional[float] = None
-        self._frame: Optional[Mat] = None
-        self._read_status: Optional[bool] = None
         self._camera: Optional[cv2.VideoCapture] = None
         self.open_camera(device_id)
 
@@ -29,8 +26,8 @@ class Camera(object):
 
         """
         self._camera = cv2.VideoCapture(device_id)
-        self._read_status, self._frame = self._camera.read()
-        if self._camera and self._read_status:
+        read_status, _ = self._camera.read()
+        if read_status:
             self._origin_width: int = int(self._camera.get(cv2.CAP_PROP_FRAME_WIDTH))
             self._origin_height: int = int(self._camera.get(cv2.CAP_PROP_FRAME_HEIGHT))
             self._origin_fps: int = int(self._camera.get(cv2.CAP_PROP_FPS))
@@ -50,7 +47,6 @@ class Camera(object):
         """
         self._camera.release()
         self._camera = None
-        self._read_status = False
 
     @property
     def origin_width(self):
@@ -105,32 +101,6 @@ class Camera(object):
             self._camera.set(cv2.CAP_PROP_FRAME_HEIGHT, new_height)
         self._update_cam_center()
 
-    def update_frame(self) -> None:
-        """
-        update the frame from the cam
-        Returns:
-
-        """
-        self._read_status, self._frame = self._camera.read()
-
-    @property
-    def latest_read_status(self) -> bool:
-        """
-
-        Returns:the latest read status
-
-        """
-        return self._read_status
-
-    @property
-    def latest_frame(self):
-        """
-
-        Returns: the latest read frame
-
-        """
-        return self._frame
-
     @property
     def camera_device(self) -> cv2.VideoCapture:
         """
@@ -148,7 +118,7 @@ class Camera(object):
         """
         from timeit import repeat
         from numpy import mean, std
-        durations: List[float] = repeat(stmt=self.update_frame, number=1, repeat=test_frames_count)
+        durations: List[float] = repeat(stmt=self._camera.read, number=1, repeat=test_frames_count)
         hall_duration: float = sum(durations)
         average_duration: float = float(mean(hall_duration))
         std_error = std(a=durations, ddof=1)
@@ -165,9 +135,9 @@ class Camera(object):
         writer = cv2.VideoWriter(save_path,
                                  cv2.VideoWriter_fourcc(*'mp4v'),
                                  self._origin_fps,
-                                 (self._camera.get(cv2.CAP_PROP_FRAME_WIDTH),
-                                  self._camera.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+                                 (int(self._camera.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                                  int(self._camera.get(cv2.CAP_PROP_FRAME_HEIGHT))))
         while time() < end_time:
-            self.update_frame()
-            writer.write(self._frame)
+            _, frame = self._camera.read()
+            writer.write(frame)
         writer.release()
