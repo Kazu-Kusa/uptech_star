@@ -10,6 +10,22 @@ from ..constant import EDGE_REAR_SENSOR_ID, EDGE_FRONT_SENSOR_ID, SIDES_SENSOR_I
 Watcher = Callable[[], bool]
 
 
+def watchers_merge(watcher_sequence: Sequence[Watcher]) -> Watcher:
+    """
+    merge all the watchers in the sequence
+    Args:
+        watcher_sequence:
+
+    Returns:
+
+    """
+
+    def merged_watcher() -> bool:
+        return all(watcher() for watcher in watcher_sequence)
+
+    return merged_watcher
+
+
 # TODO: to manage all sort of breakers ,shall we create a registry system?
 def build_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
                          sensor_id: Tuple[int, ...],
@@ -131,6 +147,16 @@ def build_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
 
 
 def sort_with_mode(max_lines, min_lines, sensor_ids):
+    """
+    from the input infer the judge mode of the sensors
+    Args:
+        max_lines:
+        min_lines:
+        sensor_ids:
+
+    Returns:
+
+    """
     if not len(min_lines) == len(max_lines) == len(sensor_ids):
         raise ValueError("min_line and max_line should have the same length as sensor_id does")
     # sort the sensors according to their mode, which defined by min_line and max_line
