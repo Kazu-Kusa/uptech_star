@@ -3,14 +3,32 @@ from time import time
 from typing import Tuple, Optional, List
 
 import cv2
+from cv2 import Mat
 
 
 class Camera(object):
 
     def __init__(self, device_id: int = 0):
         # 使用 cv2.VideoCapture(0) 创建视频捕获对象，从默认摄像头捕获视频。
+        self._frame_center: Optional[Tuple[int, int]] = None
+        self._origin_fps: Optional[int] = None
+        self._origin_height: Optional[float] = None
+        self._origin_width: Optional[float] = None
+        self._frame: Optional[Mat] = None
+        self._read_status: Optional[bool] = None
         self._camera: Optional[cv2.VideoCapture] = None
         self.open_camera(device_id)
+
+    def open_camera(self, device_id):
+        """
+        open the cam with self-check
+        Args:
+            device_id:
+
+        Returns:
+
+        """
+        self._camera = cv2.VideoCapture(device_id)
         self._read_status, self._frame = self._camera.read()
         if self._camera and self._read_status:
             self._origin_width: int = int(self._camera.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -18,36 +36,59 @@ class Camera(object):
             self._origin_fps: int = int(self._camera.get(cv2.CAP_PROP_FPS))
             self._frame_center: Tuple = (int(self._origin_width / 2), int(self._origin_height / 2))
             print(f"CAMERA RESOLUTION：{int(self._origin_width)}x{int(self._origin_height)}\n"
-                  f"CAMERA FPS: [{self._origin_fps}]"
+                  f"CAMERA FPS: [{self._origin_fps}]\n"
                   f"CAM CENTER: [{self._frame_center}]")
         else:
             warnings.warn('########CAN\'T GET VIDEO########\n'
                           'please check if the camera is attached!')
 
-    def open_camera(self, device_id):
-        self._camera = cv2.VideoCapture(device_id)
-
     def close_camera(self):
+        """
+        release the cam
+        Returns:
+
+        """
         self._camera.release()
         self._camera = None
+        self._read_status = False
 
     @property
     def origin_width(self):
+        """
+        the origin width of the cam
+        Returns:
+
+        """
         return self._origin_width
 
     @property
     def origin_height(self):
+        """
+        the origin height of the cam
+        Returns:
+
+        """
         return self._origin_height
 
     @property
     def origin_fps(self):
+        """
+        the fps of the cam
+        Returns:
+
+        """
         return self._origin_fps
 
     @property
     def frame_center(self) -> Tuple[int, int]:
+        """
+        the pixel of the frame center
+        Returns:
+
+        """
         return self._frame_center
 
-    def update_cam_center(self) -> None:
+    def _update_cam_center(self) -> None:
         width = self._camera.get(cv2.CAP_PROP_FRAME_WIDTH)
         height = self._camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
         self._frame_center = (int(width / 2), int(height / 2))
@@ -62,21 +103,41 @@ class Camera(object):
         else:
             self._camera.set(cv2.CAP_PROP_FRAME_WIDTH, new_width)
             self._camera.set(cv2.CAP_PROP_FRAME_HEIGHT, new_height)
-        self.update_cam_center()
+        self._update_cam_center()
 
     def update_frame(self) -> None:
+        """
+        update the frame from the cam
+        Returns:
+
+        """
         self._read_status, self._frame = self._camera.read()
 
     @property
     def latest_read_status(self) -> bool:
+        """
+
+        Returns:the latest read status
+
+        """
         return self._read_status
 
     @property
     def latest_frame(self):
+        """
+
+        Returns: the latest read frame
+
+        """
         return self._frame
 
     @property
     def camera_device(self) -> cv2.VideoCapture:
+        """
+        the device instance
+        Returns:
+
+        """
         return self._camera
 
     def test_frame_time(self, test_frames_count: int = 600) -> float:
