@@ -209,21 +209,21 @@ def build_delta_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
         def watcher() -> bool:
             nonlocal buffer
             update = sensor_update(*args, **kwargs)
-            b = all((max_line > update[x] - buffer[x] > min_line) for x in sensor_id)
+            b = all(((max_line > abs(update[x]) - buffer[x]) > min_line) for x in sensor_id)
             buffer = update
             return b
     elif min_line:
         def watcher() -> bool:
             nonlocal buffer
             update = sensor_update(*args, **kwargs)
-            b = all((update[x] - buffer[x] > min_line) for x in sensor_id)
+            b = all((abs(update[x] - buffer[x]) > min_line) for x in sensor_id)
             buffer = update
             return b
     else:
         def watcher() -> bool:
             nonlocal buffer
             update = sensor_update(*args, **kwargs)
-            b = all((update[x] - buffer[x] < max_line) for x in sensor_id)
+            b = all((abs(update[x] - buffer[x]) < max_line) for x in sensor_id)
             buffer = update
             return b
 
@@ -260,11 +260,12 @@ def build_delta_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
 
     parts = []
     if belt_pass_sensors:
-        parts.append(lambda update, history: all(x[1] < update[x[0]] - history[x[0]] < x[2] for x in belt_pass_sensors))
+        parts.append(
+            lambda update, history: all(x[1] < abs(update[x[0]] - history[x[0]]) < x[2] for x in belt_pass_sensors))
     if high_pass_sensors:
-        parts.append(lambda update, history: all(x[1] < update[x[0]] - history[x[0]] for x in high_pass_sensors))
+        parts.append(lambda update, history: all(x[1] < abs(update[x[0]] - history[x[0]]) for x in high_pass_sensors))
     if low_pass_sensors:
-        parts.append(lambda update, history: all(x[1] > update[x[0]] - history[x[0]] for x in low_pass_sensors))
+        parts.append(lambda update, history: all(x[1] > abs(update[x[0]] - history[x[0]]) for x in low_pass_sensors))
 
     def assembly_watcher() -> bool:
         f"""
