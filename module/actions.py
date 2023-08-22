@@ -1,14 +1,13 @@
 import json
 import time
 import warnings
-from copy import deepcopy
 from functools import singledispatch
 from typing import Tuple, Union, Optional, List, Dict, ByteString, Sequence
 
 from dill import load, dump
 
 from .algrithm_tools import multiply, factor_list_multiply
-from .close_loop_controller import CloseLoopController, is_list_all_zero
+from .close_loop_controller import CloseLoopController
 from .os_tools import persistent_cache
 from .timer import delay_ms, calc_hang_time
 from .watcher import watchers, Watcher
@@ -61,17 +60,17 @@ class ActionFrame(object):
             None
 
         """
+
         temp: Dict[Tuple, 'ActionFrame'] = {}
         if filter_breaker:
             warnings.warn('\nFiltering the breaker action out of cache before saving it\n'
                           'all deletions will be done on the DEEPCOPY of instance table')
-            temp = deepcopy(cls._instance_cache)
-            size_of_cache = len(temp.keys())
-            for key in cls._instance_cache.keys():
+            for item in cls._instance_cache.items():
                 # remove  frames with breaker flag
-                if hasattr(temp.get(key), cls.__is_break_action_verified_flag):
-                    del temp[key]
-            warnings.warn(f'\nFiltered out {size_of_cache - len(temp.keys())} action frames from cache\n\n')
+                if not hasattr(item[1], cls.__is_break_action_verified_flag):
+                    temp[item[0]] = item[1]
+            warnings.warn(
+                f'\nFiltered out {len(cls._instance_cache.keys()) - len(temp.keys())} action frames from cache\n\n')
         save_data = (temp if filter_breaker else cls._instance_cache)
         warnings.warn(f'\n##Saving Action Frame instance cache: \n'
                       f'\tCache Size: {len(save_data.keys())}')
@@ -130,13 +129,13 @@ class ActionFrame(object):
             # breaker_func can not be None as the break action is specified
             raise ValueError("breaker_func can not be None as the break action is specified")
         if self._PRE_COMPILE_CMD:
-            # pre-compile the cmd to save the time in string encoding in the future
-            if is_list_all_zero(action_speed):
-                # stop cmd can be represented by a short broadcast cmd
-                self._action_cmd: ByteString = HALT_CMD
-            else:
+            if any(action_speed):
                 # pre-compile the cmd into byte string that fits the driver's communication protocol
                 self._action_cmd: ByteString = self._controller.makeCmds_dirs(action_speed)
+                # pre-compile the cmd to save the time in string encoding in the future
+            else:
+                # stop cmd can be represented by a short broadcast cmd
+                self._action_cmd: ByteString = HALT_CMD
         else:
             # if the pre-compile cmd is not used, just save the action speed
             self._action_speed_sequence: Tuple[int, int, int, int] = action_speed

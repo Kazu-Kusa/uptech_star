@@ -10,11 +10,30 @@ from ..constant import EDGE_REAR_SENSOR_ID, EDGE_FRONT_SENSOR_ID, SIDES_SENSOR_I
 Watcher = Callable[[], bool]
 
 
+def watchers_merge(watcher_sequence: Sequence[Watcher], use_any: bool = False) -> Watcher:
+    """
+    merge all the watchers in the sequence
+    Args:
+        use_any:
+        watcher_sequence:
+
+    Returns:
+
+    """
+    logic_calc_func = any if use_any else all
+
+    def merged_watcher() -> bool:
+        return logic_calc_func(watcher() for watcher in watcher_sequence)
+
+    return merged_watcher
+
+
 # TODO: to manage all sort of breakers ,shall we create a registry system?
 def build_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
                          sensor_id: Tuple[int, ...],
                          min_line: Optional[int] = None,
                          max_line: Optional[int] = None,
+                         use_any: bool = False,
                          args: Tuple = (),
                          kwargs: Dict[str, Any] = {}) -> Watcher:
     """
@@ -25,6 +44,7 @@ def build_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
         sensor_id: 传感器的ID，为整数的元组。
         min_line: 最小阈值，为整数。
         max_line: 最大阈值，为整数，默认为None。
+        use_any: 逻辑判断类型，True为取或，False为取并
         args: 可选参数的元组，默认为空元组。
         kwargs: 可选关键字参数的字典，默认为空字典。
 
@@ -45,26 +65,28 @@ def build_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
 
         print(result)  # 输出：True
     """
+    logic_calc_func = any if use_any else all
     if max_line and min_line:
         def watcher() -> bool:
             update = sensor_update(*args, **kwargs)
-            return all((max_line > update[x] > min_line) for x in sensor_id)
+            return logic_calc_func((max_line > update[x] > min_line) for x in sensor_id)
     elif min_line:
         def watcher() -> bool:
             update = sensor_update(*args, **kwargs)
-            return all((update[x] > min_line) for x in sensor_id)
+            return logic_calc_func((update[x] > min_line) for x in sensor_id)
     else:
         def watcher() -> bool:
             update = sensor_update(*args, **kwargs)
-            return all((update[x] < max_line) for x in sensor_id)
+            return logic_calc_func((update[x] < max_line) for x in sensor_id)
 
     return watcher
 
 
 def build_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
-                            sensor_ids: Tuple[int, ...],
+                            sensor_ids: Sequence[int],
                             min_lines: Sequence[Optional[int]] = None,
                             max_lines: Sequence[Optional[int]] = None,
+                            use_any: bool = False,
                             args: Tuple = (),
                             kwargs: Dict[str, Any] = {}) -> Watcher:
     """
@@ -75,6 +97,7 @@ def build_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
         sensor_ids: 传感器的ID，为整数的元组。
         min_lines: 最小阈值
         max_lines: 最大阈值
+        use_any: 逻辑判断类型，True为取或，False为取并
         args: 可选参数的元组，默认为空元组。
         kwargs: 可选关键字参数的字典，默认为空字典。
 
@@ -97,19 +120,20 @@ def build_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
         print(result)  # 输出：True
     """
 
+    logic_calc_func = any if use_any else all
     belt_pass_sensors, high_pass_sensors, low_pass_sensors = sort_with_mode(max_lines, min_lines, sensor_ids)
 
     # build the watcher components
     parts = []
 
     if belt_pass_sensors:
-        parts.append(lambda update: all(x[1] < update[x[0]] < x[2] for x in belt_pass_sensors))
+        parts.append(lambda update: logic_calc_func(x[1] < update[x[0]] < x[2] for x in belt_pass_sensors))
 
     if high_pass_sensors:
-        parts.append(lambda update: all(x[1] < update[x[0]] for x in high_pass_sensors))
+        parts.append(lambda update: logic_calc_func(x[1] < update[x[0]] for x in high_pass_sensors))
 
     if low_pass_sensors:
-        parts.append(lambda update: all(x[1] > update[x[0]] for x in low_pass_sensors))
+        parts.append(lambda update: logic_calc_func(x[1] > update[x[0]] for x in low_pass_sensors))
 
     def watcher() -> bool:
         f"""
@@ -125,12 +149,23 @@ def build_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
         
         """
         update = sensor_update(*args, **kwargs)
-        return all(part(update) for part in parts)
+        return logic_calc_func(part(update) for part in parts)
 
     return watcher
 
 
-def sort_with_mode(max_lines, min_lines, sensor_ids):
+def sort_with_mode(max_lines, min_lines, sensor_ids) -> Tuple[
+    List[Tuple[int, int, int]], List[Tuple[int, int]], List[Tuple[int, int]]]:
+    """
+    from the input infer the judge mode of the sensors
+    Args:
+        max_lines:
+        min_lines:
+        sensor_ids:
+
+    Returns:
+
+    """
     if not len(min_lines) == len(max_lines) == len(sensor_ids):
         raise ValueError("min_line and max_line should have the same length as sensor_id does")
     # sort the sensors according to their mode, which defined by min_line and max_line
@@ -155,6 +190,7 @@ def build_delta_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
                                sensor_id: Tuple[int, ...],
                                max_line: Optional[int] = None,
                                min_line: Optional[int] = None,
+                               use_any: bool = False,
                                args: Tuple = (),
                                kwargs: Dict[str, Any] = {}) -> Watcher:
     """
@@ -165,6 +201,7 @@ def build_delta_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
     - sensor_id: A tuple of indices representing the sensor values to monitor for changes.
     - max_line: The maximum difference allowed between the current and previous sensor readings.
     - min_line: The minimum difference required between the current and previous sensor readings.
+    - use_any: logic op，True for OR，False for AND
     - args: Additional positional arguments to pass to the sensor_update function.
     - kwargs: Additional keyword arguments to pass to the sensor_update function.
 
@@ -177,27 +214,27 @@ def build_delta_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
     __BUFFER_list.append([])
     buffer = copy(__BUFFER_list[-1])
     buffer[:] = sensor_update(*args, **kwargs)
-
+    logic_calc_func = any if use_any else all
     # Define the watcher function based on the provided limits
     if max_line and min_line:
         def watcher() -> bool:
             nonlocal buffer
             update = sensor_update(*args, **kwargs)
-            b = all((max_line > update[x] - buffer[x] > min_line) for x in sensor_id)
+            b = logic_calc_func(((max_line > abs(update[x]) - buffer[x]) > min_line) for x in sensor_id)
             buffer = update
             return b
     elif min_line:
         def watcher() -> bool:
             nonlocal buffer
             update = sensor_update(*args, **kwargs)
-            b = all((update[x] - buffer[x] > min_line) for x in sensor_id)
+            b = logic_calc_func((abs(update[x] - buffer[x]) > min_line) for x in sensor_id)
             buffer = update
             return b
     else:
         def watcher() -> bool:
             nonlocal buffer
             update = sensor_update(*args, **kwargs)
-            b = all((update[x] - buffer[x] < max_line) for x in sensor_id)
+            b = logic_calc_func((abs(update[x] - buffer[x]) < max_line) for x in sensor_id)
             buffer = update
             return b
 
@@ -208,6 +245,7 @@ def build_delta_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
                                   sensor_ids: Tuple[int, ...],
                                   min_lines: Sequence[Optional[int]] = None,
                                   max_lines: Sequence[Optional[int]] = None,
+                                  use_any: bool = False,
                                   args: Tuple = (),
                                   kwargs: Dict[str, Any] = {}) -> Watcher:
     """
@@ -218,6 +256,7 @@ def build_delta_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
       - sensor_ids: A tuple of indices representing the sensor values to monitor for changes.
       - min_lines: A sequence of minimum difference required between the current and previous sensor readings.
       - max_lines: A sequence of maximum difference allowed between the current and previous sensor readings.
+      - use_any: logic op，True for OR，False for AND
       - args: Additional positional arguments to pass to the sensor_update function.
       - kwargs: Additional keyword arguments to pass to the sensor_update function.
 
@@ -231,14 +270,18 @@ def build_delta_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
     buffer[:] = sensor_update(*args, **kwargs)
 
     belt_pass_sensors, high_pass_sensors, low_pass_sensors = sort_with_mode(max_lines, min_lines, sensor_ids)
-
+    logic_calc_func = any if use_any else all
     parts = []
     if belt_pass_sensors:
-        parts.append(lambda update, history: all(x[1] < update[x[0]] - history[x[0]] < x[2] for x in belt_pass_sensors))
+        parts.append(
+            lambda update, history: logic_calc_func(
+                x[1] < abs(update[x[0]] - history[x[0]]) < x[2] for x in belt_pass_sensors))
     if high_pass_sensors:
-        parts.append(lambda update, history: all(x[1] < update[x[0]] - history[x[0]] for x in high_pass_sensors))
+        parts.append(lambda update, history: logic_calc_func(
+            x[1] < abs(update[x[0]] - history[x[0]]) for x in high_pass_sensors))
     if low_pass_sensors:
-        parts.append(lambda update, history: all(x[1] > update[x[0]] - history[x[0]] for x in low_pass_sensors))
+        parts.append(
+            lambda update, history: logic_calc_func(x[1] > abs(update[x[0]] - history[x[0]]) for x in low_pass_sensors))
 
     def assembly_watcher() -> bool:
         f"""
@@ -254,7 +297,7 @@ def build_delta_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
         """
         nonlocal buffer
         update = sensor_update(*args, **kwargs)
-        b = all(part(update, buffer) for part in parts)
+        b = logic_calc_func(part(update, buffer) for part in parts)
         buffer = update
         return b
 

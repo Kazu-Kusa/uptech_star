@@ -1,8 +1,13 @@
+import ctypes
 from abc import ABC, abstractmethod
 from random import choice
 from typing import Union, Sequence, Tuple, List
 
 from numpy import zeros, average
+
+from repo.uptechStar.module.os_tools import load_lib
+
+Location = Tuple[int | float, int | float]
 
 
 class BaseFilter(ABC):
@@ -13,8 +18,21 @@ class BaseFilter(ABC):
 
 
 class MovingAverage(BaseFilter):
+    """
+    计算滑动窗口范围内的平均值
+    """
 
     def apply(self, value: float) -> float:
+        """
+        计算滑动窗口范围内的平均值
+        Args:
+            value:
+
+        Returns:
+
+        """
+        if self.queue[0] == 0:
+            return value
         self.queue[:-1] = self.queue[1:]  # 将队列往前移动
         self.queue[-1] = value  # 将最新的值添加到队列中
         # 计算滑动窗口范围内的平均值
@@ -50,60 +68,54 @@ class WindowPredictorBase(ABC):
         """
         pass
 
-    def __init__(self, window_size: int):
+    def __init__(self, window_size: int, dimension: int):
         """
         Initialize the WindowPredictor.
         Args:
             window_size: the size of the window
         """
         self.window_size = window_size
+        self.dimension = dimension
 
         # init the window that contains the last window_size data
-        self.window: List[Sequence[Union[float, int]]] = [[]] * window_size
-        self._time_sequence = list(range(1, self.window_size + 1))
+        self.window: List[Sequence[Union[float, int]]] = [[0] * dimension] * window_size
+        self._time_sequence = (ctypes.c_float * window_size)(*list(range(window_size)))
+        self._c_series_type = (ctypes.c_float * window_size)
 
 
-class Math(WindowPredictorBase):
+class LinerRegressionWindow(WindowPredictorBase):
+    """
+    this class uses c extension to calc the liner regression predicting values
+    """
+    __lib = load_lib('libreg.so')
 
-    def predict(self, data: List[Union[float, int]]) -> List[Union[float, int]]:
+    # TODO untested class
+    def add_to_window(self, data: List[Union[float, int]]) -> None:
+        """
+        add new data to window and move the window forward
+        Args:
+            data:
 
+        Returns:
+
+        """
         self.window.append(data)
         self.window.pop(0)
+
+    def predict(self, data: List[Union[float, int]]) -> List[Union[float, int]]:
+        self.add_to_window(data)
         if not self.window[0]:
             return data
 
-        def math_get_y():
-            return_a_b = []
-            # 下列代码是将windo的列表转置
-            list_y = [[self.window[j][i] for j in range(len(self.window))] for i in range(len(self.window[0]))]
+        pred_data = []
 
-            for i in range(len(data)):
-                return_a_b.append(compute(list_y[i]))
-            return return_a_b
-
-        def compute(list_y: List[Union[float, int]]) -> int:
-            time_x = self._time_sequence
-            self.list_y = list_y
-            all_x = 0  # 所有x相加
-            all_y = 0  # 所有y相加
-            xx = 0  # 所有x的平方相加
-            xy = 0  # 所有x*y相加
-            for x, y in zip(time_x, list_y):
-                xx = x * x + xx
-                xy = x * y + xy
-                all_x = x + all_x
-                all_y = y + all_y
-
-            time_x_ = (all_x / len(time_x))  # 平均x
-            time_y_ = (all_y / len(list_y))  # 平均y
-            nxy_ = time_x_ * time_y_ * len(time_x)  # 平均数x与平均y相乘后乘以n
-            nxx_ = time_x_ * time_x_ * len(time_x)  # 平均数x与平均x相乘后乘以n
-            b = (xy - nxy_) / (xx - nxx_)  # 斜率
-            a = all_y / len(list_y) - b * time_x_  # 差值
-            infer_y = a + b * (len(time_x) + 1)
-            return infer_y
-
-        return math_get_y()
+        # 下列代码是将window的列表转置
+        window = self.window
+        for i in range(self.dimension):
+            pred_data.append(self.__lib.compute(self._time_sequence,
+                                                self._c_series_type(*list(frame[i] for frame in window)),
+                                                self.window_size))
+        return pred_data
 
 
 def list_multiply(list1: Sequence[Union[float, int]],
@@ -139,6 +151,7 @@ def random_sign() -> int:
     return choice([-1, 1])
 
 
+# region Multiplier Generator
 FLOAT_SET_UPPER = (0.9, 0.925, 0.95, 1.0, 1.05, 1.08, 1.1, 1.17, 1.25)
 
 FLOAT_SET_LOWER = (0.8, 0.825, 0.85, 0.875, 0.9, 0.925, 0.95, 1.0, 1.05, 1.08, 1.1)
@@ -209,10 +222,10 @@ def shrink_multiplier_ll() -> float:
 
 def shrink_multiplier_lll() -> float:
     """
-    Generate a multiplier for shrinkage in an upper range.
+    Generate a multiplier for shrinkage in the upper range.
 
     Returns:
-        float: The randomly generated multiplier for shrinkage in an upper range.
+        float: The randomly generated multiplier for shrinkage in the upper range.
     """
     return choice(SHRINK_SET_LLL)
 
@@ -246,10 +259,22 @@ def float_multiplier_upper() -> float:
     return choice(FLOAT_SET_UPPER)
 
 
-def calc_p2p_dst(point_1: Tuple[int | float, int | float], point_2: Tuple[int | float, int | float]) -> float:
+# endregion
+
+
+def calc_p2p_dst(point_1: Location, point_2: Location) -> float:
     return ((point_1[0] - point_2[0]) ** 2 + (
             point_1[1] - point_2[1]) ** 2) ** 0.5
 
 
-def calc_p2p_error(start: Tuple[int | float, int | float], target: Tuple[int | float, int | float]) -> Tuple:
-    return tuple(y - x for x, y in zip(start, target))
+def calc_p2p_error(start: Location, target: Location) -> float | int:
+    """
+    drik distance
+    Args:
+        start:
+        target:
+
+    Returns:
+
+    """
+    return abs(target[0] - start[0]) + abs(target[1] - start[0])

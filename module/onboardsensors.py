@@ -1,8 +1,10 @@
 import ctypes
 import warnings
+from time import perf_counter_ns
 from typing import Callable, Sequence
 
 from .os_tools import load_lib
+from ..constant import MIN_SAMPLE_INTERVAL_MS
 
 PinModeSetter = Callable[[int], None]
 PinSetter = Callable[[int], None]
@@ -33,6 +35,8 @@ class OnBoardSensors:
     _accel_all = __mpu_data_list_type()
     _gyro_all = __mpu_data_list_type()
     _atti_all = __mpu_data_list_type()
+    last_update_timestamp = perf_counter_ns()
+    min_sample_interval = MIN_SAMPLE_INTERVAL_MS * 1000000
 
     def __init__(self, open_mpu: bool = True,
                  debug: bool = False):
@@ -40,6 +44,8 @@ class OnBoardSensors:
 
         self.MPU6500_Open() if open_mpu else None
         success = self.adc_io_open()
+        self.set_all_io_mode(INPUT)
+        self.set_all_io_level(HIGH)
         print(f"Sensor channel Init times: {success}") if self.debug else None
 
     @staticmethod
@@ -92,6 +98,10 @@ class OnBoardSensors:
           return 0;                             // 返回0表示操作成功
         }
         """
+        current = perf_counter_ns()
+        if current - OnBoardSensors.last_update_timestamp < OnBoardSensors.min_sample_interval:
+            OnBoardSensors.last_update_timestamp = current
+            return OnBoardSensors.acc_all
         OnBoardSensors.__lib.ADC_GetAll(OnBoardSensors._adc_all)
         return OnBoardSensors._adc_all
 
