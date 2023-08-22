@@ -18,8 +18,21 @@ class BaseFilter(ABC):
 
 
 class MovingAverage(BaseFilter):
+    """
+    计算滑动窗口范围内的平均值
+    """
 
     def apply(self, value: float) -> float:
+        """
+        计算滑动窗口范围内的平均值
+        Args:
+            value:
+
+        Returns:
+
+        """
+        if self.queue[0] == 0:
+            return value
         self.queue[:-1] = self.queue[1:]  # 将队列往前移动
         self.queue[-1] = value  # 将最新的值添加到队列中
         # 计算滑动窗口范围内的平均值
