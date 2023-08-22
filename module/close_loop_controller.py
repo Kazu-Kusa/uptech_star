@@ -122,9 +122,7 @@ class CloseLoopController:
         :return:
         """
 
-        if is_list_all_zero(speed_list):
-            self.set_all_motors_speed(0, hang_time=hang_time)
-        else:
+        if any(speed_list):
             # will check the if target speed and current speed are the same and can customize the direction
             cmd_list = [f'{motor_id}v{speed * direction}'
                         for motor_id, speed, cur_speed, direction in
@@ -132,11 +130,13 @@ class CloseLoopController:
                         if speed != cur_speed]
             if cmd_list:
                 self.append_to_queue(byte_string=makeCmd_list(cmd_list), hang_time=hang_time)
+        else:
+            self.set_all_motors_speed(0, hang_time=hang_time)
         self._motor_speeds = speed_list
 
     def set_all_motors_speed(self, speed: int, hang_time: float = 0.) -> None:
         """
-        set all motors speed ,and hang up the cmd sender
+        set all motors speed, and hang up the cmd sender
         :attention: this function has no direction check, since it will be a broadcast cmd
         :param speed:
         :param hang_time:
