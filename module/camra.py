@@ -91,6 +91,10 @@ class Camera(object):
 
     def set_cam_resolution(self, new_width: Optional[int] = None, new_height: Optional[int] = None,
                            resolution_multiplier: Optional[float] = None) -> None:
+        if not self._camera.isOpened():
+            warnings.warn("##CAN'T CHANGE the RESOLUTION##\n"
+                          "because the camera is NOT opened\n\n")
+            return
         assert (new_width is not None and new_height is not None) or (
                 resolution_multiplier is not None), 'Please specify the resolution params'
         if resolution_multiplier:
