@@ -44,6 +44,8 @@ class OnBoardSensors:
 
         self.MPU6500_Open() if open_mpu else None
         success = self.adc_io_open()
+        self.set_all_io_mode(INPUT)
+        self.set_all_io_level(HIGH)
         print(f"Sensor channel Init times: {success}") if self.debug else None
 
     @staticmethod
