@@ -10,18 +10,20 @@ from ..constant import EDGE_REAR_SENSOR_ID, EDGE_FRONT_SENSOR_ID, SIDES_SENSOR_I
 Watcher = Callable[[], bool]
 
 
-def watchers_merge(watcher_sequence: Sequence[Watcher]) -> Watcher:
+def watchers_merge(watcher_sequence: Sequence[Watcher], use_any: bool = False) -> Watcher:
     """
     merge all the watchers in the sequence
     Args:
+        use_any:
         watcher_sequence:
 
     Returns:
 
     """
+    logic_calc_func = any if use_any else all
 
     def merged_watcher() -> bool:
-        return all(watcher() for watcher in watcher_sequence)
+        return logic_calc_func(watcher() for watcher in watcher_sequence)
 
     return merged_watcher
 
