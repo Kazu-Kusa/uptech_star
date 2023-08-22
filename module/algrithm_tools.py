@@ -90,13 +90,13 @@ class LinerRegressionWindow(WindowPredictorBase):
         self.window.pop(0)
 
     def predict(self, data: List[Union[float, int]]) -> List[Union[float, int]]:
-        self.add_to_window()
+        self.add_to_window(data)
         if not self.window[0]:
             return data
 
         pred_data = []
 
-        # 下列代码是将windo的列表转置
+        # 下列代码是将window的列表转置
         window = self.window
         for i in range(self.dimension):
             pred_data.append(self.__lib.compute(self._time_sequence,
@@ -138,6 +138,7 @@ def random_sign() -> int:
     return choice([-1, 1])
 
 
+# region Multiplier Generator
 FLOAT_SET_UPPER = (0.9, 0.925, 0.95, 1.0, 1.05, 1.08, 1.1, 1.17, 1.25)
 
 FLOAT_SET_LOWER = (0.8, 0.825, 0.85, 0.875, 0.9, 0.925, 0.95, 1.0, 1.05, 1.08, 1.1)
@@ -208,10 +209,10 @@ def shrink_multiplier_ll() -> float:
 
 def shrink_multiplier_lll() -> float:
     """
-    Generate a multiplier for shrinkage in an upper range.
+    Generate a multiplier for shrinkage in the upper range.
 
     Returns:
-        float: The randomly generated multiplier for shrinkage in an upper range.
+        float: The randomly generated multiplier for shrinkage in the upper range.
     """
     return choice(SHRINK_SET_LLL)
 
@@ -243,6 +244,9 @@ def float_multiplier_upper() -> float:
         float: The randomly generated float multiplier in the upper range.
     """
     return choice(FLOAT_SET_UPPER)
+
+
+# endregion
 
 
 def calc_p2p_dst(point_1: Location, point_2: Location) -> float:
