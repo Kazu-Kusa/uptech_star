@@ -154,7 +154,8 @@ def build_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
     return watcher
 
 
-def sort_with_mode(max_lines, min_lines, sensor_ids):
+def sort_with_mode(max_lines, min_lines, sensor_ids) -> Tuple[
+    List[Tuple[int, int, int]], List[Tuple[int, int]], List[Tuple[int, int]]]:
     """
     from the input infer the judge mode of the sensors
     Args:
