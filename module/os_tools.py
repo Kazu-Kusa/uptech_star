@@ -224,7 +224,7 @@ class Configurable(metaclass=ABCMeta):
             temp_config = {}
         for config_registry_path in self._config_registry:
             config = self.export_config(temp_config, config_registry_path)
-            self.register_config(config_registry_path, config) if config else None
+            self.register_config(config_registry_path, config) if config is not None else None
 
     @final
     def inject_config(self):
