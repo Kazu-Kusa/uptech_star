@@ -2,16 +2,19 @@
 apriltag detecting app
 """
 import warnings
+from copy import deepcopy
 from threading import Thread
 from time import sleep
 from typing import Tuple, List, Dict, Optional
 
 from apriltag import DetectorOptions, Detector, Detection
-from cv2 import Mat, cvtColor, COLOR_BGR2GRAY
+from cv2 import Mat, cvtColor, COLOR_RGB2GRAY
 
 from .algrithm_tools import calc_p2p_dst, calc_p2p_error
 from .camra import Camera
 from ..constant import TAG_GROUP
+
+DEFAULT_TAG_TABLE = {2: (None, 0.0), 1: (None, 0.0), 0: (None, 0.0)}
 
 DEFAULT_TAG_ID = -1
 
@@ -80,7 +83,7 @@ class TagDetector:
         self._tags_table: Dict[int, Tuple[Optional[Detection], int | float]] = {}
 
         self._tag_id: int = DEFAULT_TAG_ID
-        self._tag_monitor_switch: bool = False
+        self._tag_monitor_switch: bool = True
         self._enemy_tag_id: int = NULL_TAG
         self._ally_tag_id: int = NULL_TAG
         self._neutral_tag_id: int = NULL_TAG
@@ -90,6 +93,7 @@ class TagDetector:
         self._single_tag_mode: bool = single_tag_mode
         self._apriltag_detect: Optional[Thread] = None
         self._detect_should_continue: bool = True
+
         self.apriltag_detect_start() if start_detect_tag else None
 
     def _init_tags_table(self):
@@ -141,8 +145,8 @@ class TagDetector:
 
     @detect_should_continue.setter
     def detect_should_continue(self, should: bool):
-        with self.__lock:
-            self._detect_should_continue = should
+
+        self._detect_should_continue = should
 
     def apriltag_detect_start(self):
         """
@@ -167,7 +171,7 @@ class TagDetector:
 
         warnings.warn('Detection Activated')
         while self._detect_should_continue:
-            if self.tag_detection_switch:  # 台上开启 台下关闭 节约性能
+            if self._tag_monitor_switch:  # 台上开启 台下关闭 节约性能
                 success, frame = frame_updater()  # extract frame from the cam
                 if success:
                     self._update_tags(frame)  # extract tags in the detection
@@ -190,9 +194,10 @@ class TagDetector:
         # 将帧转换为灰度并存储在 gray 变量中。
         # 使用 AprilTag 检测器对象（self.tag_detector）在灰度帧中检测 AprilTags。检测到的标记存储在 self._tags 变量中。
         # override old tags
-        self._init_tags_table()
-        for tag in self.__tag_detect(cvtColor(frame, COLOR_BGR2GRAY)):
-            self._tags_table[tag.tag_id] = (tag, calc_p2p_error(tag.center, self._camera.frame_center))
+        temp_dict = deepcopy(DEFAULT_TAG_TABLE)
+        for tag in self.__tag_detect(cvtColor(frame, COLOR_RGB2GRAY)):
+            temp_dict[tag.tag_id] = (tag, calc_p2p_error(tag.center, self._camera.frame_center))
+        self._tags_table = temp_dict
 
     def _update_tag_id(self):
         """
