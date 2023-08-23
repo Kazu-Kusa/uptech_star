@@ -4,7 +4,8 @@ from time import perf_counter_ns
 from typing import Callable, Sequence
 
 from .os_tools import load_lib
-from ..constant import MIN_SAMPLE_INTERVAL_MS
+
+E6 = 1000000
 
 PinModeSetter = Callable[[int], None]
 PinSetter = Callable[[int], None]
@@ -36,7 +37,12 @@ class OnBoardSensors:
     _gyro_all = __mpu_data_list_type()
     _atti_all = __mpu_data_list_type()
     last_update_timestamp = perf_counter_ns()
-    min_sample_interval = MIN_SAMPLE_INTERVAL_MS * 1000000
+    __adc_min_sample_interval_ns = 5 * E6
+    __io_min_sample_interval_ns = 5 * E6
+
+    __mpu_atti_min_sample_interval_ns = E6
+    __mpu_gyro_min_sample_interval_ns = E6
+    __mpu_accel_min_sample_interval_ns = E6
 
     def __init__(self, open_mpu: bool = True,
                  debug: bool = False):
@@ -47,6 +53,46 @@ class OnBoardSensors:
         self.set_all_io_mode(INPUT)
         self.set_all_io_level(HIGH)
         print(f"Sensor channel Init times: {success}") if self.debug else None
+
+    @property
+    def adc_min_sample_interval_ms(self) -> int:
+        return int(self.__adc_min_sample_interval_ns / E6)
+
+    @adc_min_sample_interval_ms.setter
+    def adc_min_sample_interval_ms(self, value: int):
+        self.__adc_min_sample_interval_ns = value * E6
+
+    @property
+    def io_min_sample_interval_ms(self) -> int:
+        return int(self.__io_min_sample_interval_ns / E6)
+
+    @io_min_sample_interval_ms.setter
+    def io_min_sample_interval_ms(self, value: int):
+        self.__io_min_sample_interval_ns = value * E6
+
+    @property
+    def mpu_atti_min_sample_interval_ms(self) -> int:
+        return int(self.__mpu_atti_min_sample_interval_ns / E6)
+
+    @mpu_atti_min_sample_interval_ms.setter
+    def mpu_atti_min_sample_interval_ms(self, value: int):
+        self.__mpu_atti_min_sample_interval_ns = value * E6
+
+    @property
+    def mpu_gyro_min_sample_interval_ms(self) -> int:
+        return int(self.__mpu_gyro_min_sample_interval_ns / E6)
+
+    @mpu_gyro_min_sample_interval_ms.setter
+    def mpu_gyro_min_sample_interval_ms(self, value: int):
+        self.__mpu_gyro_min_sample_interval_ns = value * E6
+
+    @property
+    def mpu_accel_min_sample_interval_ms(self) -> int:
+        return int(self.__mpu_accel_min_sample_interval_ns / E6)
+
+    @mpu_accel_min_sample_interval_ms.setter
+    def mpu_accel_min_sample_interval_ms(self, value: int):
+        self.__mpu_accel_min_sample_interval_ns = value * E6
 
     @staticmethod
     def adc_io_open():
@@ -99,7 +145,7 @@ class OnBoardSensors:
         }
         """
         current = perf_counter_ns()
-        if current - OnBoardSensors.last_update_timestamp < OnBoardSensors.min_sample_interval:
+        if current - OnBoardSensors.last_update_timestamp < OnBoardSensors.__adc_min_sample_interval_ns:
             OnBoardSensors.last_update_timestamp = current
             return OnBoardSensors.acc_all
         OnBoardSensors.__lib.ADC_GetAll(OnBoardSensors._adc_all)
