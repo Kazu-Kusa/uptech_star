@@ -75,4 +75,4 @@ EDGE_REAR_WATCHER_NAME: str = 'edge_rear_watcher'
 EDGE_FRONT_WATCHER_NAME: str = 'edge_front_watcher'
 SIDES_WATCHER_NAME: str = 'sides_watcher'
 GRAYS_WATCHER_NAME: str = 'grays_watcher'
-MIN_SAMPLE_INTERVAL_MS = 10
+MIN_SAMPLE_INTERVAL_MS = 15
