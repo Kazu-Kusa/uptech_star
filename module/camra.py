@@ -136,8 +136,10 @@ class Camera(object):
     def record_video(self, save_path: str, video_length: float):
         end_time = time() + video_length
 
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+
         writer = cv2.VideoWriter(save_path,
-                                 cv2.VideoWriter_fourcc(*'mp4v'),
+                                 fourcc,
                                  self._origin_fps,
                                  (int(self._camera.get(cv2.CAP_PROP_FRAME_WIDTH)),
                                   int(self._camera.get(cv2.CAP_PROP_FRAME_HEIGHT))))
@@ -145,3 +147,19 @@ class Camera(object):
             _, frame = self._camera.read()
             writer.write(frame)
         writer.release()
+
+    def take_a_picture(self, save_path: str, to_gray: bool = True):
+        """
+
+        Args:
+            save_path:
+            to_gray:
+
+        Returns:
+
+        """
+
+        _, frame = self._camera.read()
+        if to_gray:
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+        cv2.imwrite(save_path, frame)
