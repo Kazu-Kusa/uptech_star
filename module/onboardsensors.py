@@ -217,6 +217,7 @@ class OnBoardSensors:
           return j_adc_io_ModeSetAll();
         }
         """
+
         OnBoardSensors.__lib.adc_io_ModeSet(index, mode)
 
     @staticmethod
@@ -227,7 +228,7 @@ class OnBoardSensors:
         unsigned 8int
         """
 
-        return tuple((OnBoardSensors.__lib.adc_io_InputGetAll() >> i) & 1 for i in range(7, -1, -1))
+        return tuple((OnBoardSensors.__lib.adc_io_InputGetAll() >> i) & 1 for i in range(8))
 
     @staticmethod
     def MPU6500_Open(debug_info: bool = False):
