@@ -204,8 +204,7 @@ class BufferRegistry(object):
         return cls.__BUFFER_Dict.get(key)
 
     @classmethod
-    @property
-    def buffer_dict(cls):
+    def buffer_dict(cls) -> Dict[int, Any]:
         return cls.__BUFFER_Dict
 
 

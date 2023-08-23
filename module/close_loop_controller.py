@@ -205,6 +205,9 @@ def motor_speed_test(port, speed_level: int = 11, interval: float = 1, using_id:
     :param using_id:
     :param laps:
     :return:
+
+    Args:
+        port:
     """
     con = CloseLoopController(motor_ids=(4, 3, 1, 2), motor_dirs=(-1, -1, 1, 1), port=port, debug=True)
     try:
