@@ -281,6 +281,29 @@ class OnBoardSensors:
         return getattr(OnBoardSensors.__lib, attr_name)
 
 
+def sample_freq_test(func):
+    """
+
+    Args:
+        func ():
+
+    Returns:
+
+    """
+    from time import sleep, perf_counter_ns
+    res = []
+    ms = 10000
+    sleep(5)
+    end = perf_counter_ns() + ms * 1000000
+    while perf_counter_ns() < end:
+        res.append(tuple(list(func())))
+    print(res)
+    print(f'length: {len(res)}\n'
+          f'interval: {ms / len(res)}ms\n'
+          f'dedupped: {len(set(res))}\n'
+          f'actual_interval: {ms / len(set(res))}ms\n')
+
+
 def pin_setter_constructor(indexed_setter: IndexedSetter, pin: int) -> PinSetter:
     """
 
