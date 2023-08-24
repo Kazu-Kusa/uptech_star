@@ -28,6 +28,30 @@ def watchers_merge(watcher_sequence: Sequence[Watcher], use_any: bool = False) -
     return merged_watcher
 
 
+def build_io_watcher_from_indexed(sensor_update: Callable[[int], int],
+                                  sensor_ids: Sequence[int],
+                                  activate_status_describer: Sequence[int],
+                                  use_any: bool = False) -> Watcher:
+    """
+    use indexed io updater to construct watcher
+    Args:
+        sensor_update ():
+        sensor_ids ():
+        activate_status_describer ():
+        use_any ():
+
+    Returns:
+
+    """
+    logic_calc_func = any if use_any else all
+
+    def _watcher() -> bool:
+        return logic_calc_func(
+            sensor_update(sensor_id) == activate_status_describer[sensor_id] for sensor_id in sensor_ids)
+
+    return _watcher
+
+
 # TODO: to manage all sort of breakers ,shall we create a registry system?
 def build_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
                          sensor_id: Tuple[int, ...],
