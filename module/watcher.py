@@ -43,11 +43,14 @@ def build_io_watcher_from_indexed(sensor_update: Callable[[int], int],
     Returns:
 
     """
+    if len(sensor_ids) != len(activate_status_describer):
+        raise IndexError('should be with same length')
     logic_calc_func = any if use_any else all
 
     def _watcher() -> bool:
         return logic_calc_func(
-            sensor_update(sensor_id) == activate_status_describer[sensor_id] for sensor_id in sensor_ids)
+            sensor_update(sensor_id) == describer for sensor_id, describer in
+            zip(sensor_ids, activate_status_describer))
 
     return _watcher
 
