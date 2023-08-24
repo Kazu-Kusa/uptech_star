@@ -84,6 +84,8 @@ class TagDetector:
         if minimal_resolution:
             self._camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1)
             self._camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1)
+        self._frame_center: Tuple[float, float] = (self._camera.get(cv2.CAP_PROP_FRAME_WIDTH) / 2,
+                                                   self._camera.get(cv2.CAP_PROP_FRAME_HEIGHT) / 2)
         self._tags_table: Dict[int, Tuple[Optional[Detection], int | float]] = {}
 
         self._tag_id: int = DEFAULT_TAG_ID
@@ -200,7 +202,7 @@ class TagDetector:
         # override old tags
         temp_dict = deepcopy(DEFAULT_TAG_TABLE)
         for tag in self.__tag_detect(cvtColor(frame, COLOR_RGB2GRAY)):
-            temp_dict[tag.tag_id] = (tag, calc_p2p_error(tag.center, self._camera.frame_center))
+            temp_dict[tag.tag_id] = (tag, calc_p2p_error(tag.center, self._frame_center))
         self._tags_table = temp_dict
 
     def _update_tag_id(self):
