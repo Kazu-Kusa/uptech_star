@@ -38,11 +38,6 @@ class OnBoardSensors:
     _atti_all = __mpu_data_list_type()
     last_update_timestamp = perf_counter_ns()
     __adc_min_sample_interval_ns = 5 * E6
-    __io_min_sample_interval_ns = 5 * E6
-
-    __mpu_atti_min_sample_interval_ns = E6
-    __mpu_gyro_min_sample_interval_ns = E6
-    __mpu_accel_min_sample_interval_ns = E6
 
     def __init__(self, open_mpu: bool = True,
                  debug: bool = False):
@@ -56,43 +51,19 @@ class OnBoardSensors:
 
     @property
     def adc_min_sample_interval_ms(self) -> int:
+        """
+        get the minimum interval between two consecutive samples, this is to prevent
+        over-sampling, the value is in milliseconds。
+
+        NOTE:
+            the value is in milliseconds, but the unit is nanoseconds.
+            a greater value means a lower rt performance
+        """
         return int(self.__adc_min_sample_interval_ns / E6)
 
     @adc_min_sample_interval_ms.setter
     def adc_min_sample_interval_ms(self, value: int):
         self.__adc_min_sample_interval_ns = value * E6
-
-    @property
-    def io_min_sample_interval_ms(self) -> int:
-        return int(self.__io_min_sample_interval_ns / E6)
-
-    @io_min_sample_interval_ms.setter
-    def io_min_sample_interval_ms(self, value: int):
-        self.__io_min_sample_interval_ns = value * E6
-
-    @property
-    def mpu_atti_min_sample_interval_ms(self) -> int:
-        return int(self.__mpu_atti_min_sample_interval_ns / E6)
-
-    @mpu_atti_min_sample_interval_ms.setter
-    def mpu_atti_min_sample_interval_ms(self, value: int):
-        self.__mpu_atti_min_sample_interval_ns = value * E6
-
-    @property
-    def mpu_gyro_min_sample_interval_ms(self) -> int:
-        return int(self.__mpu_gyro_min_sample_interval_ns / E6)
-
-    @mpu_gyro_min_sample_interval_ms.setter
-    def mpu_gyro_min_sample_interval_ms(self, value: int):
-        self.__mpu_gyro_min_sample_interval_ns = value * E6
-
-    @property
-    def mpu_accel_min_sample_interval_ms(self) -> int:
-        return int(self.__mpu_accel_min_sample_interval_ns / E6)
-
-    @mpu_accel_min_sample_interval_ms.setter
-    def mpu_accel_min_sample_interval_ms(self, value: int):
-        self.__mpu_accel_min_sample_interval_ns = value * E6
 
     @staticmethod
     def adc_io_open():
@@ -269,12 +240,12 @@ class OnBoardSensors:
     @staticmethod
     def io_all_channels():
         """
-        get all io plug input level
+        get all io plug input levels
 
-        unsigned 8int
+        uint8, each bit represents a channel, 1 for high, 0 for low
         """
-
-        return tuple((OnBoardSensors.__lib.adc_io_InputGetAll() >> i) & 1 for i in range(8))
+        updated_data = OnBoardSensors.__lib.adc_io_InputGetAll()
+        return tuple((updated_data >> i) & 1 for i in range(8))
 
     @staticmethod
     def MPU6500_Open(debug_info: bool = False):
