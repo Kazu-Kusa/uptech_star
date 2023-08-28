@@ -4,7 +4,8 @@ from time import perf_counter_ns
 from typing import Callable, Sequence
 
 from .os_tools import load_lib
-from ..constant import MIN_SAMPLE_INTERVAL_MS
+
+E6 = 1000000
 
 PinModeSetter = Callable[[int], None]
 PinSetter = Callable[[int], None]
@@ -36,7 +37,7 @@ class OnBoardSensors:
     _gyro_all = __mpu_data_list_type()
     _atti_all = __mpu_data_list_type()
     last_update_timestamp = perf_counter_ns()
-    min_sample_interval = MIN_SAMPLE_INTERVAL_MS * 1000000
+    __adc_min_sample_interval_ns = 5 * E6
 
     def __init__(self, open_mpu: bool = True,
                  debug: bool = False):
@@ -47,6 +48,22 @@ class OnBoardSensors:
         self.set_all_io_mode(INPUT)
         self.set_all_io_level(HIGH)
         print(f"Sensor channel Init times: {success}") if self.debug else None
+
+    @property
+    def adc_min_sample_interval_ms(self) -> int:
+        """
+        get the minimum interval between two consecutive samples, this is to prevent
+        over-sampling, the value is in milliseconds。
+
+        NOTE:
+            the value is in milliseconds, but the unit is nanoseconds.
+            a greater value means a lower rt performance
+        """
+        return int(self.__adc_min_sample_interval_ns / E6)
+
+    @adc_min_sample_interval_ms.setter
+    def adc_min_sample_interval_ms(self, value: int):
+        self.__adc_min_sample_interval_ns = value * E6
 
     @staticmethod
     def adc_io_open():
@@ -99,7 +116,7 @@ class OnBoardSensors:
         }
         """
         current = perf_counter_ns()
-        if current - OnBoardSensors.last_update_timestamp < OnBoardSensors.min_sample_interval:
+        if current - OnBoardSensors.last_update_timestamp < OnBoardSensors.__adc_min_sample_interval_ns:
             OnBoardSensors.last_update_timestamp = current
             return OnBoardSensors.acc_all
         OnBoardSensors.__lib.ADC_GetAll(OnBoardSensors._adc_all)
@@ -217,17 +234,18 @@ class OnBoardSensors:
           return j_adc_io_ModeSetAll();
         }
         """
+
         OnBoardSensors.__lib.adc_io_ModeSet(index, mode)
 
     @staticmethod
     def io_all_channels():
         """
-        get all io plug input level
+        get all io plug input levels
 
-        unsigned 8int
+        uint8, each bit represents a channel, 1 for high, 0 for low
         """
-
-        return tuple((OnBoardSensors.__lib.adc_io_InputGetAll() >> i) & 1 for i in range(7, -1, -1))
+        updated_data = OnBoardSensors.__lib.adc_io_InputGetAll()
+        return tuple((updated_data >> i) & 1 for i in range(8))
 
     @staticmethod
     def MPU6500_Open(debug_info: bool = False):
@@ -278,6 +296,29 @@ class OnBoardSensors:
     @staticmethod
     def get_handle(attr_name: str):
         return getattr(OnBoardSensors.__lib, attr_name)
+
+
+def sample_freq_test(func):
+    """
+
+    Args:
+        func ():
+
+    Returns:
+
+    """
+    from time import sleep, perf_counter_ns
+    res = []
+    ms = 10000
+    sleep(5)
+    end = perf_counter_ns() + ms * 1000000
+    while perf_counter_ns() < end:
+        res.append(tuple(list(func())))
+    print(res)
+    print(f'length: {len(res)}\n'
+          f'interval: {ms / len(res)}ms\n'
+          f'dedupped: {len(set(res))}\n'
+          f'actual_interval: {ms / len(set(res))}ms\n')
 
 
 def pin_setter_constructor(indexed_setter: IndexedSetter, pin: int) -> PinSetter:

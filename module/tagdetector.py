@@ -2,16 +2,19 @@
 apriltag detecting app
 """
 import warnings
+from copy import deepcopy
 from threading import Thread
 from time import sleep
 from typing import Tuple, List, Dict, Optional
 
+import cv2
 from apriltag import DetectorOptions, Detector, Detection
-from cv2 import Mat, cvtColor, COLOR_BGR2GRAY
+from cv2 import Mat, cvtColor, COLOR_RGB2GRAY
 
 from .algrithm_tools import calc_p2p_dst, calc_p2p_error
-from .camra import Camera
 from ..constant import TAG_GROUP
+
+DEFAULT_TAG_TABLE = {2: (None, 0.0), 1: (None, 0.0), 0: (None, 0.0)}
 
 DEFAULT_TAG_ID = -1
 
@@ -53,34 +56,40 @@ class TagDetector:
     """
     options = DetectorOptions(families=TAG_GROUP,
                               border=1,
-                              nthreads=4,
+                              nthreads=2,
                               quad_decimate=1.0,
                               quad_blur=0.0,
-                              refine_edges=True,
+                              refine_edges=False,
                               refine_decode=False,
                               refine_pose=False,
                               debug=False,
                               quad_contours=False)
     __tag_detect = Detector(options).detect
 
-    def __init__(self, camera: Camera,
+    def __init__(self, cam_id: int,
                  team_color: str,
                  start_detect_tag: bool = True,
-                 single_tag_mode: bool = True):
+                 single_tag_mode: bool = True,
+                 minimal_resolution: bool = True):
         """
 
         Args:
-            camera:
+
             team_color:
             start_detect_tag:
             single_tag_mode:if check only a single tag one time
         """
 
-        self._camera: Camera = camera
+        self._camera: cv2.VideoCapture = cv2.VideoCapture(cam_id)
+        if minimal_resolution:
+            self._camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1)
+            self._camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 1)
+        self._frame_center: Tuple[float, float] = (self._camera.get(cv2.CAP_PROP_FRAME_WIDTH) / 2,
+                                                   self._camera.get(cv2.CAP_PROP_FRAME_HEIGHT) / 2)
         self._tags_table: Dict[int, Tuple[Optional[Detection], int | float]] = {}
 
         self._tag_id: int = DEFAULT_TAG_ID
-        self._tag_monitor_switch: bool = False
+        self._tag_monitor_switch: bool = True
         self._enemy_tag_id: int = NULL_TAG
         self._ally_tag_id: int = NULL_TAG
         self._neutral_tag_id: int = NULL_TAG
@@ -90,6 +99,7 @@ class TagDetector:
         self._single_tag_mode: bool = single_tag_mode
         self._apriltag_detect: Optional[Thread] = None
         self._detect_should_continue: bool = True
+
         self.apriltag_detect_start() if start_detect_tag else None
 
     def _init_tags_table(self):
@@ -141,8 +151,8 @@ class TagDetector:
 
     @detect_should_continue.setter
     def detect_should_continue(self, should: bool):
-        with self.__lock:
-            self._detect_should_continue = should
+
+        self._detect_should_continue = should
 
     def apriltag_detect_start(self):
         """
@@ -151,8 +161,8 @@ class TagDetector:
         """
         warnings.warn('AprilTag detect Activating')
         self._detect_should_continue: bool = True
-        apriltag_detect = Thread(target=TagDetector._apriltag_detect_loop,
-                                 name="apriltag_detect_Process", args=(self,))
+        apriltag_detect = Thread(target=self._apriltag_detect_loop,
+                                 name="apriltag_detect_Process")
         apriltag_detect.daemon = True
         apriltag_detect.start()
 
@@ -163,11 +173,11 @@ class TagDetector:
         这是一个线程函数，它从摄像头捕获视频帧，处理帧以检测 AprilTags，
         :return:
         """
-        frame_updater = self._camera.camera_device.read
+        frame_updater = self._camera.read
 
         warnings.warn('Detection Activated')
         while self._detect_should_continue:
-            if self.tag_detection_switch:  # 台上开启 台下关闭 节约性能
+            if self._tag_monitor_switch:  # 台上开启 台下关闭 节约性能
                 success, frame = frame_updater()  # extract frame from the cam
                 if success:
                     self._update_tags(frame)  # extract tags in the detection
@@ -190,9 +200,10 @@ class TagDetector:
         # 将帧转换为灰度并存储在 gray 变量中。
         # 使用 AprilTag 检测器对象（self.tag_detector）在灰度帧中检测 AprilTags。检测到的标记存储在 self._tags 变量中。
         # override old tags
-        self._init_tags_table()
-        for tag in self.__tag_detect(cvtColor(frame, COLOR_BGR2GRAY)):
-            self._tags_table[tag.tag_id] = (tag, calc_p2p_error(tag.center, self._camera.frame_center))
+        temp_dict = deepcopy(DEFAULT_TAG_TABLE)
+        for tag in self.__tag_detect(cvtColor(frame, COLOR_RGB2GRAY)):
+            temp_dict[tag.tag_id] = (tag, calc_p2p_error(tag.center, self._frame_center))
+        self._tags_table = temp_dict
 
     def _update_tag_id(self):
         """

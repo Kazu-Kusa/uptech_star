@@ -1,4 +1,4 @@
-from copy import copy
+from copy import deepcopy
 from typing import Callable, Sequence, Any, Tuple, Optional, Dict, List
 
 from .onboardsensors import OnBoardSensors
@@ -26,6 +26,33 @@ def watchers_merge(watcher_sequence: Sequence[Watcher], use_any: bool = False) -
         return logic_calc_func(watcher() for watcher in watcher_sequence)
 
     return merged_watcher
+
+
+def build_io_watcher_from_indexed(sensor_update: Callable[[int], int],
+                                  sensor_ids: Sequence[int],
+                                  activate_status_describer: Sequence[int],
+                                  use_any: bool = False) -> Watcher:
+    """
+    use indexed io updater to construct watcher
+    Args:
+        sensor_update ():
+        sensor_ids ():
+        activate_status_describer ():
+        use_any ():
+
+    Returns:
+
+    """
+    if len(sensor_ids) != len(activate_status_describer):
+        raise IndexError('should be with same length')
+    logic_calc_func = any if use_any else all
+
+    def _watcher() -> bool:
+        return logic_calc_func(
+            sensor_update(sensor_id) == describer for sensor_id, describer in
+            zip(sensor_ids, activate_status_describer))
+
+    return _watcher
 
 
 # TODO: to manage all sort of breakers ,shall we create a registry system?
@@ -182,8 +209,30 @@ def sort_with_mode(max_lines, min_lines, sensor_ids) -> Tuple[
     return belt_pass_sensors, high_pass_sensors, low_pass_sensors
 
 
-# Buffer to store the previous sensor updates
-__BUFFER_list: List[List] = []
+class BufferRegistry(object):
+    """
+    a Buffer class to store the previous sensor updates
+    """
+    __BUFFER_Dict: Dict[int, Any] = {}
+    __client_count = 0
+
+    @classmethod
+    def register_buffer(cls) -> int:
+        cls.__client_count += 1
+        cls.__BUFFER_Dict[cls.__client_count] = None
+        return cls.__client_count
+
+    @classmethod
+    def set_buffer(cls, key: int, value: Any):
+        cls.__BUFFER_Dict[key] = deepcopy(value)
+
+    @classmethod
+    def get_buffer(cls, key: int) -> Any:
+        return cls.__BUFFER_Dict.get(key)
+
+    @classmethod
+    def buffer_dict(cls) -> Dict[int, Any]:
+        return cls.__BUFFER_Dict
 
 
 def build_delta_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
@@ -211,34 +260,37 @@ def build_delta_watcher_simple(sensor_update: Callable[..., Sequence[Any]],
     """
 
     # Create a new buffer for the current sensor updates
-    __BUFFER_list.append([])
-    buffer = copy(__BUFFER_list[-1])
-    buffer[:] = sensor_update(*args, **kwargs)
+    buffer_id = BufferRegistry.register_buffer()
+    BufferRegistry.set_buffer(buffer_id, sensor_update(*args, **kwargs))
+
     logic_calc_func = any if use_any else all
     # Define the watcher function based on the provided limits
     if max_line and min_line:
-        def watcher() -> bool:
-            nonlocal buffer
+        def _watcher() -> bool:
+            nonlocal buffer_id
             update = sensor_update(*args, **kwargs)
-            b = logic_calc_func(((max_line > abs(update[x]) - buffer[x]) > min_line) for x in sensor_id)
-            buffer = update
+            b = logic_calc_func(
+                ((max_line > abs(update[x]) - BufferRegistry.get_buffer(buffer_id)[x]) > min_line) for x in sensor_id)
+            BufferRegistry.set_buffer(buffer_id, update)
             return b
     elif min_line:
-        def watcher() -> bool:
-            nonlocal buffer
+        def _watcher() -> bool:
+            nonlocal buffer_id
             update = sensor_update(*args, **kwargs)
-            b = logic_calc_func((abs(update[x] - buffer[x]) > min_line) for x in sensor_id)
-            buffer = update
+            b = logic_calc_func(
+                (abs(update[x] - BufferRegistry.get_buffer(buffer_id)[x]) > min_line) for x in sensor_id)
+            BufferRegistry.set_buffer(buffer_id, update)
             return b
     else:
-        def watcher() -> bool:
-            nonlocal buffer
+        def _watcher() -> bool:
+            nonlocal buffer_id
             update = sensor_update(*args, **kwargs)
-            b = logic_calc_func((abs(update[x] - buffer[x]) < max_line) for x in sensor_id)
-            buffer = update
+            b = logic_calc_func(
+                (abs(update[x] - BufferRegistry.get_buffer(buffer_id)[x]) < max_line) for x in sensor_id)
+            BufferRegistry.set_buffer(buffer_id, update)
             return b
 
-    return watcher
+    return _watcher
 
 
 def build_delta_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
@@ -265,9 +317,8 @@ def build_delta_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
       False otherwise.
       """
     # Create a new buffer for the current sensor updates
-    __BUFFER_list.append([])
-    buffer = copy(__BUFFER_list[-1])
-    buffer[:] = sensor_update(*args, **kwargs)
+    buffer_id = BufferRegistry.register_buffer()
+    BufferRegistry.set_buffer(buffer_id, sensor_update(*args, **kwargs))
 
     belt_pass_sensors, high_pass_sensors, low_pass_sensors = sort_with_mode(max_lines, min_lines, sensor_ids)
     logic_calc_func = any if use_any else all
@@ -295,10 +346,10 @@ def build_delta_watcher_full_ctrl(sensor_update: Callable[..., Sequence[Any]],
             min_line: {min_lines}
             max_line: {max_lines}
         """
-        nonlocal buffer
+        nonlocal buffer_id
         update = sensor_update(*args, **kwargs)
-        b = logic_calc_func(part(update, buffer) for part in parts)
-        buffer = update
+        b = logic_calc_func(part(update, BufferRegistry.get_buffer(buffer_id)) for part in parts)
+        BufferRegistry.set_buffer(buffer_id, update)
         return b
 
     return assembly_watcher

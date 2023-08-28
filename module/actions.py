@@ -107,7 +107,7 @@ class ActionFrame(object):
         """
         The minimal action unit that could be customized and glue together to be a chain movement,
         if no parameters are given,default parameters stop the robot
-        :param action_speed: the speed of the action, accepts a tuple of 4 integers, each integer represents a motor
+        :param action_speed: the speed of the action, accepts a tuple of four integers, each integer represents a motor
             speed,which can be either positive or negative.
             Index 0 is the front left motor.
             Index 1 is the back left motor.
@@ -278,7 +278,7 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
     an ActionFrame factory that generates a new action frame, with caching
 
     :keyword action_speed: allows 3 input styles:
-        1.int: a single integer representing the speed of the all motors are the same speed
+        1.int: a single integer representing the speed of the all motors are the same
         2.Tuple[int,int,int,int]: a tuple of 4 integers representing the speed of the corresponding motors
         3.Tuple[int,int]: a tuple of 2 integers representing the speed of left motors and right motors
 
@@ -294,11 +294,11 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
     action_speed_list = ZEROS
     if isinstance(action_speed, Tuple):
         if len(action_speed) == 2:
-            action_speed_list = (action_speed[0],) * 2 + (action_speed[1],) * 2
+            action_speed_list = (action_speed[0], action_speed[0], action_speed[1], action_speed[1])
         elif len(action_speed) == 4:
             action_speed_list = action_speed
     elif isinstance(action_speed, int):
-        action_speed_list = (action_speed,) * 4
+        action_speed_list = (action_speed, action_speed, action_speed, action_speed)
     else:
         raise TypeError('##UNKNOWN INPUT##')
 
@@ -312,7 +312,7 @@ def new_ActionFrame(action_speed: Union[int, Tuple[int, int], Tuple[int, int, in
     return ActionFrame(action_speed=action_speed_list, action_duration=action_duration,
                        breaker_func=breaker_func, break_action=break_action, is_override_action=is_override_action,
                        hang_time=calc_hang_time(action_duration,
-                                                HANG_TIME_MAX_ERROR)  # will be 0 if breaker is specified
+                                                HANG_TIME_MAX_ERROR)  # will be zero if breaker is specified
                        if hang_during_action or breaker_func is None else 0)
 
 

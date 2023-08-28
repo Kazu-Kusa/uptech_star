@@ -1,12 +1,12 @@
-from time import sleep
-from typing import List, Callable, Any, Optional, ByteString, Union, Dict
+import warnings
 from types import MappingProxyType
+from typing import List, Callable, Any, Optional, ByteString
+
 import serial
 from serial import Serial, EIGHTBITS, PARITY_NONE, STOPBITS_ONE
-from serial.tools.list_ports import comports
-from serial.threaded import ReaderThread, Protocol
 from serial.serialutil import SerialException
-import warnings
+from serial.threaded import ReaderThread, Protocol
+from serial.tools.list_ports import comports
 
 ReadHandler = Callable[[bytes | bytearray], Optional[Any]]
 DEFAULT_SERIAL_KWARGS = MappingProxyType({'baudrate': 115200,

@@ -1,6 +1,5 @@
 import os
 import shutil
-import sys
 import time
 from distutils.core import setup
 
@@ -27,6 +26,11 @@ def get_py(base_path=os.path.abspath(''), parent_path='', name='', excepts=(), c
     :param parent_path: 父路径
     :param excepts: 排除文件
     :return: py文件的迭代器
+
+    Args:
+        delC:
+        copyOther:
+        name:
     """
     full_path = os.path.join(base_path, parent_path, name)
     for filename in os.listdir(full_path):
@@ -68,12 +72,12 @@ def pack_pyd():
 
 
 def delete_c(path='.', excepts=(setup_file,)):
-    '''
+    """
     删除编译过程中生成的.c文件
     :param path:
     :param excepts:
     :return:
-    '''
+    """
     dirs = os.listdir(path)
     for dir in dirs:
         new_dir = os.path.join(path, dir)
