@@ -11,7 +11,94 @@ from dill import dump, load
 
 from ..constant import LIB_DIR_PATH
 
-CONFIG_PATH_PATTERN = r'[\\/]'
+CONFIG_PATH_PATTERN = r"[\\/]"
+
+
+# region get_config
+@singledispatch
+def get_config(body, chain: Sequence[str]) -> Any:
+    """
+    get config recursively form the nested dict
+    Args:
+        body (dict):
+        chain ():
+
+    Returns:
+
+    """
+    raise KeyError("The chain is conflicting")
+
+
+@get_config.register(dict)
+def _(body: Dict, chain: Sequence[str]) -> Any:
+    if len(chain) == 1:
+        # Store the value
+        return body.get(chain[0])
+    else:
+        return get_config(body.get(chain[0]), chain[1:])
+
+
+@get_config.register(type(None))
+def _(body: Dict, chain: Sequence[str]) -> Any:
+    return None
+
+
+# endregion
+
+
+# region make_config
+@singledispatch
+def make_config(body, chain: Sequence[str], value) -> Dict:
+    """
+    inject config to a nested dict
+    Args:
+        body (dict):
+        chain ():
+        value ():
+
+    Returns:
+
+    """
+    # indicating the given chain will override some other value in the config
+    # normally, re-register a config value is allowed
+    raise KeyError("The chain is conflicting")
+
+
+@make_config.register(dict)
+def _(body, chain: Sequence[str], value) -> Dict:
+    if len(chain) == 1:
+        # Store the value
+        body[chain[0]] = value
+        return body
+    else:
+        # recursive call util the chain is empty
+
+        # here is to deal with two different situations
+        # first is the situation,
+        # in which the body doesn't contain the key named chain[0],indicating that
+        # there is no existed nested Dict.For that here parse a None as the body,
+        # which prevents body[chain[0]] raise the KeyError
+
+        # second is the situation, in which the body does contain the key named chain[0],indicating that
+        # there should be a nested Dict.For that here parse the nested Dict as the Body,
+        # which may contain other configurations
+        body[chain[0]] = make_config(
+            body[chain[0]] if chain[0] in body else None, chain[1:], value
+        )
+        return body
+
+
+@make_config.register(type(None))
+def _(body, chain: Sequence[str], value) -> Dict:
+    if len(chain) == 1:
+        # Store the value
+        return {chain[0]: value}
+    else:
+        # recursive call util the chain is empty
+        return {chain[0]: make_config(None, chain[1:], value)}
+
+
+# endregion
 
 
 # TODO to deal with object that may not support serializing, consider add a save rule to remove those
@@ -28,10 +115,10 @@ class CacheFILE:
     def load_cache(self) -> Dict:
         # 从文件中加载缓存，如果文件不存在则返回空字典
         try:
-            with open(self._cache_file_path, 'rb') as f:
+            with open(self._cache_file_path, "rb") as f:
                 return load(f)
         except FileNotFoundError:
-            warnings.warn('No existing CacheFile', stacklevel=4)
+            warnings.warn("No existing CacheFile", stacklevel=4)
             return {}
         except EOFError:
             warnings.warn("Bad CacheFile, executing removal", stacklevel=4)
@@ -40,7 +127,7 @@ class CacheFILE:
 
     def save_cache(self) -> None:
         # 保存缓存到文件
-        with open(self._cache_file_path, 'wb') as f:
+        with open(self._cache_file_path, "wb") as f:
             dump(self.content, f)
 
     @classmethod
@@ -108,9 +195,12 @@ class Configurable(metaclass=ABCMeta):
         self._config_registry: Set[str] = set()
         self.register_all_config()
         if config_path:
-            warnings.warn(f'\nLoading config at: {config_path}', stacklevel=3)
+            warnings.warn(f"\nLoading config at: {config_path}", stacklevel=3)
         else:
-            warnings.warn('\nConfig path is not specified, default config will be applied', stacklevel=3)
+            warnings.warn(
+                "\nConfig path is not specified, default config will be applied",
+                stacklevel=3,
+            )
         self.load_config(config_path)
         self.inject_config()
 
@@ -123,7 +213,9 @@ class Configurable(metaclass=ABCMeta):
         pass
 
     @final
-    def register_config(self, config_registry_path: str, value: Optional[Any] = None) -> None:
+    def register_config(
+            self, config_registry_path: str, value: Optional[Any] = None
+    ) -> None:
         """
         Registers the value at the specified location in the nested dictionary _config.
         The operation will override the original value
@@ -134,45 +226,11 @@ class Configurable(metaclass=ABCMeta):
 
         self._config_registry.add(config_registry_path)
         # TODO may refactor this chain maker to a named def
-        config_registry_path_chain: List[str] = re.split(pattern=CONFIG_PATH_PATTERN, string=config_registry_path)
+        config_registry_path_chain: List[str] = re.split(
+            pattern=CONFIG_PATH_PATTERN, string=config_registry_path
+        )
 
-        @singledispatch
-        def make_config(body, chain: Sequence[str]) -> Dict:
-            # indicating the given chain will override some other value in the config
-            # normally, re-register a config value is allowed
-            raise KeyError('The chain is conflicting')
-
-        @make_config.register(dict)
-        def _(body, chain: Sequence[str]) -> Dict:
-            if len(chain) == 1:
-                # Store the value
-                body[chain[0]] = value
-                return body
-            else:
-                # recursive call util the chain is empty
-
-                # here is to deal with two different situations
-                # first is the situation,
-                # in which the body doesn't contain the key named chain[0],indicating that
-                # there is no existed nested Dict.For that here parse a None as the body,
-                # which prevents body[chain[0]] raise the KeyError
-
-                # second is the situation, in which the body does contain the key named chain[0],indicating that
-                # there should be a nested Dict.For that here parse the nested Dict as the Body,
-                # which may contain other configurations
-                body[chain[0]] = make_config(body[chain[0]] if chain[0] in body else None, chain[1:])
-                return body
-
-        @make_config.register(type(None))
-        def _(body, chain: Sequence[str]) -> Dict:
-            if len(chain) == 1:
-                # Store the value
-                return {chain[0]: value}
-            else:
-                # recursive call util the chain is empty
-                return {chain[0]: make_config(None, chain[1:])}
-
-        self._config = make_config(self._config, config_registry_path_chain)
+        self._config = make_config(self._config, config_registry_path_chain, value)
 
     @staticmethod
     def export_config(config_body: Dict, config_registry_path: str) -> Optional[Any]:
@@ -184,23 +242,9 @@ class Configurable(metaclass=ABCMeta):
             config_registry_path: A list of keys representing the nested location in the dictionary.
         :return: The value at the specified location.
         """
-        config_registry_path_chain: List[str] = re.split(pattern=CONFIG_PATH_PATTERN, string=config_registry_path)
-
-        @singledispatch
-        def get_config(body, chain: Sequence[str]) -> Any:
-            raise KeyError('The chain is conflicting')
-
-        @get_config.register(dict)
-        def _(body: Dict, chain: Sequence[str]) -> Any:
-            if len(chain) == 1:
-                # Store the value
-                return body.get(chain[0])
-            else:
-                return get_config(body.get(chain[0]), chain[1:])
-
-        @get_config.register(type(None))
-        def _(body: Dict, chain: Sequence[str]) -> Any:
-            return None
+        config_registry_path_chain: List[str] = re.split(
+            pattern=CONFIG_PATH_PATTERN, string=config_registry_path
+        )
 
         return get_config(config_body, config_registry_path_chain)
 
@@ -214,7 +258,7 @@ class Configurable(metaclass=ABCMeta):
         :return: None
         """
 
-        with open(save_path if save_path else self._config_path, mode='w') as f:
+        with open(save_path if save_path else self._config_path, mode="w") as f:
             json.dump(self._config, f, indent=2)
 
     @final
@@ -226,13 +270,15 @@ class Configurable(metaclass=ABCMeta):
         :return:
         """
         if config_path:
-            with open(config_path, mode='r') as f:
+            with open(config_path, mode="r") as f:
                 temp_config = json.load(f)
         else:
             temp_config = {}
         for config_registry_path in self._config_registry:
             config = self.export_config(temp_config, config_registry_path)
-            self.register_config(config_registry_path, config) if config is not None else None
+            self.register_config(
+                config_registry_path, config
+            ) if config is not None else None
 
     @final
     def inject_config(self):
@@ -242,10 +288,16 @@ class Configurable(metaclass=ABCMeta):
         """
         for config_registry_path in self._config_registry:
             if hasattr(self, config_registry_path):
-                raise AttributeError(f'CONF: {config_registry_path} is already in the instance')
-            setattr(self, config_registry_path,
-                    self.export_config(config_body=self._config,
-                                       config_registry_path=config_registry_path))
+                raise AttributeError(
+                    f"CONF: {config_registry_path} is already in the instance"
+                )
+            setattr(
+                self,
+                config_registry_path,
+                self.export_config(
+                    config_body=self._config, config_registry_path=config_registry_path
+                ),
+            )
 
 
 def format_json_file(file_path):
@@ -261,6 +313,6 @@ def format_json_file(file_path):
 @lru_cache(maxsize=None)
 def load_lib(libname: str) -> CDLL:
     """Load a shared library, with caching"""
-    lib_file_name = f'{LIB_DIR_PATH}/{libname}'
-    print(f'Loading [{lib_file_name}]')
+    lib_file_name = f"{LIB_DIR_PATH}/{libname}"
+    print(f"Loading [{lib_file_name}]")
     return cdll.LoadLibrary(lib_file_name)
