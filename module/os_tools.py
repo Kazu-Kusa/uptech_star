@@ -16,15 +16,15 @@ CONFIG_PATH_PATTERN = r"[\\/]"
 
 # region get_config
 @singledispatch
-def get_config(body, chain: Sequence[str]) -> Any:
+def get_config(body: Dict, chain: Sequence[str]) -> Any:
     """
-    get config recursively form the nested dict
+    Get config recursively from the nested dict
     Args:
-        body (dict):
-        chain ():
+        body (dict): The nested dictionary
+        chain (Sequence[str]): The sequence of keys representing the path to the desired value
 
     Returns:
-
+        Any: The value associated with the specified chain in the nested dictionary
     """
     raise KeyError("The chain is conflicting")
 
@@ -39,7 +39,7 @@ def _(body: Dict, chain: Sequence[str]) -> Any:
 
 
 @get_config.register(type(None))
-def _(body: Dict, chain: Sequence[str]) -> Any:
+def _() -> Any:
     return None
 
 
@@ -48,54 +48,66 @@ def _(body: Dict, chain: Sequence[str]) -> Any:
 
 # region make_config
 @singledispatch
-def make_config(body, chain: Sequence[str], value) -> Dict:
+def make_config(body: Dict, chain: Sequence[str], value: Any) -> Dict:
     """
-    inject config to a nested dict
+    Inject config to a nested dict
     Args:
-        body (dict):
+        body (dict): The nested dictionary
+        chain (Sequence[str]): The sequence of keys representing the path to the desired value
+        value (Any): The value to be injected
+
+    Returns:
+        dict: The modified nested dictionary with the injected config
+    """
+    raise KeyError("The chain is conflicting")
+
+
+@make_config.register(dict)
+def _(body: Dict, chain: Sequence[str], value: Any) -> Dict:
+    """
+    Recursive call util the chain is empty
+
+
+    Args:
+        body ():
         chain ():
         value ():
 
     Returns:
 
+    Notes:
+        Here is to deal with two different situations
+        first is the situation,
+        in which the body doesn't contain the key named chain[0],indicating that
+        there is no existed nested Dict.
+        For that here parse a None as the body,
+        which prevents body[chain[0]] raising the KeyError
+
+        Second is the situation, in which the body does contain the key named chain[0],indicating that
+        there should be a nested Dict.
+        For that here parse the nested Dict as the Body,
+        which may contain other configurations
     """
-    # indicating the given chain will override some other value in the config
-    # normally, re-register a config value is allowed
-    raise KeyError("The chain is conflicting")
-
-
-@make_config.register(dict)
-def _(body, chain: Sequence[str], value) -> Dict:
     if len(chain) == 1:
         # Store the value
         body[chain[0]] = value
         return body
     else:
-        # recursive call util the chain is empty
-
-        # here is to deal with two different situations
-        # first is the situation,
-        # in which the body doesn't contain the key named chain[0],indicating that
-        # there is no existed nested Dict.For that here parse a None as the body,
-        # which prevents body[chain[0]] raise the KeyError
-
-        # second is the situation, in which the body does contain the key named chain[0],indicating that
-        # there should be a nested Dict.For that here parse the nested Dict as the Body,
-        # which may contain other configurations
-        body[chain[0]] = make_config(
-            body[chain[0]] if chain[0] in body else None, chain[1:], value
-        )
+        # Recursive call until the chain is empty
+        if chain[0] not in body:
+            body[chain[0]] = None
+        body[chain[0]] = make_config(body[chain[0]], chain[1:], value)
         return body
 
 
 @make_config.register(type(None))
-def _(body, chain: Sequence[str], value) -> Dict:
+def _(body, chain: Sequence[str], value: Any) -> Dict:
     if len(chain) == 1:
         # Store the value
         return {chain[0]: value}
     else:
-        # recursive call util the chain is empty
-        return {chain[0]: make_config(None, chain[1:], value)}
+        # Recursive call until the chain is empty
+        return {chain[0]: make_config(body, chain[1:], value)}
 
 
 # endregion
