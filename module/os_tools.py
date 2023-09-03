@@ -14,6 +14,21 @@ from ..constant import LIB_DIR_PATH
 CONFIG_PATH_PATTERN = r"[\\/]"
 
 
+def registry_path_to_chain(config_registry_path) -> List[str]:
+    """
+
+    Args:
+        config_registry_path ():
+
+    Returns:
+
+    """
+    config_registry_path_chain: List[str] = re.split(
+        pattern=CONFIG_PATH_PATTERN, string=config_registry_path
+    )
+    return config_registry_path_chain
+
+
 # region get_config
 @singledispatch
 def get_config(body: Dict, chain: Sequence[str]) -> Any:
@@ -237,10 +252,7 @@ class Configurable(metaclass=ABCMeta):
         """
 
         self._config_registry.add(config_registry_path)
-        # TODO may refactor this chain maker to a named def
-        config_registry_path_chain: List[str] = re.split(
-            pattern=CONFIG_PATH_PATTERN, string=config_registry_path
-        )
+        config_registry_path_chain = registry_path_to_chain(config_registry_path)
 
         self._config = make_config(self._config, config_registry_path_chain, value)
 
@@ -254,8 +266,8 @@ class Configurable(metaclass=ABCMeta):
             config_registry_path: A list of keys representing the nested location in the dictionary.
         :return: The value at the specified location.
         """
-        config_registry_path_chain: List[str] = re.split(
-            pattern=CONFIG_PATH_PATTERN, string=config_registry_path
+        config_registry_path_chain: List[str] = registry_path_to_chain(
+            config_registry_path
         )
 
         return get_config(config_body, config_registry_path_chain)
