@@ -5,12 +5,15 @@ import warnings
 from abc import ABCMeta, abstractmethod
 from ctypes import CDLL, cdll
 from functools import wraps, singledispatch, lru_cache
-from typing import Optional, List, Dict, final, Any, Sequence, Set
+from types import MappingProxyType
+from typing import Optional, List, Dict, final, Any, Sequence, Set, Union, Tuple
 
+from colorama import Back, Fore, Style
 from dill import dump, load
 
 from ..constant import LIB_DIR_PATH
 
+Value = Union[str, int, float, List, Dict]
 CONFIG_PATH_PATTERN = r"[\\/]"
 
 
@@ -68,7 +71,7 @@ def make_config(body: Dict, chain: Sequence[str], value: Any) -> Dict:
     Inject config to a nested dict
     Args:
         body (dict): The nested dictionary
-        chain (Sequence[str]): The sequence of keys representing the path to the desired value
+        chain (Sequence[str]): The sequence of keys representing the path to the desired value.
         value (Any): The value to be injected
 
     Returns:
@@ -197,16 +200,6 @@ def persistent_cache(cache_file_path: str):
     return decorator
 
 
-def makedirs(path: str):
-    if not os.path.exists(path):
-        os.makedirs(path)
-
-
-def set_env_var(env_var: str, value: str):
-    os.environ[env_var]: str = value
-    makedirs(value)
-
-
 class Configurable(metaclass=ABCMeta):
     """
     Abc class to build a child class which can load config form json
@@ -324,7 +317,184 @@ class Configurable(metaclass=ABCMeta):
             )
 
 
+class ConfigRegistry(object):
+    """
+    a config registry class using json
+    """
+
+    __config_registry_instance: List["ConfigRegistry"] = []
+
+    @classmethod
+    def save_all_configs(cls):
+        """
+        save all ConfigRegistry instance
+        Returns:
+
+        """
+        config_count = len(cls.__config_registry_instance)
+        print(
+            Back.BLACK
+            + Fore.GREEN
+            + "Saving ConfigRegistry to json file..."
+            + Style.RESET_ALL
+        )
+        for config_registry in cls.__config_registry_instance:
+            if not config_registry.config_file_path:
+                continue
+            config_registry.save_config()
+
+            print(
+                Back.CYAN
+                + Fore.RED
+                + f"\rRemaining {config_count} configs to save..."
+                + Style.RESET_ALL
+            )
+            config_count -= 1
+        print(Back.BLACK + Fore.GREEN + "Done" + Style.RESET_ALL)
+
+    def __init__(self, config_path: Optional[str] = None):
+        """
+
+        Args:
+            config_path ():
+        """
+        self._config_file_path: str = config_path if config_path else ""
+        self._config_registry_table: Dict[str, Value] = {}
+        self._config_registry_table_proxy: MappingProxyType[
+            str, Value
+        ] = MappingProxyType(self._config_registry_table)
+
+        self.__config_registry_instance.append(self)
+
+    @property
+    def config_file_path(self) -> str:
+        """
+        the path where stores the config file, in json format
+        Returns:
+
+        """
+        return self._config_file_path
+
+    @config_file_path.setter
+    def config_file_path(self, config_path: str) -> None:
+        """
+        set the config file path, with parent directory check
+        Args:
+            config_path ():
+
+
+        """
+        if not os.path.exists(os.path.dirname(config_path)):
+            os.makedirs(os.path.dirname(config_path))
+        self._config_file_path = config_path
+
+    def load_config(self):
+        """
+        load config
+        Returns:
+
+        """
+        self._load_config(self._config_file_path)
+
+    def _load_config(self, config_path: str):
+        """
+        Load the configuration from the given config file path.
+
+        Args:
+            config_path (Str): The path to the config file.
+
+        Returns:
+
+        """
+
+        if not os.path.exists(config_path) or os.path.getsize(config_path) == 0:
+            return
+        with open(config_path, mode="r") as f:
+            temp = load(f)
+        for key in self._config_registry_table.keys():
+            config = get_config(temp, registry_path_to_chain(key))
+            if config is None:
+                continue
+            self._config_registry_table[key] = config
+
+    def save_config(self):
+        """
+        save config to file
+        Returns:
+
+        """
+        if not self._config_file_path:
+            raise ValueError("config file path is not set!")
+        temp = {}
+        for k, v in self._config_registry_table_proxy.items():
+            make_config(temp, registry_path_to_chain(k), v)
+        with open(self._config_file_path, mode="w+") as f:
+            dump(temp, f, indent=2)
+
+    @property
+    def registered_configs(self) -> Tuple[str]:
+        """
+        registry path for every configuration
+        Returns:
+
+        """
+        return tuple(self._config_registry_table.keys())
+
+    def register_config(self, registry_path: str, default_value: Value) -> None:
+        """
+        register config
+        Args:
+            registry_path ():
+            default_value ():
+
+        Returns:
+
+        """
+        if registry_path in self._config_registry_table.keys():
+            raise ValueError(f"{registry_path} already registered")
+        self._config_registry_table[registry_path] = default_value
+
+    def get_config(self, registry_path: str) -> Value:
+        """
+
+        Args:
+            registry_path ():
+
+        Returns:
+
+        """
+        if registry_path not in self._config_registry_table.keys():
+            raise ValueError(f"{registry_path} not registered")
+        return self._config_registry_table.get(registry_path)
+
+    def set_config(self, registry_path: str, new_config_value: Value) -> None:
+        """
+        Sets a new configuration value for the given registry path in the config registry table.
+
+        Parameters:
+            - registry_path (str): The path of the registry to set the new value for.
+            - new_config_value (Value): The new value to set for the registry.
+
+        Returns:
+            None
+
+        Raises:
+            KeyError: If the registry path does not exist in the config registry table.
+        """
+        if registry_path not in self._config_registry_table.keys():
+            raise KeyError(f"{registry_path} not exists!")
+        self._config_registry_table[registry_path] = new_config_value
+
+
 def format_json_file(file_path):
+    """
+
+    Args:
+        file_path ():
+
+    Returns:
+
+    """
     with open(file_path) as file:
         try:
             json_data = json.load(file)
