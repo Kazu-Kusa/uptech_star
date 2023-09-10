@@ -14,10 +14,11 @@ FlexActionFactory = Callable[[int], ComplexAction]
 Reaction = Union[ComplexAction, ActionFactory, Any]
 
 
-class InferrerBase(Configurable):
+class ReactorBase(Configurable):
     """
     this class provides a way to build a key-value-based robot reacting system
     """
+
     __action_table: Dict[Hashable, Reaction] = {}
 
     def __init__(self, sensor_hub: SensorHub, player: ActionPlayer, config_path: str):
